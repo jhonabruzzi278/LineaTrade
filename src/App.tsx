@@ -4,6 +4,8 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Recuperar from './pages/Recuperar'
 import ActualizarPassword from './pages/ActualizarPassword'
+import Onboarding from './pages/Onboarding'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 export default function App() {
   return (
@@ -14,6 +16,14 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/actualizar-password" element={<ActualizarPassword />} />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   )
