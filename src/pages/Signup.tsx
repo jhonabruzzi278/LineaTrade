@@ -1,21 +1,30 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
+import { supabase } from '../lib/supabase'
+import { getErrorMessage } from '../lib/errors'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     if (password.length < 8) {
       setError('La contraseña necesita al menos 8 caracteres.')
       return
     }
-    // TODO: reemplazar por supabase.auth.signUp() cuando conectemos el backend real
+    setLoading(true)
+    const { error: signUpError } = await supabase.auth.signUp({ email, password })
+    setLoading(false)
+    if (signUpError) {
+      setError(getErrorMessage(signUpError))
+      return
+    }
     setSubmitted(true)
   }
 
@@ -84,9 +93,10 @@ export default function Signup() {
 
           <button
             type="submit"
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors"
+            disabled={loading}
+            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
           >
-            Crear cuenta
+            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>
         </form>
 

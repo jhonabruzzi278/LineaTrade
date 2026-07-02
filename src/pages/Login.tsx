@@ -1,17 +1,41 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Nav } from '../components/Nav'
+import { supabase } from '../lib/supabase'
+import { getErrorMessage } from '../lib/errors'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    // TODO: reemplazar por supabase.auth.signInWithPassword() cuando conectemos el backend real
-    setError('Backend aún no conectado — esta es la vista de validación de diseño.')
+    setLoading(true)
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setLoading(false)
+      setError(getErrorMessage(signInError))
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('onboarding_done')
+      .eq('id', data.user.id)
+      .single()
+    setLoading(false)
+
+    if (profileError) {
+      setError(getErrorMessage(profileError))
+      return
+    }
+
+    navigate(profile.onboarding_done ? '/dashboard' : '/onboarding')
   }
 
   return (
@@ -63,13 +87,14 @@ export default function Login() {
             />
           </div>
 
-          {error && <p className="font-body text-[13px] text-steel">{error}</p>}
+          {error && <p className="font-body text-[13px] text-red-400">{error}</p>}
 
           <button
             type="submit"
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors"
+            disabled={loading}
+            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
           >
-            Ingresar
+            {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
 

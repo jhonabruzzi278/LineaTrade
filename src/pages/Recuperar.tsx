@@ -1,14 +1,29 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
+import { supabase } from '../lib/supabase'
+import { getErrorMessage } from '../lib/errors'
 
 export default function Recuperar() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    // TODO: reemplazar por supabase.auth.resetPasswordForEmail() cuando conectemos el backend real
+    setError(null)
+    setLoading(true)
+    // Supabase nunca revela si el correo existe (previene enumeración de cuentas) —
+    // solo devuelve error en fallos reales (rate limit, red), nunca por "no encontrado".
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/actualizar-password`,
+    })
+    setLoading(false)
+    if (resetError) {
+      setError(getErrorMessage(resetError))
+      return
+    }
     setSubmitted(true)
   }
 
@@ -60,11 +75,14 @@ export default function Recuperar() {
             />
           </div>
 
+          {error && <p className="font-body text-[13px] text-red-400">{error}</p>}
+
           <button
             type="submit"
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors"
+            disabled={loading}
+            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
           >
-            Enviar enlace
+            {loading ? 'Enviando...' : 'Enviar enlace'}
           </button>
         </form>
 
