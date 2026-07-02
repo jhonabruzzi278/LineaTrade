@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Recuperar from './pages/Recuperar'
 import ActualizarPassword from './pages/ActualizarPassword'
 import Onboarding from './pages/Onboarding'
+import NuevoTrade from './pages/NuevoTrade'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 export default function App() {
@@ -21,6 +22,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/nuevo-trade"
+          element={
+            <ProtectedRoute>
+              <NuevoTrade />
             </ProtectedRoute>
           }
         />

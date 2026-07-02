@@ -1,0 +1,45 @@
+export interface Broker {
+  id: string
+  name: string
+}
+
+// Nota: FTX Exchange se excluyó a propósito (cesó operaciones en 2022).
+export const popularBrokers: Broker[] = [
+  { id: 'etrade', name: 'E*TRADE' },
+  { id: 'interactive_brokers', name: 'Interactive Brokers' },
+  { id: 'fidelity', name: 'Fidelity' },
+  { id: 'robinhood', name: 'Robinhood' },
+  { id: 'schwab_tda', name: 'Charles Schwab / TDA' },
+  { id: 'mt4', name: 'MetaTrader 4 (MT4)' },
+  { id: 'tastytrade', name: 'Tastytrade/Tastyworks' },
+  { id: 'das_trader', name: 'DAS Trader' },
+  { id: 'tradestation', name: 'TradeStation' },
+  { id: 'ninjatrader', name: 'NinjaTrader' },
+  { id: 'tradovate', name: 'Tradovate' },
+  { id: 'oanda', name: 'Oanda' },
+  { id: 'bitmex', name: 'BitMEX' },
+  { id: 'binance', name: 'Binance' },
+  { id: 'ctrader', name: 'cTrader' },
+  { id: 'jforex', name: 'JForex' },
+  { id: 'rithmic', name: 'Rithmic R Trader' },
+  { id: 'sierra_chart', name: 'Sierra Chart' },
+  { id: 'webull', name: 'Webull' },
+  { id: 'coinbase', name: 'Coinbase' },
+  { id: 'kraken', name: 'Kraken' },
+  { id: 'tradezero', name: 'TradeZero' },
+  { id: 'cobra_trading', name: 'Cobra Trading' },
+  { id: 'tradingview', name: 'TradingView' },
+  { id: 'centerpoint', name: 'CenterPoint Securities' },
+  { id: 'bybit', name: 'ByBit' },
+  { id: 'propreports', name: 'PropReports' },
+  { id: 'cmc_markets', name: 'CMC Markets' },
+  { id: 'tradier', name: 'Tradier' },
+  { id: 'kucoin', name: 'Kucoin' },
+  { id: 'phemex', name: 'Phemex' },
+  { id: 'bitget', name: 'Bitget' },
+  { id: 'great_point_capital', name: 'Great Point Capital' },
+  { id: 'cmeg', name: 'Capital Market Elite Groups (CMEG)' },
+  { id: 'okx', name: 'OKX' },
+  { id: 'topstepx', name: 'TopstepX' },
+  { id: 'ocean_one', name: 'Ocean One Securities' },
+]
