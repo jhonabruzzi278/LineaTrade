@@ -62,12 +62,32 @@ create policy "profiles_select_superadmin" on public.profiles
   );
 ```
 
+### 1.1 Extensión — respuestas del onboarding
+
+Agregada en `20260701221500_profiles_onboarding_fields.sql`, posterior al diseño inicial
+de este schema (el wizard de onboarding se construyó después y necesitó dónde persistir
+sus respuestas):
+
+```sql
+alter table public.profiles
+  add column trading_experience text,   -- 'lt_1y' | '1_3y' | '3_5y' | 'gt_5y'
+  add column account_type      text,    -- 'personal' | 'prop_firm' | 'not_started'
+  add column primary_broker    text,    -- id de la lista curada, o 'custom:<nombre>'
+  add column traded_instruments text[], -- ej. {'forex','crypto'}
+  add column onboarding_goals   text[], -- ej. {'journal','analyze'}
+  add column acquisition_source text;   -- 'google' | 'ai_tools' | ... | 'other'
+```
+
 ---
 
 ## 2. Instrumentos (catálogo precargado + custom por usuario)
 
 ```sql
 create type instrument_market as enum ('forex', 'crypto', 'stock', 'index', 'futures');
+-- Extendido en 20260701222000_instrument_market_options_cfd.sql:
+--   alter type instrument_market add value 'options';
+--   alter type instrument_market add value 'cfd';
+-- El formulario de Nuevo Trade ofrece ambos como mercado real que un trader retail opera.
 
 create table public.instruments (
   id             uuid primary key default gen_random_uuid(),
@@ -325,6 +345,14 @@ create policy "trade_images_storage_owner"
 ```
 Convención de path: `{user_id}/{trade_id}/{stage}_{filename}`.
 
+**Conectado y verificado** (`src/lib/tradeImages.ts`, usado desde `TradeDetail.tsx`):
+subida real con validación cliente (máx. 5MB, solo `image/*`) antes de tocar la red,
+lectura vía URL firmada (`createSignedUrl`, 1 hora — el bucket es privado, no hay URL
+pública) regenerada en cada carga de página, nunca persistida. Verificado con una subida
+real: la fila en `trade_images`, el objeto físico en `storage.objects`, y el rechazo de
+una request anónima directa al objeto (con la `anon key` pero sin sesión) — los tres
+confirmados, no asumidos.
+
 ---
 
 ## 7. Hilos de Seguimiento (Threads)
@@ -540,6 +568,151 @@ create policy "audit_log_superadmin_only" on public.audit_log
 ```
 
 > **Importante:** cada vez que un SuperAdmin lee un trade ajeno (política `trades_select_superadmin`), debería quedar registrado aquí vía trigger `AFTER SELECT` no es soportado nativamente en Postgres — la alternativa real es loguear el acceso desde la Edge Function/RPC que sirve el panel admin, no como trigger de tabla. Anótalo como pendiente de implementación en el backend, no en el schema.
+
+---
+
+## 10.1 Bug real encontrado: recursión infinita en RLS de `profiles`
+
+Al conectar el login real (`20260701223000_fix_profiles_rls_recursion.sql`) se descubrió
+que `profiles_select_superadmin` (sección 1) rompía **cualquier** `select` a `profiles`,
+incluido el del propio dueño: `infinite recursion detected in policy for relation
+"profiles"`.
+
+Causa: esa policy vive **sobre** `profiles` y su `using` hace `exists (select 1 from
+public.profiles ...)` — una subconsulta a la misma tabla que está protegiendo. Postgres
+necesita reevaluar las políticas de `profiles` para resolver esa subconsulta, lo que
+vuelve a disparar la misma policy, indefinidamente. Es un anti-patrón conocido de RLS:
+una policy nunca debe consultar su propia tabla dentro de su `using`.
+
+Fix aplicado (y replicado en las otras 6 policies que repetían el mismo `exists (select
+1 from profiles...)`, aunque no fueran recursivas por vivir en otras tablas — por
+consistencia, y para que nadie las use como plantilla y reintroduzca el bug):
+
+```sql
+create function public.is_superadmin(uid uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles where id = uid and role = 'superadmin'
+  );
+$$;
+```
+
+`security definer` corre la función con los permisos de su dueño, así que su consulta
+interna a `profiles` **no vuelve a pasar por RLS** — rompe el ciclo. Regla general: todo
+check de rol/permiso usado dentro de una policy debe ir en una función así, nunca como
+subconsulta inline repetida.
+
+## 10.2 Bug real encontrado: faltaban los GRANT a `authenticated`
+
+Justo después del fix anterior, el login seguía fallando — nuevo error: `permission
+denied for table profiles`. RLS solo filtra **filas**; Postgres exige además el permiso
+de tabla (`GRANT select/insert/update/delete`) antes de evaluar cualquier policy.
+Supabase cambió su comportamiento por defecto: ya no auto-expone tablas nuevas a
+`anon`/`authenticated` (ver `auto_expose_new_tables` en `supabase/config.toml`) — el
+schema original (secciones 1-10) asumía el comportamiento legado y nunca declaró estos
+GRANT explícitamente.
+
+Fix en `20260701223500_grant_authenticated_privileges.sql`: `grant select, insert,
+update, delete` sobre las 15 tablas a `authenticated` (nada a `anon` — el producto no
+tiene superficie pública). Esto es seguro porque las policies de RLS siguen siendo la
+restricción real por fila/operación: donde una tabla no tiene policy para `insert` (ej.
+`trade_history`, `ai_analysis`, `audit_log` — todas de solo lectura o vía función/Edge
+Function), el GRANT de tabla no habilita esa operación igual. **Toda tabla nueva que se
+agregue de aquí en adelante necesita este GRANT explícito además de sus policies —
+RLS sin GRANT no sirve de nada.**
+
+## 10.3 Vista de estadísticas para el Dashboard (Fase 1)
+
+`20260702120000_user_trade_stats_view.sql` agrega `public.v_user_trade_stats`, la fuente
+de los cards de métricas del Dashboard — mismo espíritu que `v_user_stats_30d` de
+`trade-journal-os-context-engine.md` §2, pero agregando **todo el historial** en vez de
+una ventana de 30 días (una cuenta nueva no tendría nada que mostrar en 30 días).
+
+```sql
+create view public.v_user_trade_stats
+with (security_invoker = true)
+as
+select
+  user_id,
+  count(*) as total_trades,
+  count(*) filter (where status = 'closed') as closed_trades,
+  round(count(*) filter (where status = 'closed' and pnl_amount > 0)::numeric
+    / nullif(count(*) filter (where status = 'closed'), 0) * 100, 2) as win_rate,
+  round(sum(pnl_amount) filter (where pnl_amount > 0)
+    / nullif(abs(sum(pnl_amount) filter (where pnl_amount < 0)), 0), 2) as profit_factor,
+  round(avg(pnl_r) filter (where status = 'closed'), 2) as avg_r
+from public.trades
+where deleted_at is null
+group by user_id;
+
+grant select on public.v_user_trade_stats to authenticated;
+```
+
+`security_invoker = true` es obligatorio: sin esa opción, la vista corre con los
+permisos de su dueño (`postgres`) y filtraría las estadísticas de **todos** los usuarios
+a cualquiera que la consulte, saltándose por completo `trades_owner_all`. Con
+`security_invoker`, Postgres evalúa la RLS de `trades` como el usuario que hace la
+consulta, así que la vista nunca agrega más de una fila (la propia) por usuario normal.
+
+Nota honesta (histórica — ya resuelta, ver §10.4): mientras `NuevoTrade.tsx` no tuviera
+forma de cerrar un trade, todos quedaban en `status = 'open'` y esta vista siempre
+devolvía `null`. El Dashboard mostraba ese estado honestamente ("—", nunca un número
+inventado) en vez de fingir un dato que no existía.
+
+## 10.4 Cierre de trade — cálculo de PnL/R en el backend
+
+`20260702130000_close_trade_pnl_trigger.sql`. Mismo principio que la vista de
+estadísticas: el cliente nunca calcula ni envía `pnl_amount`/`pnl_r` — solo manda
+`exit_price` y `status = 'closed'` desde `TradeDetail.tsx`, y un trigger hace la
+aritmética en el servidor.
+
+```sql
+create function public.trg_calculate_trade_pnl()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.status = 'closed' and new.exit_price is not null then
+    if new.side = 'long' then
+      new.pnl_amount = (new.exit_price - new.entry_price) * coalesce(new.position_size, 0) - coalesce(new.commission, 0);
+    else
+      new.pnl_amount = (new.entry_price - new.exit_price) * coalesce(new.position_size, 0) - coalesce(new.commission, 0);
+    end if;
+
+    if new.stop_loss is not null and new.stop_loss <> new.entry_price and coalesce(new.position_size, 0) > 0 then
+      new.pnl_r = round(new.pnl_amount / (abs(new.entry_price - new.stop_loss) * new.position_size), 4);
+    else
+      new.pnl_r = null;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trades_calculate_pnl
+  before insert or update on public.trades
+  for each row execute function public.trg_calculate_trade_pnl();
+```
+
+Sin `stop_loss` no hay unidad de riesgo con la cual normalizar — `pnl_r` se deja `null`
+en vez de inventar un denominador. Por eso `NuevoTrade.tsx` ahora captura `stop_loss`
+como campo opcional en el paso técnico (no existía antes de este cambio).
+
+Convive con `trades_audit_before_update` (§5) en el mismo evento `before update` — el
+orden de ejecución de Postgres es alfabético por nombre de trigger
+(`trades_audit_before_update` antes que `trades_calculate_pnl`), y ambos son
+compatibles: uno solo escribe `trade_history`/`updated_at`, el otro solo
+`pnl_amount`/`pnl_r`.
+
+Verificado a mano: entrada 3000, stop_loss 2900, tamaño 2, comisión 5, salida 3300 →
+el trigger produjo `pnl_amount = 595`, `pnl_r = 2.975` — coincide exactamente con el
+cálculo manual. Un segundo trade cerrado en pérdida sin `stop_loss` produjo
+`pnl_amount` no nulo y `pnl_r` nulo, como se espera.
 
 ---
 

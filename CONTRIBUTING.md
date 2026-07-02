@@ -16,9 +16,12 @@ ramas, commits y PRs importa.
 3. Instala y verifica que corre:
    ```bash
    npm install
+   npm run db:start # backend local (requiere Docker Desktop) — ver CLAUDE.md si el puerto falla
    npm run dev      # http://localhost:5180
    npm run build    # debe pasar en verde
    ```
+   El `.env.local` con las claves locales no se versiona — cópialo desde `.env.example`
+   y completa `VITE_SUPABASE_ANON_KEY` con el valor que imprime `npm run db:status`.
 
 ---
 
@@ -106,23 +109,30 @@ Toma una tarea, crea su rama, y abre un PR por tarea. Coordina en Issues para no
 Landing · Registro · Login · Recuperar contraseña. Falta solo el **deploy a Vercel**
 (pendiente del dueño del repo).
 
-### ⬜ Fase 1 — Pantallas privadas con datos mock (siguiente)
-El *loop diario* del trader. Construir con tipos TypeScript calcados del schema
-([`docs/trade-journal-os-schema.md`](docs/trade-journal-os-schema.md)) y del
-[motor de contexto](docs/trade-journal-os-context-engine.md):
+### ✅ Fase 1 — Pantallas privadas (completa)
+El *loop diario* del trader, con datos reales (no mock) desde el día uno — los tipos en
+`src/types/database.ts` se generan del schema local, así que nunca hubo que migrar de
+mock a real.
 
-1. **Tipos base** — definir en `src/types/` los tipos de `trades`, `strategies`,
-   `instruments`, etc., idénticos al schema. *(Hacer esto primero: es el contrato.)*
-2. **Dashboard** — cards configurables, resumen, acceso rápido a "Nuevo Trade".
-3. **Formulario "Nuevo Trade"** — el más largo: datos técnicos, contexto, psicología,
-   aprendizaje. Registrar un trade debe tomar < 1 minuto (mobile-first).
-4. **Detalle de Trade** — vista de un trade guardado + hilo de seguimiento.
-5. **Historial / listado** de trades.
+1. Onboarding — quiz post-signup, persiste en `profiles`.
+2. Nuevo Trade — bróker + datos técnicos, contexto, psicología, aprendizaje.
+3. Dashboard — métricas desde `v_user_trade_stats` + últimos trades.
+4. Historial — listado filtrable.
+5. Detalle de Trade — vista completa + hilo de seguimiento (`trade_threads`) + galería
+   y subida de imágenes (`trade_images`, bucket privado con URLs firmadas) + cerrar
+   trade (precio de salida → un trigger en Postgres calcula `pnl_amount`/`pnl_r`, nunca
+   el cliente).
 
-### ⬜ Fase 2 — Backend real (Supabase)
-Crear proyecto, aplicar schema vía migraciones, generar tipos
-(`supabase gen types typescript`) que reemplazan los mocks, conectar Auth y CRUD real,
-configurar Storage de imágenes.
+### ✅ Fase 2 — Backend real (Supabase) (completa)
+Schema, RLS, grants, seed, tipos generados, cierre de trade (PnL/R vía trigger) y subida
+de imágenes a `trade-images` (URLs firmadas — el bucket es privado) — todo corriendo
+local y verificado, incluyendo una subida real con verificación de que el objeto existe
+en Storage y que una request anónima al bucket es rechazada.
+
+**Nota:** el tab "Subir archivo" de `NuevoTrade` (importar trades desde un CSV/extracto
+de bróker) es una **feature distinta** de la subida de imágenes de arriba — sigue siendo
+solo UI, bloqueada explícitamente al guardar. No es lo mismo "subida de imágenes" que
+"importar trades desde archivo".
 
 ### ⬜ Fase 3 — Motor de IA
 Edge Function que construye el contexto por capas, `ai_provider_config`, botón
