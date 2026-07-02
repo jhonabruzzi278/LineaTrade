@@ -8,6 +8,7 @@ import Onboarding from './pages/Onboarding'
 import NuevoTrade from './pages/NuevoTrade'
 import Dashboard from './pages/Dashboard'
 import Historial from './pages/Historial'
+import TradeDetail from './pages/TradeDetail'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 export default function App() {
@@ -48,6 +49,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Historial />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trades/:id"
+          element={
+            <ProtectedRoute>
+              <TradeDetail />
             </ProtectedRoute>
           }
         />
