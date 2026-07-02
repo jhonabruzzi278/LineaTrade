@@ -1,15 +1,23 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
 import type { Database } from '../types/database'
 
 type Trade = Database['public']['Tables']['trades']['Row'] & {
   instruments: Pick<Database['public']['Tables']['instruments']['Row'], 'symbol' | 'market'> | null
 }
 type Thread = Database['public']['Tables']['trade_threads']['Row']
+type TradeImage = Database['public']['Tables']['trade_images']['Row'] & { url: string | null }
+
+const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
+  before: 'Antes',
+  during: 'Durante',
+  after: 'Después',
+}
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>()
@@ -23,13 +31,17 @@ export default function TradeDetail() {
   const [exitPrice, setExitPrice] = useState('')
   const [closing, setClosing] = useState(false)
   const [closeError, setCloseError] = useState<string | null>(null)
+  const [images, setImages] = useState<TradeImage[]>([])
+  const [uploadStage, setUploadStage] = useState<ImageStage>('before')
+  const [uploading, setUploading] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
 
     async function load() {
-      const [tradeRes, historyRes, threadsRes] = await Promise.all([
+      const [tradeRes, historyRes, threadsRes, imagesRes] = await Promise.all([
         supabase.from('trades').select('*, instruments(symbol, market)').eq('id', id!).maybeSingle(),
         supabase
           .from('trade_history')
@@ -37,6 +49,7 @@ export default function TradeDetail() {
           .eq('trade_id', id!)
           .eq('field_name', 'stop_loss'),
         supabase.from('trade_threads').select('*').eq('trade_id', id!).order('created_at', { ascending: true }),
+        supabase.from('trade_images').select('*').eq('trade_id', id!).order('created_at', { ascending: true }),
       ])
       if (cancelled) return
 
@@ -51,6 +64,12 @@ export default function TradeDetail() {
         setError(getErrorMessage(threadsRes.error))
       } else {
         setThreads(threadsRes.data ?? [])
+      }
+      if (imagesRes.data) {
+        const withUrls = await Promise.all(
+          imagesRes.data.map(async (img) => ({ ...img, url: await getSignedImageUrl(img.storage_path) })),
+        )
+        if (!cancelled) setImages(withUrls)
       }
       setLoading(false)
     }
@@ -106,6 +125,24 @@ export default function TradeDetail() {
       return
     }
     setTrade(data as Trade)
+  }
+
+  async function handleUploadImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite volver a elegir el mismo archivo si falla
+    if (!file || !user || !trade) return
+
+    setUploading(true)
+    setImageError(null)
+    try {
+      const row = await uploadTradeImage(file, user.id, trade.id, uploadStage)
+      const url = await getSignedImageUrl(row.storage_path)
+      setImages((prev) => [...prev, { ...row, url }])
+    } catch (uploadErr: unknown) {
+      setImageError(getErrorMessage(uploadErr))
+    } finally {
+      setUploading(false)
+    }
   }
 
   if (loading) {
@@ -265,6 +302,65 @@ export default function TradeDetail() {
         )}
 
         <Section title="Hilo de seguimiento">
+          <div className="mb-6">
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {images.map((img) => (
+                  <a
+                    key={img.id}
+                    href={img.url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative aspect-square rounded-sm overflow-hidden border border-hairline block"
+                  >
+                    {img.url ? (
+                      <img
+                        src={img.url}
+                        alt={`Captura del trade — ${IMAGE_STAGE_LABELS[img.stage]}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-panel-2 flex items-center justify-center">
+                        <span className="font-mono text-[10px] text-text-faint">error</span>
+                      </div>
+                    )}
+                    <span className="absolute bottom-0 inset-x-0 bg-ink/80 font-mono text-[10px] text-text-primary text-center py-1">
+                      {IMAGE_STAGE_LABELS[img.stage]}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex gap-1.5">
+                {(Object.keys(IMAGE_STAGE_LABELS) as ImageStage[]).map((stage) => (
+                  <button
+                    key={stage}
+                    type="button"
+                    onClick={() => setUploadStage(stage)}
+                    className={`font-mono text-[11px] px-2.5 py-1.5 rounded-sm border transition-colors ${
+                      uploadStage === stage
+                        ? 'border-signal text-signal'
+                        : 'border-hairline text-text-muted hover:border-text-faint'
+                    }`}
+                  >
+                    {IMAGE_STAGE_LABELS[stage]}
+                  </button>
+                ))}
+              </div>
+              <label
+                className={`font-body text-[13px] px-4 py-2 rounded-sm border border-hairline text-text-muted hover:border-text-faint transition-colors cursor-pointer ${
+                  uploading ? 'opacity-40 pointer-events-none' : ''
+                }`}
+              >
+                {uploading ? 'Subiendo...' : `+ Imagen (${IMAGE_STAGE_LABELS[uploadStage].toLowerCase()})`}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => void handleUploadImage(e)} />
+              </label>
+            </div>
+            {imageError && <p className="font-body text-[13px] text-red-400 mt-2">{imageError}</p>}
+          </div>
+
           <div className="space-y-3 mb-4">
             {threads.length === 0 && (
               <p className="font-body text-[13px] text-text-faint">Sin notas todavía.</p>
