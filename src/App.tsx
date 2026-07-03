@@ -9,6 +9,7 @@ import NuevoTrade from './pages/NuevoTrade'
 import Dashboard from './pages/Dashboard'
 import Historial from './pages/Historial'
 import TradeDetail from './pages/TradeDetail'
+import ConfiguracionIA from './pages/ConfiguracionIA'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 export default function App() {
@@ -57,6 +58,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <TradeDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/configuracion/ia"
+          element={
+            <ProtectedRoute>
+              <ConfiguracionIA />
             </ProtectedRoute>
           }
         />

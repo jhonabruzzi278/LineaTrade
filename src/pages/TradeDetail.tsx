@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
+import { AIAnalysisPanel } from '../components/AIAnalysisPanel'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
@@ -12,6 +13,7 @@ type Trade = Database['public']['Tables']['trades']['Row'] & {
 }
 type Thread = Database['public']['Tables']['trade_threads']['Row']
 type TradeImage = Database['public']['Tables']['trade_images']['Row'] & { url: string | null }
+type LatestAnalysis = { responseText: string; createdAt: string }
 
 const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
   before: 'Antes',
@@ -35,13 +37,14 @@ export default function TradeDetail() {
   const [uploadStage, setUploadStage] = useState<ImageStage>('before')
   const [uploading, setUploading] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
+  const [latestAnalysis, setLatestAnalysis] = useState<LatestAnalysis | null>(null)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
 
     async function load() {
-      const [tradeRes, historyRes, threadsRes, imagesRes] = await Promise.all([
+      const [tradeRes, historyRes, threadsRes, imagesRes, analysisRes] = await Promise.all([
         supabase.from('trades').select('*, instruments(symbol, market)').eq('id', id!).maybeSingle(),
         supabase
           .from('trade_history')
@@ -50,6 +53,13 @@ export default function TradeDetail() {
           .eq('field_name', 'stop_loss'),
         supabase.from('trade_threads').select('*').eq('trade_id', id!).order('created_at', { ascending: true }),
         supabase.from('trade_images').select('*').eq('trade_id', id!).order('created_at', { ascending: true }),
+        supabase
+          .from('ai_analysis')
+          .select('response_text, created_at')
+          .eq('trade_id', id!)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
       if (cancelled) return
 
@@ -64,6 +74,9 @@ export default function TradeDetail() {
         setError(getErrorMessage(threadsRes.error))
       } else {
         setThreads(threadsRes.data ?? [])
+      }
+      if (analysisRes.data) {
+        setLatestAnalysis({ responseText: analysisRes.data.response_text, createdAt: analysisRes.data.created_at })
       }
       if (imagesRes.data) {
         const withUrls = await Promise.all(
@@ -290,6 +303,10 @@ export default function TradeDetail() {
               )}
             </p>
           )}
+        </Section>
+
+        <Section title="Análisis de IA">
+          <AIAnalysisPanel tradeId={trade.id} initialAnalysis={latestAnalysis} />
         </Section>
 
         {(trade.main_mistake || trade.what_to_repeat || trade.what_to_avoid || trade.lesson_learned) && (
