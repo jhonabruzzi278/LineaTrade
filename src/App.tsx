@@ -10,7 +10,9 @@ import Dashboard from './pages/Dashboard'
 import Historial from './pages/Historial'
 import TradeDetail from './pages/TradeDetail'
 import ConfiguracionIA from './pages/ConfiguracionIA'
+import AdminPanel from './pages/AdminPanel'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { SuperAdminRoute } from './components/SuperAdminRoute'
 
 export default function App() {
   return (
@@ -66,6 +68,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ConfiguracionIA />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <SuperAdminRoute>
+                <AdminPanel />
+              </SuperAdminRoute>
             </ProtectedRoute>
           }
         />

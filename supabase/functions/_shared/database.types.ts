@@ -911,6 +911,26 @@ export type Database = {
           use_own_key: boolean
         }[]
       }
+      get_system_metrics: {
+        Args: never
+        Returns: {
+          active_users_30d: number
+          active_users_7d: number
+          ai_analyses_7d: number
+          ai_tokens_used_7d: number
+          closed_trades: number
+          default_ai_model: string
+          default_ai_provider: string
+          generated_at: string
+          new_users_7d: number
+          open_trades: number
+          total_ai_analyses: number
+          total_trades: number
+          total_users: number
+          trades_7d: number
+          users_hit_daily_limit_today: number
+        }[]
+      }
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }
       set_byok_api_key: {

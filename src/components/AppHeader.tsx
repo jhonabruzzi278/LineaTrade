@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
 
 // Header para las pantallas autenticadas (Dashboard, Historial, Detalle de Trade).
 // Distinto del <Nav/> público a propósito: acá van los links internos y "salir",
@@ -12,6 +13,7 @@ import { supabase } from '../lib/supabase'
 // así que el layout angosto manda.
 export function AppHeader() {
   const location = useLocation()
+  const { role } = useAuth()
 
   // No hace falta navegar manualmente: signOut() dispara onAuthStateChange,
   // AuthProvider actualiza user a null, y <ProtectedRoute/> ya redirige a /login
@@ -52,6 +54,11 @@ export function AppHeader() {
           <Link to="/historial" className={linkClass('/historial')}>
             Historial
           </Link>
+          {role === 'superadmin' && (
+            <Link to="/admin" className={linkClass('/admin')}>
+              Admin
+            </Link>
+          )}
           <Link
             to="/nuevo-trade"
             className="font-body text-[13px] px-3 py-1.5 sm:px-4 sm:py-2 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors whitespace-nowrap"
