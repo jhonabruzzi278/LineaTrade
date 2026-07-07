@@ -26,10 +26,13 @@ redirects to `/login` with no session. See "Backend" below — including **three
 RLS/security bugs and one real display bug** found and fixed during that work, worth
 reading before touching RLS, adding a view, or adding a trigger.
 
-**Fase 0 and Fase 1 are both closed** (all planned screens exist and are wired to real
-data). The full spec lives in `docs/` and is the source of truth for anything beyond
-what's currently on screen — read it before building new features. See
-"Planned product architecture" below.
+**Fase 0 through Fase 4 are all closed** (every planned screen, the AI engine, and the
+SuperAdmin panel exist and are wired to real data) and the app is deployed to production
+at `https://lineartrade.vercel.app`, backed by a separate Supabase Cloud project — see
+"Production" and "Roadmap phases" below. It's also an installable PWA — see "PWA" below.
+The full spec lives in `docs/` and is the source of truth for anything beyond what's
+currently on screen — read it before building new features. See "Planned product
+architecture" below.
 
 ## Commands
 
@@ -59,7 +62,10 @@ bundling, so run it to verify changes compile.
 - **oxlint** (not ESLint) for linting; TypeScript strict mode via `tsconfig.app.json`
 - **Supabase** (local, via Docker + the Supabase CLI) — Postgres, Auth, Storage, Studio.
   `@supabase/supabase-js` is installed; `src/lib/supabase.ts` is the typed client. See
-  "Backend" below.
+  "Backend" below. The same schema also runs on a **Supabase Cloud** project that backs
+  the live Vercel deployment — see "Production" below.
+- **vite-plugin-pwa** — the app is an installable PWA (manifest + service worker). See
+  "PWA" below.
 
 ## Architecture / conventions
 
@@ -116,8 +122,13 @@ user to `null`, and `<ProtectedRoute>` reacts to that itself — an earlier vers
 Structure: `pages/` are route-level default exports; `components/` are named exports
 shared across pages (`Nav`, `AppHeader`, `TraceLine`, `WizardLayout`, `ProtectedRoute`).
 `components/trade/` holds pieces specific to the trade-entry flow (`BrokerPicker`,
-`TechnicalEntryPanel`, `PsychologySection`). `data/` holds static content arrays
-consumed by pages (`onboarding.ts`, `brokers.ts`). `lib/` holds backend-facing code:
+`TechnicalEntryPanel`, `PsychologySection`). `BrokerPicker` filters its 37-broker list by
+both free-text search and a `category` field (`acciones`/`forex`/`cripto`/`futuros`/
+`otro`, added to `data/brokers.ts`'s `Broker` type) — if you add a broker, classify it by
+its dominant identity, not every asset class it technically supports (e.g. Interactive
+Brokers is filed under `acciones` even though it also does futures/forex). `data/` holds
+static content arrays consumed by pages (`onboarding.ts`, `brokers.ts`). `lib/` holds
+backend-facing code:
 `supabase.ts` (client), `auth.tsx` (provider/hook), `errors.ts` (`getErrorMessage`,
 handles `AuthApiError` specially — Supabase's `PostgrestError` is a plain object, **not**
 `instanceof Error`, so don't assume `error instanceof Error` catches it), `instruments.ts`
@@ -128,7 +139,12 @@ handles `AuthApiError` specially — Supabase's `PostgrestError` is a plain obje
 the "Salir" button off-screen. Its fix: hide the wordmark below `sm:`, tighter gaps on
 mobile, `whitespace-nowrap` on the CTA. If you add a 5th nav item, re-check 375px before
 calling it done — this product is mobile-first, and the desktop viewport won't show you
-the failure.
+the failure. Same lesson caught a second time in `TechnicalEntryPanel`: the
+Cantidad/Precio/Comisiones row was a bare `grid-cols-3`, cramming three numeric inputs
+into ~80px each on a narrow phone — fixed to `grid-cols-2 md:grid-cols-3`, matching the
+responsive-grid pattern already used by `MetricCard` rows on Dashboard/AdminPanel. When
+adding a new fixed-column grid, default to fewer columns on mobile and widen at `md:`
+rather than assuming a 3-up row fits — it usually doesn't below ~400px.
 
 ### Design system — the important part
 
@@ -160,17 +176,57 @@ reveal uses a second hand-rolled keyframe (`reveal`) for the same reason — thi
 does **not** use `tailwindcss-animate` or any animation plugin; new motion should follow
 this same pattern (keyframe in `index.css`, applied via inline `style` or a plain class).
 
+### PWA (installable)
+
+`vite-plugin-pwa` is configured in `vite.config.ts` (`registerType: 'autoUpdate'`,
+`workbox.globPatterns` scoped to `**/*.{js,css,html,svg,png,ico}`). It only precaches the
+app shell — **it deliberately never caches Supabase requests** (auth, trades, storage);
+those are financial/session data that must always be fetched live, never served stale
+from a service worker. `index.html` carries the iOS install meta tags
+(`apple-mobile-web-app-*`, `apple-touch-icon`) since `vite-plugin-pwa` only auto-injects
+the manifest link and the SW-register script, not iOS-specific tags.
+
+The manifest icons (`public/pwa-192.png`, `public/pwa-512.png`, `public/apple-touch-icon.png`)
+are rendered from `src/assets/pwa-icon-source.svg` — the app's actual amber trend-line
+mark (the same path used inline in `AppHeader`/`Nav`, `stroke="#E3A94A"`) on the `--color-ink`
+background, **not** `public/favicon.svg` (that file is an unrelated purple mark, unused
+outside the browser tab favicon — don't mistake it for the brand's icon source).
+
+Only put files under `public/` if they need to ship to every visitor: `vite-plugin-pwa`'s
+`globPatterns` will precache anything under `public/` that matches the glob, so a large
+unused asset folder there silently bloats the install payload (this happened once with
+`svg-trading/`'s 50 source icons — see "Icons" below — moving them to `src/assets/`
+dropped the precache list from 62 entries back to 12).
+
+### Icons
+
+`src/components/icons/TradeIcons.tsx` holds a handful of hand-picked, hand-extracted
+icons (`BuyIcon`, `SellIcon`, `PercentageIcon`, `GrowthGraphIcon`, `RatioIcon`,
+`TradeCountIcon`) cut from the 50-icon pack in `src/assets/svg-trading/` (kept there only
+as a source reference, deliberately outside `public/` — see "PWA" above for why). Each
+renders `fill="currentColor"` instead of the pack's original hardcoded black, so it
+inherits color from a Tailwind text-color class instead of needing a new token. In use:
+`BuyIcon`/`SellIcon` next to the long/short segment buttons in `TechnicalEntryPanel`, and
+one icon per `MetricCard` on the Dashboard. Only 6 of the 50 icons were judged a strong,
+literal fit for this product (trading-specific: buy/sell hand cursors, a candlestick
+monitor, etc.) — resist the temptation to sprinkle the rest in just because they're
+there; the Landing page's "Cuatro principios" numbering (001-004) is a deliberate
+editorial choice and wasn't touched.
+
 ## Backend (Supabase, local via Docker)
 
 The database is real and the frontend is wired to it. Setup:
 
-- **Migrations**: `supabase/migrations/*.sql`, 14 files, applied in order. The first 10
+- **Migrations**: `supabase/migrations/*.sql`, 26 files, applied in order. The first 10
   are one-per-schema-doc-section (extensions + profiles, instruments, strategies/rules,
   trades, trade_history audit trigger, trade_images + storage bucket, trade_threads,
   objectives, AI tables, audit_log) — faithful copies of the SQL in
-  `docs/trade-journal-os-schema.md`. The last 4 are real fixes discovered while wiring
-  auth (see "Two real RLS bugs" below) plus a couple of small schema extensions the UI
-  needed. That doc is the source of truth; if you need a schema change, edit the doc's
+  `docs/trade-journal-os-schema.md`. The next 4 are real fixes discovered while wiring
+  auth (see "Three real RLS bugs" below) plus a couple of small schema extensions the UI
+  needed. The remaining 12 belong to Fase 3 (AI stats views, atomic rate limiting, BYOK
+  key vault, service-role AI access) and Fase 4 (SuperAdmin system metrics) — see
+  "Roadmap phases" below — plus one small data migration for the Lineatrader→LineaTrade
+  rebrand. That doc is the source of truth; if you need a schema change, edit the doc's
   intent first, then add a **new** migration (never edit an already-applied one, per the
   doc's own §11).
 - **Seed**: `supabase/seed.sql` — a starter `instruments` catalog (forex majors, top
@@ -271,6 +327,39 @@ of creating a duplicate custom one. Also confirmed an anon (no-session) REST cal
 `/rest/v1/trades` is flatly denied (`permission denied` — no grant to `anon` at all),
 which is the intended posture for a product with no public surface.
 
+### Production (Supabase Cloud + Vercel)
+
+The app is live at **`https://lineartrade.vercel.app`**, wired to a separate Supabase
+Cloud project (ref `pcmftbzpzeliurrnyidt`) — a different database from local Docker, but
+the identical schema: all 26 migrations plus `seed.sql` were pushed to it via
+`supabase link --project-ref ... && supabase db push --include-seed`, authenticated with
+a personal `SUPABASE_ACCESS_TOKEN` (never committed anywhere — exported inline per
+command, not stored in `.env*`).
+
+**Don't run `supabase config push` against the cloud project.** `config.toml`'s
+`[auth].site_url` is `http://localhost:5180`, meaningful only for local `supabase start`;
+pushing that file's config wholesale would overwrite the cloud project's production Auth
+settings with a localhost URL. Instead, the cloud project's `site_url` and
+`uri_allow_list` were set directly via the Supabase Management API
+(`PATCH /v1/projects/{ref}/config/auth`) to `https://lineartrade.vercel.app` (plus
+`/actualizar-password` and a `/**` wildcard) — this is what makes signup-confirmation and
+password-reset email links land on the real domain instead of `localhost:3000` (the
+Supabase default for a project that's never had its Auth URLs configured).
+
+**Vercel project `lineartrade` lives under a different Vercel account/team** than
+whatever `vercel` CLI is logged into on this machine (the CLI's personal scope doesn't
+have access to the team that owns the live project) — don't assume `vercel env`/
+`vercel link` from a fresh shell can reach it. Env vars (`VITE_SUPABASE_URL`,
+`VITE_SUPABASE_ANON_KEY`, Production + Preview) were set via the Vercel REST API with a
+personal access token instead. Because Vite bakes `VITE_*` vars in at **build** time, not
+runtime, adding/changing them requires a fresh deployment before they take effect — a
+dashboard edit alone does nothing until the next build. GitHub → Vercel auto-deploy is
+already wired for `main`; a normal `git push` is enough to ship.
+
+Production currently uses Supabase's default built-in email sender for confirmation/reset
+mail (rate-limited, not a real SMTP provider) — fine for early testing, worth replacing
+with a real SMTP integration before relying on it for actual users.
+
 ## Planned product architecture
 
 The reference docs in `docs/` define the full system. Read the relevant one before
@@ -326,12 +415,12 @@ snapshot of the trade so it stays coherent even if the trade is later edited.
 
 ### Roadmap phases
 
-**Fase 0, Fase 1, and Fase 2 are all closed.** Every screen in Fase 0/1 (Landing,
-Registro, Login, Recuperar, Actualizar contraseña, Onboarding, Nuevo Trade, Dashboard,
-Historial, Detalle de Trade) exists and is wired to real data, verified end-to-end
-against the local stack. Fase 2 — schema, RLS, grants, the stats view, triggers, seed,
-generated types, auth/CRUD, closing a trade, and `trade_images` Storage upload — is done
-and verified locally, including a real upload → signed URL → display round trip and a
+**Fase 0 through Fase 4 are all closed.** Every screen in Fase 0/1 (Landing, Registro,
+Login, Recuperar, Actualizar contraseña, Onboarding, Nuevo Trade, Dashboard, Historial,
+Detalle de Trade) exists and is wired to real data, verified end-to-end against the
+local stack. Fase 2 — schema, RLS, grants, the stats view, triggers, seed, generated
+types, auth/CRUD, closing a trade, and `trade_images` Storage upload — is done and
+verified locally, including a real upload → signed URL → display round trip and a
 confirmed-denied anonymous request to the private bucket. See "Images" below.
 
 The one deliberately-still-open non-Fase-2 item: `NuevoTrade`'s "Subir archivo" tab
@@ -340,8 +429,20 @@ The one deliberately-still-open non-Fase-2 item: `NuevoTrade`'s "Subir archivo" 
 time with a message pointing at "Agregar manualmente". Don't conflate the two when
 someone asks "is file upload done" — the answer is "yes for images, no for CSV import".
 
-→ Fase 3 (AI engine Edge Function) → Fase 4 (SuperAdmin
-panel + observability).
+**Fase 3 (motor de IA)** shipped the `analyze-trade` Edge Function
+(`supabase/functions/analyze-trade`) plus `/configuracion/ia` (`ConfiguracionIA.tsx`) for
+BYOK API-key management (`set_provider_api_key`/`get_byok_status`/`disable_byok` RPCs, key
+material read through Vault via `read_vault_secret` — never returned in plaintext to the
+client) and rate limiting via `ai_usage_daily` (`check_and_increment_ai_usage`, made
+atomic and fixed for an ambiguous-column bug — see the migration list above).
+`AIAnalysisPanel` on `TradeDetail` is the "Analizar con IA" entry point.
+
+**Fase 4 (SuperAdmin)** shipped `/admin` (`AdminPanel.tsx`, gated by
+`<SuperAdminRoute>`/`is_superadmin()`) showing aggregate system metrics — users, trades,
+AI usage — via the `get_system_metrics()` RPC (`security definer`, so it can read across
+all users deliberately, unlike the per-user `v_user_trade_stats` view). Sentry/PostHog
+observability from the PRD's "Intended full stack" is **not** wired up yet — treat that
+as still open if someone asks about error tracking or product analytics.
 
 ### Closing a trade
 
