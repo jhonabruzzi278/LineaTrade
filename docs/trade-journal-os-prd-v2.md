@@ -1,4 +1,4 @@
-# Lineatrader — PRD Técnico Consolidado
+# LineaTrade — PRD Técnico Consolidado
 
 **Versión:** 2.0 (post-arquitectura)
 **Estado:** Listo para iniciar desarrollo
@@ -8,7 +8,7 @@
 
 ## 1. Resumen Ejecutivo
 
-Lineatrader es un sistema Mobile First para que traders registren operaciones y reciban interpretación basada en evidencia — nunca señales, nunca predicciones, nunca asesoría financiera. La IA actúa como coach de comportamiento: el backend calcula, la IA interpreta, y toda afirmación cuantitativa debe rastrearse hasta un dato real.
+LineaTrade es un sistema Mobile First para que traders registren operaciones y reciban interpretación basada en evidencia — nunca señales, nunca predicciones, nunca asesoría financiera. La IA actúa como coach de comportamiento: el backend calcula, la IA interpreta, y toda afirmación cuantitativa debe rastrearse hasta un dato real.
 
 **Lema:** *"No ayudamos a los traders a ganar más dinero. Les ayudamos a cometer menos errores."*
 
@@ -149,4 +149,4 @@ Clean Architecture, SOLID, DRY, KISS, YAGNI. Vertical Slice / feature-based fold
 
 ## 10. Visión a Largo Plazo
 
-Lineatrader no es un diario de operaciones. Es un sistema de mejora continua basado en evidencia. El objetivo no es registrar trades — es construir un historial confiable que permita al trader entender cómo piensa, cómo ejecuta y cómo evoluciona, con cada pieza de la arquitectura (audit trail, contexto determinístico, salida estructurada citando evidencia) diseñada para que esa evidencia sea real y verificable, no una promesa de marketing.
+LineaTrade no es un diario de operaciones. Es un sistema de mejora continua basado en evidencia. El objetivo no es registrar trades — es construir un historial confiable que permita al trader entender cómo piensa, cómo ejecuta y cómo evoluciona, con cada pieza de la arquitectura (audit trail, contexto determinístico, salida estructurada citando evidencia) diseñada para que esa evidencia sea real y verificable, no una promesa de marketing.

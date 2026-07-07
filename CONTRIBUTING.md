@@ -1,4 +1,4 @@
-# Guía de colaboración — Lineatrader
+# Guía de colaboración — LineaTrade
 
 Gracias por sumarte. Este documento explica cómo trabajar en el repo para que todo
 avance ordenado. Es un proyecto **en desarrollo activo**, así que la disciplina de
@@ -102,7 +102,7 @@ Requiere al menos una aprobación antes de merge.
 
 ## 6. Desarrollo por partes
 
-El trabajo está organizado por fases (ver [plan completo](docs/lineatrader-plan-implementacion.md)).
+El trabajo está organizado por fases (ver [plan completo](docs/lineatrade-plan-implementacion.md)).
 Toma una tarea, crea su rama, y abre un PR por tarea. Coordina en Issues para no pisarse.
 
 ### ✅ Fase 0 — Onboarding (completa)

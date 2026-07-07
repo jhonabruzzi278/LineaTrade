@@ -44,7 +44,7 @@ export function AppHeader() {
             />
           </svg>
           <span className="hidden sm:inline font-display text-[15px] tracking-tight text-text-primary">
-            lineatrader
+            lineatrade
           </span>
         </Link>
         <nav className="flex items-center gap-3 sm:gap-6">

@@ -41,7 +41,7 @@ export default function Landing() {
             Tus trades sí.
           </h1>
           <p className="font-body text-[17px] text-text-muted max-w-xl mt-6 leading-relaxed">
-            Lineatrader registra cada operación — técnica, contexto y psicología — y te
+            LineaTrade registra cada operación — técnica, contexto y psicología — y te
             muestra el patrón que no puedes ver por tu cuenta. Sin señales. Sin predicciones.
             Sin promesas de rentabilidad.
           </p>
@@ -111,7 +111,7 @@ export default function Landing() {
 
       <footer className="border-t border-hairline py-8">
         <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
-          <span className="font-mono text-[12px] text-text-faint">lineatrader</span>
+          <span className="font-mono text-[12px] text-text-faint">lineatrade</span>
           <span className="font-mono text-[12px] text-text-faint">
             no da señales. no predice el mercado.
           </span>

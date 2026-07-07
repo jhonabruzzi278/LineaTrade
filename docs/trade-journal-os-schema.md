@@ -1,4 +1,4 @@
-# Lineatrader — Schema Completo de Supabase
+# LineaTrade — Schema Completo de Supabase
 
 Convenciones: tablas en plural, snake_case, `uuid` como PK vía `gen_random_uuid()`, soft delete con `deleted_at`, auditoría con `created_at/updated_at`, RLS activado en TODAS las tablas sin excepción.
 

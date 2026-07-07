@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Lineatrader is a Spanish-language marketing/onboarding front end for a trading-journal
+LineaTrade is a Spanish-language marketing/onboarding front end for a trading-journal
 product. The pitch: it records a trader's operations (technique, context, psychology)
 and surfaces behavioral patterns — explicitly **not** a signals/prediction tool. All
 copy is in Spanish (LatAm audience); keep new user-facing text in Spanish and match the
@@ -279,7 +279,7 @@ touching anything in its domain — they are the contract, not background readin
 - `docs/trade-journal-os-prd-v2.md` — consolidated PRD: principles, module decisions, stack, roadmap.
 - `docs/trade-journal-os-schema.md` — complete Supabase schema (tables, RLS, triggers, indexes).
 - `docs/trade-journal-os-context-engine.md` — the AI context engine design.
-- `docs/lineatrader-plan-implementacion.md` — phased build plan and current status.
+- `docs/lineatrade-plan-implementacion.md` — phased build plan and current status.
 
 ### The product in one line
 

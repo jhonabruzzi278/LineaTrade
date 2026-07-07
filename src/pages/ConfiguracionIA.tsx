@@ -58,7 +58,7 @@ export default function ConfiguracionIA() {
       return
     }
     setApiKey('') // nunca se re-muestra la key ingresada
-    setSavedMessage('Key guardada — Lineatrader la va a usar para tus próximos análisis.')
+    setSavedMessage('Key guardada — LineaTrade la va a usar para tus próximos análisis.')
     void loadStatus()
   }
 

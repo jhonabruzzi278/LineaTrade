@@ -1,4 +1,4 @@
-# Lineatrader — Motor de Contexto de IA
+# LineaTrade — Motor de Contexto de IA
 
 Principio rector: **el backend produce hechos (SQL, siempre determinístico). La IA solo interpreta esos hechos y nunca calcula ni inventa.** Todo lo que sigue está diseñado para que esto sea estructuralmente imposible de violar, no solo una instrucción que el modelo "debería" seguir.
 

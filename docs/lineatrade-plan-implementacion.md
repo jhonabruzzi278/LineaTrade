@@ -1,4 +1,4 @@
-# Lineatrader — Plan de Implementación
+# LineaTrade — Plan de Implementación
 
 Estado a la fecha: validación visual del onboarding en curso. Nada conectado a backend real todavía — decisión deliberada para validar UX rápido antes de comprometer datos reales.
 

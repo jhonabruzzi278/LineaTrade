@@ -1,4 +1,4 @@
-# Lineatrader
+# LineaTrade
 
 > **No ayudamos a los traders a ganar más dinero. Les ayudamos a cometer menos errores.**
 
@@ -125,7 +125,7 @@ hex ni fuentes en componentes** — reutiliza o agrega un token.
 | **3** | Motor de IA: Edge Function de contexto, proveedores, rate limiting, BYOK | ⬜ |
 | **4** | Panel SuperAdmin + observabilidad (Sentry, PostHog, audit_log) | ⬜ |
 
-Plan detallado y desglose de tareas: [`docs/lineatrader-plan-implementacion.md`](docs/lineatrader-plan-implementacion.md)
+Plan detallado y desglose de tareas: [`docs/lineatrade-plan-implementacion.md`](docs/lineatrade-plan-implementacion.md)
 y [CONTRIBUTING.md](CONTRIBUTING.md#desarrollo-por-partes).
 
 ---

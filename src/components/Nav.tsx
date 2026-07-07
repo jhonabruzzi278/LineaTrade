@@ -16,7 +16,7 @@ export function Nav() {
             />
           </svg>
           <span className="font-display text-[15px] tracking-tight text-text-primary">
-            lineatrader
+            lineatrade
           </span>
         </Link>
         <nav className="flex items-center gap-6">

@@ -84,7 +84,7 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: 'goals',
     type: 'multi',
-    title: '¿Qué buscas hacer con Lineatrader?',
+    title: '¿Qué buscas hacer con LineaTrade?',
     subtitle: 'Selecciona todas las que apliquen.',
     options: [
       {

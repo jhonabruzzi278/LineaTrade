@@ -1,4 +1,4 @@
-# Documentación — Lineatrader
+# Documentación — LineaTrade
 
 Esta carpeta es la **fuente de verdad** del producto. Cualquier feature debe construirse
 contra estos documentos, no contra suposiciones. Si el código contradice un doc, gana el
@@ -15,7 +15,7 @@ doc (o se corrige el doc explícitamente).
 3. **[trade-journal-os-context-engine.md](trade-journal-os-context-engine.md)** — Motor de
    contexto de IA: cómo se arma el contexto por capas, la defensa anti-prompt-injection y
    la salida forzada a citar evidencia. Léelo antes de tocar cualquier cosa de IA.
-4. **[lineatrader-plan-implementacion.md](lineatrader-plan-implementacion.md)** — Plan de
+4. **[lineatrade-plan-implementacion.md](lineatrade-plan-implementacion.md)** — Plan de
    implementación por fases y estado actual. Consúltalo para saber qué construir ahora.
 
 ## Regla de oro
