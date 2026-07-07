@@ -16,6 +16,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
       },
       manifest: {
+        id: '/',
+        lang: 'es',
         name: 'LineaTrade',
         short_name: 'LineaTrade',
         description:
@@ -23,6 +25,7 @@ export default defineConfig({
         theme_color: '#0A0D12',
         background_color: '#0A0D12',
         display: 'standalone',
+        orientation: 'portrait',
         start_url: '/',
         icons: [
           { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
