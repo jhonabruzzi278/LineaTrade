@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BuyIcon, SellIcon } from '../icons/TradeIcons'
 
 export interface TechnicalEntryData {
   method: 'manual' | 'file'
@@ -114,9 +115,11 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
           <Field label="Acción">
             <div className="flex gap-3">
               <SegmentButton active={data.action === 'long'} onClick={() => set('action', 'long')}>
+                <BuyIcon className="w-4 h-4" />
                 Compra (long)
               </SegmentButton>
               <SegmentButton active={data.action === 'short'} onClick={() => set('action', 'short')}>
+                <SellIcon className="w-4 h-4" />
                 Venta (short)
               </SegmentButton>
             </div>
@@ -141,7 +144,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
             </Field>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Field label="Cantidad">
               <input
                 type="number"
@@ -212,7 +215,7 @@ function SegmentButton({ active, onClick, children }: { active: boolean; onClick
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 px-4 py-3 rounded-sm border font-body text-[14px] transition-colors ${
+      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-sm border font-body text-[14px] transition-colors ${
         active
           ? 'border-signal bg-signal/10 text-text-primary'
           : 'border-hairline bg-panel text-text-muted hover:border-text-faint'

@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { formatTradeResult, tradeResultColorClass } from '../lib/tradeDisplay'
+import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import type { Database } from '../types/database'
 
 type TradeStats = Database['public']['Views']['v_user_trade_stats']['Row']
@@ -65,10 +66,22 @@ export default function Dashboard() {
         {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <MetricCard label="Win rate" value={formatPercent(stats?.win_rate)} />
-          <MetricCard label="Profit factor" value={formatNumber(stats?.profit_factor)} />
-          <MetricCard label="R promedio" value={formatSigned(stats?.avg_r)} />
-          <MetricCard label="Trades" value={String(stats?.total_trades ?? 0)} />
+          <MetricCard
+            label="Win rate"
+            value={formatPercent(stats?.win_rate)}
+            icon={<PercentageIcon className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Profit factor"
+            value={formatNumber(stats?.profit_factor)}
+            icon={<GrowthGraphIcon className="w-4 h-4" />}
+          />
+          <MetricCard label="R promedio" value={formatSigned(stats?.avg_r)} icon={<RatioIcon className="w-4 h-4" />} />
+          <MetricCard
+            label="Trades"
+            value={String(stats?.total_trades ?? 0)}
+            icon={<TradeCountIcon className="w-4 h-4" />}
+          />
         </div>
 
         {!loading && (stats?.total_trades ?? 0) > 0 && (stats?.closed_trades ?? 0) === 0 && (

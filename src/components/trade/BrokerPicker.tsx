@@ -1,19 +1,27 @@
 import { useMemo, useState } from 'react'
-import { popularBrokers } from '../../data/brokers'
+import { brokerCategoryLabels, popularBrokers, type BrokerCategory } from '../../data/brokers'
 
 interface BrokerPickerProps {
   value?: string
   onSelect: (brokerId: string, brokerName: string) => void
 }
 
+type CategoryFilter = BrokerCategory | 'todos'
+
+const categoryFilters: CategoryFilter[] = ['todos', 'acciones', 'forex', 'cripto', 'futuros', 'otro']
+
 export function BrokerPicker({ value, onSelect }: BrokerPickerProps) {
   const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<CategoryFilter>('todos')
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return popularBrokers
-    return popularBrokers.filter((broker) => broker.name.toLowerCase().includes(q))
-  }, [query])
+    return popularBrokers.filter((broker) => {
+      const matchesQuery = !q || broker.name.toLowerCase().includes(q)
+      const matchesCategory = category === 'todos' || broker.category === category
+      return matchesQuery && matchesCategory
+    })
+  }, [query, category])
 
   return (
     <div>
@@ -26,8 +34,25 @@ export function BrokerPicker({ value, onSelect }: BrokerPickerProps) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Ej. Binance, Interactive Brokers..."
-        className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors mb-6"
+        className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors mb-4"
       />
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {categoryFilters.map((filter) => (
+          <button
+            key={filter}
+            type="button"
+            onClick={() => setCategory(filter)}
+            className={`font-mono text-[11px] tracking-wide px-3 py-1.5 rounded-sm border transition-colors ${
+              category === filter
+                ? 'border-signal bg-signal text-ink'
+                : 'border-hairline text-text-muted hover:border-text-faint'
+            }`}
+          >
+            {filter === 'todos' ? 'Todos' : brokerCategoryLabels[filter]}
+          </button>
+        ))}
+      </div>
 
       <p className="font-mono text-[12px] text-text-faint tracking-wide mb-3">
         o elige uno de los brokers populares
@@ -47,17 +72,29 @@ export function BrokerPicker({ value, onSelect }: BrokerPickerProps) {
               role="radio"
               aria-checked={selected}
               onClick={() => onSelect(broker.id, broker.name)}
-              className={`flex items-center gap-2.5 px-3 py-3 rounded-sm border text-left transition-colors ${
+              className={`flex items-center gap-2.5 px-3 py-3 rounded-sm border text-left transition-all ${
                 selected ? 'border-signal bg-signal/10' : 'border-hairline bg-panel hover:border-text-faint'
               }`}
             >
-              <span className="shrink-0 w-8 h-8 rounded-sm bg-panel-2 border border-hairline flex items-center justify-center font-mono text-[11px] text-signal">
-                {broker.name.slice(0, 2).toUpperCase()}
+              <span
+                className={`shrink-0 w-8 h-8 rounded-sm border flex items-center justify-center font-mono text-[11px] transition-colors ${
+                  selected
+                    ? 'bg-signal border-signal text-ink font-medium'
+                    : 'bg-panel-2 border-hairline text-signal'
+                }`}
+              >
+                {selected ? '✓' : broker.name.slice(0, 2).toUpperCase()}
               </span>
               <span className="font-body text-[13px] text-text-primary leading-tight">{broker.name}</span>
             </button>
           )
         })}
+
+        {filtered.length === 0 && !query.trim() && (
+          <p className="col-span-2 font-body text-[13px] text-text-muted py-6 text-center">
+            No hay brokers en esta categoría todavía.
+          </p>
+        )}
 
         {filtered.length === 0 && query.trim() && (
           <button
