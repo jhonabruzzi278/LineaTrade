@@ -110,11 +110,17 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-hairline py-8">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between gap-4">
           <span className="font-mono text-[12px] text-text-faint">lineatrade</span>
-          <span className="font-mono text-[12px] text-text-faint">
+          <span className="font-mono text-[12px] text-text-faint hidden sm:inline">
             no da señales. no predice el mercado.
           </span>
+          <Link
+            to="/privacidad"
+            className="font-mono text-[12px] text-text-faint hover:text-text-muted transition-colors"
+          >
+            privacidad
+          </Link>
         </div>
       </footer>
     </div>

@@ -4,6 +4,7 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Recuperar from './pages/Recuperar'
 import ActualizarPassword from './pages/ActualizarPassword'
+import Privacidad from './pages/Privacidad'
 import Onboarding from './pages/Onboarding'
 import NuevoTrade from './pages/NuevoTrade'
 import Dashboard from './pages/Dashboard'
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/actualizar-password" element={<ActualizarPassword />} />
+        <Route path="/privacidad" element={<Privacidad />} />
         <Route
           path="/onboarding"
           element={
