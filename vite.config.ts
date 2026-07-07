@@ -26,7 +26,12 @@ export default defineConfig({
         background_color: '#0A0D12',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        // La landing ("/") es para visitas de navegador / marketing. La app
+        // instalada (PWA / TWA de Play Store) arranca directo en el producto —
+        // ProtectedRoute manda a /login si no hay sesión, que a su vez linkea
+        // a /registro para altas nuevas.
+        start_url: '/dashboard',
+        scope: '/',
         icons: [
           { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },
