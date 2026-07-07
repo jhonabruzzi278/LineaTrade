@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lineartrade.app",
+      "sha256_cert_fingerprints": ["D0:17:F9:05:8A:72:3E:D0:B7:DE:6E:86:44:BA:A9:81:F9:A1:57:A7:DE:CE:9F:7B:AD:06:5E:1B:BE:DB:29:2A"]
+    }
+  }
+]
