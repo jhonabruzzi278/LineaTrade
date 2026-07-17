@@ -20,3 +20,12 @@ export function tradeResultColorClass(trade: TradeResultFields): string {
   if (result == null) return 'text-text-muted'
   return result >= 0 ? 'text-signal' : 'text-red-400'
 }
+
+// Un date-only string ("2026-03-27") se parsea como medianoche UTC — pasarlo
+// directo a new Date() y mostrarlo en un huso horario negativo (América)
+// adelanta la fecha un día para atrás. Se arma la fecha con componentes
+// locales en vez de dejar que Date interprete el string como UTC.
+export function formatDateOnly(dateOnly: string): string {
+  const [year, month, day] = dateOnly.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('es', { dateStyle: 'medium' })
+}

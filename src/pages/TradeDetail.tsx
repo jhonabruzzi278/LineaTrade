@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
+import { formatDateOnly } from '../lib/tradeDisplay'
 import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
 import type { Database } from '../types/database'
 
@@ -268,11 +269,7 @@ export default function TradeDetail() {
                 <Field label="Strike" value={trade.strike_price} />
                 <Field
                   label="Vencimiento"
-                  value={
-                    trade.expiration_date
-                      ? new Date(trade.expiration_date).toLocaleDateString('es', { dateStyle: 'medium' })
-                      : null
-                  }
+                  value={trade.expiration_date ? formatDateOnly(trade.expiration_date) : null}
                 />
               </>
             )}
