@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { BuyIcon, SellIcon } from '../icons/TradeIcons'
+import { OrderTicketFields, type OrderTicketData } from './OrderTicketFields'
+import { parseTradesCsv, type ParsedTradeRow } from '../../lib/tradeImport'
 
 export interface TechnicalEntryData {
   method: 'manual' | 'file'
@@ -12,11 +14,13 @@ export interface TechnicalEntryData {
   price: string
   stopLoss: string
   commission: string
-  dateFormat: string
   fileName: string
   optionType: 'call' | 'put'
   strikePrice: string
   expirationDate: string
+  orderTicket: OrderTicketData
+  importedRows: ParsedTradeRow[]
+  importErrors: string[]
 }
 
 interface TechnicalEntryPanelProps {
@@ -34,8 +38,6 @@ const marketOptions = [
   { value: 'cfd', label: 'CFD' },
 ]
 
-const dateFormatOptions = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
-
 const inputClasses =
   'w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors'
 
@@ -44,6 +46,20 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
 
   function set<K extends keyof TechnicalEntryData>(key: K, value: TechnicalEntryData[K]) {
     onChange({ ...data, [key]: value })
+  }
+
+  function handleFileSelected(file: File | undefined) {
+    if (!file) {
+      onChange({ ...data, fileName: '', importedRows: [], importErrors: [] })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = String(reader.result ?? '')
+      const { rows, errors } = parseTradesCsv(text)
+      onChange({ ...data, fileName: file.name, importedRows: rows, importErrors: errors })
+    }
+    reader.readAsText(file)
   }
 
   return (
@@ -59,20 +75,6 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
 
       {data.method === 'file' ? (
         <div className="space-y-4">
-          <Field label="Formato de fecha">
-            <select
-              value={data.dateFormat}
-              onChange={(e) => set('dateFormat', e.target.value)}
-              className={inputClasses}
-            >
-              {dateFormatOptions.map((format) => (
-                <option key={format} value={format}>
-                  {format}
-                </option>
-              ))}
-            </select>
-          </Field>
-
           <label
             htmlFor="trade-file"
             className="flex flex-col items-center justify-center gap-2 border border-dashed border-hairline rounded-sm py-10 px-4 text-center cursor-pointer hover:border-text-faint transition-colors"
@@ -80,15 +82,33 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
             <span className="font-body text-[14px] text-text-muted">
               {data.fileName || 'Arrastra un archivo o haz clic para subirlo desde tu computador'}
             </span>
-            <span className="font-mono text-[11px] text-text-faint">CSV o Excel de tu bróker</span>
+            <span className="font-mono text-[11px] text-text-faint">
+              CSV con el mismo formato que "Exportar CSV" en Historial
+            </span>
             <input
               id="trade-file"
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               className="hidden"
-              onChange={(e) => set('fileName', e.target.files?.[0]?.name ?? '')}
+              onChange={(e) => handleFileSelected(e.target.files?.[0])}
             />
           </label>
+
+          {data.fileName && data.importErrors.length === 0 && data.importedRows.length > 0 && (
+            <p className="font-body text-[13px] text-signal">
+              {data.importedRows.length} trade{data.importedRows.length === 1 ? '' : 's'} listo
+              {data.importedRows.length === 1 ? '' : 's'} para importar.
+            </p>
+          )}
+          {data.importErrors.length > 0 && (
+            <div className="border border-hairline rounded-sm bg-panel px-4 py-3 space-y-1">
+              {data.importErrors.map((error, i) => (
+                <p key={i} className="font-body text-[13px] text-red-400">
+                  {error}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -233,6 +253,8 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
               Define tu R — sin esto no podemos calcular el rendimiento en R al cerrar el trade.
             </p>
           </Field>
+
+          <OrderTicketFields data={data.orderTicket} onChange={(orderTicket) => set('orderTicket', orderTicket)} />
         </div>
       )}
     </div>

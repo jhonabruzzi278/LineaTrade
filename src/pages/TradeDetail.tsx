@@ -8,6 +8,7 @@ import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
 import { formatDateOnly } from '../lib/tradeDisplay'
 import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
+import { OrderTicketFields, emptyOrderTicket, hasOrderTicketData, type OrderTicketData } from '../components/trade/OrderTicketFields'
 import type { Database } from '../types/database'
 
 type Trade = Database['public']['Tables']['trades']['Row'] & {
@@ -15,7 +16,10 @@ type Trade = Database['public']['Tables']['trades']['Row'] & {
 }
 type Thread = Database['public']['Tables']['trade_threads']['Row']
 type TradeImage = Database['public']['Tables']['trade_images']['Row'] & { url: string | null }
+type TradeOrder = Database['public']['Tables']['trade_orders']['Row']
 type LatestAnalysis = { responseText: string; createdAt: string }
+
+const PRICE_TYPE_LABELS: Record<string, string> = { market: 'Market', limit: 'Limit' }
 
 const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
   before: 'Antes',
@@ -41,13 +45,15 @@ export default function TradeDetail() {
   const [uploading, setUploading] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
   const [latestAnalysis, setLatestAnalysis] = useState<LatestAnalysis | null>(null)
+  const [orderTickets, setOrderTickets] = useState<TradeOrder[]>([])
+  const [closeOrderTicket, setCloseOrderTicket] = useState<OrderTicketData>(emptyOrderTicket)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
 
     async function load() {
-      const [tradeRes, historyRes, threadsRes, imagesRes, analysisRes] = await Promise.all([
+      const [tradeRes, historyRes, threadsRes, imagesRes, analysisRes, ordersRes] = await Promise.all([
         supabase.from('trades').select('*, instruments(symbol, market)').eq('id', id!).maybeSingle(),
         supabase
           .from('trade_history')
@@ -63,6 +69,7 @@ export default function TradeDetail() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase.from('trade_orders').select('*').eq('trade_id', id!),
       ])
       if (cancelled) return
 
@@ -81,6 +88,7 @@ export default function TradeDetail() {
       if (analysisRes.data) {
         setLatestAnalysis({ responseText: analysisRes.data.response_text, createdAt: analysisRes.data.created_at })
       }
+      setOrderTickets(ordersRes.data ?? [])
       if (imagesRes.data) {
         const withUrls = await Promise.all(
           imagesRes.data.map(async (img) => ({ ...img, url: await getSignedImageUrl(img.storage_path) })),
@@ -142,6 +150,29 @@ export default function TradeDetail() {
       return
     }
     setTrade(data as Trade)
+    if (user && hasOrderTicketData(closeOrderTicket)) {
+      const orderPlacedAt = closeOrderTicket.orderPlacedTime
+        ? new Date(`${new Date().toISOString().slice(0, 10)}T${closeOrderTicket.orderPlacedTime}:00`).toISOString()
+        : null
+      const { data: orderRow } = await supabase
+        .from('trade_orders')
+        .insert({
+          trade_id: trade.id,
+          user_id: user.id,
+          leg: 'close',
+          order_number: closeOrderTicket.orderNumber || null,
+          order_placed_at: orderPlacedAt,
+          price_type: closeOrderTicket.priceType || null,
+          limit_price: closeOrderTicket.limitPrice ? Number(closeOrderTicket.limitPrice) : null,
+          bid_price: closeOrderTicket.bidPrice ? Number(closeOrderTicket.bidPrice) : null,
+          ask_price: closeOrderTicket.askPrice ? Number(closeOrderTicket.askPrice) : null,
+          term: closeOrderTicket.term || null,
+          all_or_none: closeOrderTicket.allOrNone,
+        })
+        .select('*')
+        .single()
+      if (orderRow) setOrderTickets((prev) => [...prev, orderRow])
+    }
     showToast('Trade cerrado.', 'success')
   }
 
@@ -258,6 +289,9 @@ export default function TradeDetail() {
               </p>
             )}
             {closeError && <p className="font-body text-[13px] text-red-400 mt-3">{closeError}</p>}
+            <div className="mt-4">
+              <OrderTicketFields data={closeOrderTicket} onChange={setCloseOrderTicket} />
+            </div>
           </div>
         )}
 
@@ -283,6 +317,43 @@ export default function TradeDetail() {
             <Field label="Resultado en R" value={trade.pnl_r != null ? `${trade.pnl_r}R` : null} />
           </div>
         </Section>
+
+        {orderTickets.length > 0 && (
+          <Section title="Detalles de la orden">
+            <div className="space-y-4">
+              {orderTickets.map((order) => (
+                <div key={order.id}>
+                  <p className="font-mono text-[11px] text-signal tracking-wide mb-2">
+                    {order.leg === 'open' ? 'apertura' : 'cierre'}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <Field label="Número de orden" value={order.order_number} />
+                    <Field
+                      label="Colocada"
+                      value={
+                        order.order_placed_at
+                          ? new Date(order.order_placed_at).toLocaleString('es', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })
+                          : null
+                      }
+                    />
+                    <Field
+                      label="Tipo de orden"
+                      value={order.price_type ? PRICE_TYPE_LABELS[order.price_type] : null}
+                    />
+                    <Field label="Precio límite" value={order.limit_price} />
+                    <Field label="Bid" value={order.bid_price} />
+                    <Field label="Ask" value={order.ask_price} />
+                    <Field label="Term" value={order.term} />
+                    <Field label="All or None" value={order.all_or_none ? 'Sí' : null} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
         {(trade.entry_reason || trade.confirmations) && (
           <Section title="Contexto">

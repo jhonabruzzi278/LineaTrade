@@ -4,6 +4,7 @@ import { WizardLayout } from '../components/WizardLayout'
 import { BrokerPicker } from '../components/trade/BrokerPicker'
 import { TechnicalEntryPanel, type TechnicalEntryData } from '../components/trade/TechnicalEntryPanel'
 import { PsychologySection, type PsychologyData } from '../components/trade/PsychologySection'
+import { emptyOrderTicket, hasOrderTicketData } from '../components/trade/OrderTicketFields'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { resolveInstrumentId } from '../lib/instruments'
@@ -58,11 +59,13 @@ const initialDraft: TradeDraft = {
     price: '',
     stopLoss: '',
     commission: '',
-    dateFormat: 'MM/DD/YYYY',
     fileName: '',
     optionType: 'call',
     strikePrice: '',
     expirationDate: '',
+    orderTicket: emptyOrderTicket,
+    importedRows: [],
+    importErrors: [],
   },
   entryReason: '',
   confirmations: '',
@@ -89,15 +92,17 @@ export default function NuevoTrade() {
   const [stepIndex, setStepIndex] = useState(0)
   const [draft, setDraft] = useState<TradeDraft>(initialDraft)
   const [done, setDone] = useState(false)
+  const [importedCount, setImportedCount] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  const isFileImport = draft.technical.method === 'file'
   const isLastStep = stepIndex === STEP_LABELS.length - 1
 
   function isStepValid(): boolean {
     if (stepIndex === 0) {
       if (!draft.brokerId) return false
-      if (draft.technical.method === 'file') return Boolean(draft.technical.fileName)
+      if (isFileImport) return draft.technical.importedRows.length > 0 && draft.technical.importErrors.length === 0
       const hasCoreFields = Boolean(
         draft.technical.market && draft.technical.symbol && draft.technical.quantity && draft.technical.price,
       )
@@ -109,15 +114,29 @@ export default function NuevoTrade() {
     return true
   }
 
+  async function saveOpenOrderTicket(tradeId: string) {
+    if (!user || !hasOrderTicketData(draft.technical.orderTicket)) return
+    const ticket = draft.technical.orderTicket
+    const orderPlacedAt = ticket.orderPlacedTime
+      ? new Date(`${draft.technical.date}T${ticket.orderPlacedTime}:00`).toISOString()
+      : null
+    await supabase.from('trade_orders').insert({
+      trade_id: tradeId,
+      user_id: user.id,
+      leg: 'open',
+      order_number: orNull(ticket.orderNumber),
+      order_placed_at: orderPlacedAt,
+      price_type: ticket.priceType || null,
+      limit_price: ticket.limitPrice ? Number(ticket.limitPrice) : null,
+      bid_price: ticket.bidPrice ? Number(ticket.bidPrice) : null,
+      ask_price: ticket.askPrice ? Number(ticket.askPrice) : null,
+      term: orNull(ticket.term),
+      all_or_none: ticket.allOrNone,
+    })
+  }
+
   async function saveTrade() {
     if (!user) return
-    if (draft.technical.method === 'file') {
-      setSaveError(
-        'La importación de archivos todavía no está conectada — vuelve al paso 1 y usa "Agregar manualmente".',
-      )
-      return
-    }
-
     setSaving(true)
     setSaveError(null)
     try {
@@ -129,33 +148,75 @@ export default function NuevoTrade() {
       const tradedAt = new Date(`${draft.technical.date}T${draft.technical.time}:00`).toISOString()
       const isOptions = draft.technical.market === 'options'
 
-      const { error } = await supabase.from('trades').insert({
-        user_id: user.id,
-        instrument_id: instrumentId,
-        side: draft.technical.action,
-        traded_at: tradedAt,
-        entry_price: Number(draft.technical.price),
-        position_size: Number(draft.technical.quantity),
-        stop_loss: draft.technical.stopLoss ? Number(draft.technical.stopLoss) : null,
-        commission: draft.technical.commission ? Number(draft.technical.commission) : 0,
-        option_type: isOptions ? draft.technical.optionType : null,
-        strike_price: isOptions && draft.technical.strikePrice ? Number(draft.technical.strikePrice) : null,
-        expiration_date: isOptions && draft.technical.expirationDate ? draft.technical.expirationDate : null,
-        entry_reason: orNull(draft.entryReason),
-        confirmations: orNull(draft.confirmations),
-        emotion: orNull(draft.psychology.emotion),
-        confidence_level: draft.psychology.confidenceLevel,
-        stress_level: draft.psychology.stressLevel,
-        followed_plan: draft.psychology.followedPlan,
-        had_fomo: draft.psychology.hadFomo,
-        moved_stop_loss: draft.psychology.movedStopLoss,
-        overtraded: draft.psychology.overtraded,
-        main_mistake: orNull(draft.mainMistake),
-        what_to_repeat: orNull(draft.whatToRepeat),
-        what_to_avoid: orNull(draft.whatToAvoid),
-        lesson_learned: orNull(draft.lessonLearned),
-      })
+      const { data, error } = await supabase
+        .from('trades')
+        .insert({
+          user_id: user.id,
+          instrument_id: instrumentId,
+          side: draft.technical.action,
+          traded_at: tradedAt,
+          entry_price: Number(draft.technical.price),
+          position_size: Number(draft.technical.quantity),
+          stop_loss: draft.technical.stopLoss ? Number(draft.technical.stopLoss) : null,
+          commission: draft.technical.commission ? Number(draft.technical.commission) : 0,
+          option_type: isOptions ? draft.technical.optionType : null,
+          strike_price: isOptions && draft.technical.strikePrice ? Number(draft.technical.strikePrice) : null,
+          expiration_date: isOptions && draft.technical.expirationDate ? draft.technical.expirationDate : null,
+          entry_reason: orNull(draft.entryReason),
+          confirmations: orNull(draft.confirmations),
+          emotion: orNull(draft.psychology.emotion),
+          confidence_level: draft.psychology.confidenceLevel,
+          stress_level: draft.psychology.stressLevel,
+          followed_plan: draft.psychology.followedPlan,
+          had_fomo: draft.psychology.hadFomo,
+          moved_stop_loss: draft.psychology.movedStopLoss,
+          overtraded: draft.psychology.overtraded,
+          main_mistake: orNull(draft.mainMistake),
+          what_to_repeat: orNull(draft.whatToRepeat),
+          what_to_avoid: orNull(draft.whatToAvoid),
+          lesson_learned: orNull(draft.lessonLearned),
+        })
+        .select('id')
+        .single()
       if (error) throw error
+      await saveOpenOrderTicket(data.id)
+      setDone(true)
+    } catch (error: unknown) {
+      setSaveError(getErrorMessage(error))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function importTrades() {
+    if (!user) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      for (const row of draft.technical.importedRows) {
+        const instrumentId = await resolveInstrumentId(row.symbol, row.market as InstrumentMarket, user.id)
+        const { error } = await supabase.from('trades').insert({
+          user_id: user.id,
+          instrument_id: instrumentId,
+          side: row.side,
+          status: row.status,
+          traded_at: row.tradedAt,
+          entry_price: row.entryPrice,
+          exit_price: row.exitPrice,
+          position_size: row.positionSize,
+          stop_loss: row.stopLoss,
+          take_profit: row.takeProfit,
+          commission: row.commission,
+          option_type: row.optionType,
+          strike_price: row.strikePrice,
+          expiration_date: row.expirationDate,
+          entry_reason: row.entryReason,
+          emotion: row.emotion,
+          main_mistake: row.mainMistake,
+        })
+        if (error) throw error
+      }
+      setImportedCount(draft.technical.importedRows.length)
       setDone(true)
     } catch (error: unknown) {
       setSaveError(getErrorMessage(error))
@@ -165,6 +226,10 @@ export default function NuevoTrade() {
   }
 
   function goNext() {
+    if (stepIndex === 0 && isFileImport) {
+      void importTrades()
+      return
+    }
     if (isLastStep) {
       void saveTrade()
       return
@@ -177,7 +242,7 @@ export default function NuevoTrade() {
   }
 
   if (done) {
-    return <NuevoTradeComplete symbol={draft.technical.symbol} />
+    return <NuevoTradeComplete symbol={draft.technical.symbol} importedCount={importedCount} />
   }
 
   return (
@@ -187,7 +252,15 @@ export default function NuevoTrade() {
       onBack={stepIndex > 0 ? goBack : undefined}
       onNext={goNext}
       nextDisabled={!isStepValid() || saving}
-      nextLabel={saving ? 'Guardando...' : isLastStep ? 'Guardar trade' : 'Continuar'}
+      nextLabel={
+        saving
+          ? 'Guardando...'
+          : stepIndex === 0 && isFileImport
+            ? `Importar ${draft.technical.importedRows.length} trade${draft.technical.importedRows.length === 1 ? '' : 's'}`
+            : isLastStep
+              ? 'Guardar trade'
+              : 'Continuar'
+      }
     >
       {saveError && <p className="font-body text-[13px] text-red-400 mb-6">{saveError}</p>}
 
@@ -309,19 +382,26 @@ function TextAreaField({
   )
 }
 
-function NuevoTradeComplete({ symbol }: { symbol: string }) {
+function NuevoTradeComplete({ symbol, importedCount }: { symbol: string; importedCount: number | null }) {
+  const title =
+    importedCount != null
+      ? `${importedCount} trade${importedCount === 1 ? '' : 's'} importado${importedCount === 1 ? '' : 's'}`
+      : symbol
+        ? `${symbol} quedó registrado`
+        : 'Tu trade quedó registrado'
+
   return (
     <div className="min-h-screen bg-ink">
       <main className="max-w-md mx-auto px-6 pt-24 text-center">
-        <p className="font-mono text-[13px] text-signal mb-4">trade guardado</p>
-        <h1 className="font-display text-[26px] text-text-primary mb-3">
-          {symbol ? `${symbol} quedó registrado` : 'Tu trade quedó registrado'}
-        </h1>
+        <p className="font-mono text-[13px] text-signal mb-4">
+          {importedCount != null ? 'importación completa' : 'trade guardado'}
+        </p>
+        <h1 className="font-display text-[26px] text-text-primary mb-3">{title}</h1>
         <Link
-          to="/dashboard"
+          to={importedCount != null ? '/historial' : '/dashboard'}
           className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mt-8"
         >
-          Ir al Dashboard
+          {importedCount != null ? 'Ver historial' : 'Ir al Dashboard'}
         </Link>
       </main>
     </div>

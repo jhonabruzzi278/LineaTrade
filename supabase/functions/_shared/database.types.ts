@@ -535,6 +535,69 @@ export type Database = {
           },
         ]
       }
+      trade_orders: {
+        Row: {
+          all_or_none: boolean
+          ask_price: number | null
+          bid_price: number | null
+          created_at: string
+          id: string
+          leg: string
+          limit_price: number | null
+          order_number: string | null
+          order_placed_at: string | null
+          price_type: string | null
+          term: string | null
+          trade_id: string
+          user_id: string
+        }
+        Insert: {
+          all_or_none?: boolean
+          ask_price?: number | null
+          bid_price?: number | null
+          created_at?: string
+          id?: string
+          leg: string
+          limit_price?: number | null
+          order_number?: string | null
+          order_placed_at?: string | null
+          price_type?: string | null
+          term?: string | null
+          trade_id: string
+          user_id: string
+        }
+        Update: {
+          all_or_none?: boolean
+          ask_price?: number | null
+          bid_price?: number | null
+          created_at?: string
+          id?: string
+          leg?: string
+          limit_price?: number | null
+          order_number?: string | null
+          order_placed_at?: string | null
+          price_type?: string | null
+          term?: string | null
+          trade_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_orders_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_threads: {
         Row: {
           ai_generated: boolean
