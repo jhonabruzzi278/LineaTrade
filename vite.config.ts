@@ -8,7 +8,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' en vez de 'autoUpdate': con datos financieros en pantalla no
+      // queremos recargar la app sola de golpe. PwaUpdatePrompt avisa por toast
+      // y el usuario decide cuándo recargar. injectRegister: false porque el
+      // registro lo hace a mano el hook useRegisterSW (ver PwaUpdatePrompt.tsx).
+      registerType: 'prompt',
+      injectRegister: false,
       // Solo cachea el app shell (JS/CSS/HTML/íconos). Las llamadas a Supabase
       // (auth, trades, storage) nunca deben servirse desde caché — son datos
       // financieros/de sesión que tienen que ser siempre en vivo.

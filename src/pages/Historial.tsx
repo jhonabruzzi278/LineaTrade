@@ -5,6 +5,8 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { formatTradeResult, tradeResultColorClass } from '../lib/tradeDisplay'
+import { tradesToCsv, downloadCsv } from '../lib/tradeExport'
+import { useToast } from '../lib/toast'
 import type { Database } from '../types/database'
 
 type TradeRow = Database['public']['Tables']['trades']['Row'] & {
@@ -14,6 +16,7 @@ type StatusFilter = 'all' | 'open' | 'closed'
 
 export default function Historial() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [trades, setTrades] = useState<TradeRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -61,12 +64,32 @@ export default function Historial() {
     return Math.round((wins / closed.length) * 100)
   }, [trades])
 
+  function handleExport() {
+    const csv = tradesToCsv(filtered)
+    const today = new Date().toISOString().slice(0, 10)
+    downloadCsv(`lineatrade-trades-${today}.csv`, csv)
+    showToast(`${filtered.length} trade${filtered.length === 1 ? '' : 's'} exportado${filtered.length === 1 ? '' : 's'}.`, 'success')
+  }
+
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <p className="font-mono text-[13px] text-signal mb-2">registro completo</p>
-        <h1 className="font-display text-[28px] text-text-primary mb-2">Historial</h1>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <p className="font-mono text-[13px] text-signal mb-2">registro completo</p>
+            <h1 className="font-display text-[28px] text-text-primary">Historial</h1>
+          </div>
+          {!loading && filtered.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExport}
+              className="font-body text-[13px] px-3 py-2 rounded-sm border border-hairline text-text-muted hover:border-text-faint hover:text-text-primary transition-colors whitespace-nowrap mt-1"
+            >
+              Exportar CSV
+            </button>
+          )}
+        </div>
         <p className="font-mono text-[12px] text-text-faint mb-8">
           {trades.length} trade{trades.length === 1 ? '' : 's'}
           {winRate != null && ` · ${winRate}% win rate`}

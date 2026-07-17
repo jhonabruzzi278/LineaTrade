@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { AppHeader } from '../components/AppHeader'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+import { useToast } from '../lib/toast'
 
 // Proveedores cloud soportados por BYOK en Fase 3 — coincide con el check
 // constraint de user_ai_settings.byok_provider (self-hosted como Ollama/LM
@@ -17,13 +18,13 @@ type ByokStatus = {
 }
 
 export default function ConfiguracionIA() {
+  const { showToast } = useToast()
   const [status, setStatus] = useState<ByokStatus | null>(null)
   const [provider, setProvider] = useState<string>(BYOK_PROVIDERS[0])
   const [apiKey, setApiKey] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [savedMessage, setSavedMessage] = useState<string | null>(null)
 
   async function loadStatus() {
     const { data, error: statusError } = await supabase.rpc('get_byok_status')
@@ -47,7 +48,6 @@ export default function ConfiguracionIA() {
     }
     setSaving(true)
     setError(null)
-    setSavedMessage(null)
     const { error: saveError } = await supabase.rpc('set_byok_api_key', {
       p_provider: provider,
       p_api_key: apiKey.trim(),
@@ -58,20 +58,20 @@ export default function ConfiguracionIA() {
       return
     }
     setApiKey('') // nunca se re-muestra la key ingresada
-    setSavedMessage('Key guardada — LineaTrade la va a usar para tus próximos análisis.')
+    showToast('Key guardada — LineaTrade la va a usar para tus próximos análisis.', 'success')
     void loadStatus()
   }
 
   async function handleDisable() {
     setSaving(true)
     setError(null)
-    setSavedMessage(null)
     const { error: disableError } = await supabase.rpc('disable_byok')
     setSaving(false)
     if (disableError) {
       setError(getErrorMessage(disableError))
       return
     }
+    showToast('Volviste al tier gratuito.', 'success')
     void loadStatus()
   }
 
@@ -147,7 +147,6 @@ export default function ConfiguracionIA() {
                 </p>
               </div>
               {error && <p className="font-body text-[13px] text-red-400">{error}</p>}
-              {savedMessage && <p className="font-body text-[13px] text-signal">{savedMessage}</p>}
               <button
                 type="submit"
                 disabled={saving}

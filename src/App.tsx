@@ -12,12 +12,15 @@ import Historial from './pages/Historial'
 import TradeDetail from './pages/TradeDetail'
 import ConfiguracionIA from './pages/ConfiguracionIA'
 import AdminPanel from './pages/AdminPanel'
+import Sistema from './pages/Sistema'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <PwaUpdatePrompt />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/registro" element={<Signup />} />
@@ -70,6 +73,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ConfiguracionIA />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sistema"
+          element={
+            <ProtectedRoute>
+              <Sistema />
             </ProtectedRoute>
           }
         />

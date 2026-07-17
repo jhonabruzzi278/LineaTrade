@@ -60,8 +60,18 @@ export default function Dashboard() {
     <div className="min-h-screen bg-ink">
       <AppHeader />
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
-        <h1 className="font-display text-[28px] text-text-primary mb-8">Dashboard</h1>
+        <div className="flex items-start justify-between gap-3 mb-8">
+          <div>
+            <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
+            <h1 className="font-display text-[28px] text-text-primary">Dashboard</h1>
+          </div>
+          <Link
+            to="/sistema"
+            className="font-body text-[13px] text-text-muted hover:text-text-primary transition-colors whitespace-nowrap mt-1"
+          >
+            Mi sistema →
+          </Link>
+        </div>
 
         {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
 
