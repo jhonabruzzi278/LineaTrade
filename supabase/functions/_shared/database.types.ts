@@ -646,6 +646,7 @@ export type Database = {
           entry_price: number
           entry_reason: string | null
           exit_price: number | null
+          expiration_date: string | null
           followed_plan: boolean | null
           had_fomo: boolean | null
           id: string
@@ -654,6 +655,7 @@ export type Database = {
           main_mistake: string | null
           management_notes: string | null
           moved_stop_loss: boolean | null
+          option_type: Database["public"]["Enums"]["option_type"] | null
           overtraded: boolean | null
           pnl_amount: number | null
           pnl_r: number | null
@@ -666,6 +668,7 @@ export type Database = {
           stop_loss: number | null
           strategy_id: string | null
           stress_level: number | null
+          strike_price: number | null
           take_profit: number | null
           timeframe: string | null
           traded_at: string
@@ -688,6 +691,7 @@ export type Database = {
           entry_price: number
           entry_reason?: string | null
           exit_price?: number | null
+          expiration_date?: string | null
           followed_plan?: boolean | null
           had_fomo?: boolean | null
           id?: string
@@ -696,6 +700,7 @@ export type Database = {
           main_mistake?: string | null
           management_notes?: string | null
           moved_stop_loss?: boolean | null
+          option_type?: Database["public"]["Enums"]["option_type"] | null
           overtraded?: boolean | null
           pnl_amount?: number | null
           pnl_r?: number | null
@@ -708,6 +713,7 @@ export type Database = {
           stop_loss?: number | null
           strategy_id?: string | null
           stress_level?: number | null
+          strike_price?: number | null
           take_profit?: number | null
           timeframe?: string | null
           traded_at: string
@@ -730,6 +736,7 @@ export type Database = {
           entry_price?: number
           entry_reason?: string | null
           exit_price?: number | null
+          expiration_date?: string | null
           followed_plan?: boolean | null
           had_fomo?: boolean | null
           id?: string
@@ -738,6 +745,7 @@ export type Database = {
           main_mistake?: string | null
           management_notes?: string | null
           moved_stop_loss?: boolean | null
+          option_type?: Database["public"]["Enums"]["option_type"] | null
           overtraded?: boolean | null
           pnl_amount?: number | null
           pnl_r?: number | null
@@ -750,6 +758,7 @@ export type Database = {
           stop_loss?: number | null
           strategy_id?: string | null
           stress_level?: number | null
+          strike_price?: number | null
           take_profit?: number | null
           timeframe?: string | null
           traded_at?: string
@@ -951,6 +960,7 @@ export type Database = {
         | "futures"
         | "options"
         | "cfd"
+      option_type: "call" | "put"
       trade_image_stage: "before" | "during" | "after"
       trade_side: "long" | "short"
       trade_status: "open" | "closed"
@@ -1094,6 +1104,7 @@ export const Constants = {
         "options",
         "cfd",
       ],
+      option_type: ["call", "put"],
       trade_image_stage: ["before", "during", "after"],
       trade_side: ["long", "short"],
       trade_status: ["open", "closed"],

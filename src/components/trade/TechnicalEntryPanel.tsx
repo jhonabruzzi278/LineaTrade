@@ -14,6 +14,9 @@ export interface TechnicalEntryData {
   commission: string
   dateFormat: string
   fileName: string
+  optionType: 'call' | 'put'
+  strikePrice: string
+  expirationDate: string
 }
 
 interface TechnicalEntryPanelProps {
@@ -37,6 +40,8 @@ const inputClasses =
   'w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors'
 
 export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps) {
+  const isOptions = data.market === 'options'
+
   function set<K extends keyof TechnicalEntryData>(key: K, value: TechnicalEntryData[K]) {
     onChange({ ...data, [key]: value })
   }
@@ -125,6 +130,39 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
             </div>
           </Field>
 
+          {isOptions && (
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="Tipo">
+                <div className="flex gap-2">
+                  <SegmentButton active={data.optionType === 'call'} onClick={() => set('optionType', 'call')}>
+                    Call
+                  </SegmentButton>
+                  <SegmentButton active={data.optionType === 'put'} onClick={() => set('optionType', 'put')}>
+                    Put
+                  </SegmentButton>
+                </div>
+              </Field>
+              <Field label="Strike">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={data.strikePrice}
+                  onChange={(e) => set('strikePrice', e.target.value)}
+                  placeholder="0.00"
+                  className={inputClasses}
+                />
+              </Field>
+              <Field label="Vencimiento">
+                <input
+                  type="date"
+                  value={data.expirationDate}
+                  onChange={(e) => set('expirationDate', e.target.value)}
+                  className={inputClasses}
+                />
+              </Field>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha">
               <input
@@ -145,7 +183,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Field label="Cantidad">
+            <Field label={isOptions ? 'Contratos' : 'Cantidad'}>
               <input
                 type="number"
                 step="0.01"
@@ -155,7 +193,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
                 className={inputClasses}
               />
             </Field>
-            <Field label="Precio">
+            <Field label={isOptions ? 'Prima por acción' : 'Precio'}>
               <input
                 type="number"
                 step="0.001"
@@ -164,6 +202,11 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
                 placeholder="0.000"
                 className={inputClasses}
               />
+              {isOptions && (
+                <p className="font-mono text-[11px] text-text-faint mt-1.5">
+                  Por acción, no por contrato — se multiplica ×100 automáticamente.
+                </p>
+              )}
             </Field>
             <Field label="Comisiones y fees">
               <input

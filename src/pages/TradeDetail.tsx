@@ -5,6 +5,7 @@ import { AIAnalysisPanel } from '../components/AIAnalysisPanel'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+import { useToast } from '../lib/toast'
 import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
 import type { Database } from '../types/database'
 
@@ -24,6 +25,7 @@ const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [trade, setTrade] = useState<Trade | null>(null)
   const [stopLossChanges, setStopLossChanges] = useState<number | null>(null)
   const [threads, setThreads] = useState<Thread[]>([])
@@ -112,6 +114,7 @@ export default function TradeDetail() {
     }
     setThreads((prev) => [...prev, data])
     input.value = ''
+    showToast('Nota agregada.', 'success')
   }
 
   async function handleCloseTrade(e: FormEvent<HTMLFormElement>) {
@@ -138,6 +141,7 @@ export default function TradeDetail() {
       return
     }
     setTrade(data as Trade)
+    showToast('Trade cerrado.', 'success')
   }
 
   async function handleUploadImage(e: ChangeEvent<HTMLInputElement>) {
@@ -151,6 +155,7 @@ export default function TradeDetail() {
       const row = await uploadTradeImage(file, user.id, trade.id, uploadStage)
       const url = await getSignedImageUrl(row.storage_path)
       setImages((prev) => [...prev, { ...row, url }])
+      showToast('Imagen subida.', 'success')
     } catch (uploadErr: unknown) {
       setImageError(getErrorMessage(uploadErr))
     } finally {
@@ -257,11 +262,25 @@ export default function TradeDetail() {
 
         <Section title="Datos técnicos">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Field label="Entrada" value={trade.entry_price} />
-            <Field label="Salida" value={trade.exit_price} />
+            {trade.option_type && (
+              <>
+                <Field label="Tipo" value={trade.option_type === 'call' ? 'Call' : 'Put'} />
+                <Field label="Strike" value={trade.strike_price} />
+                <Field
+                  label="Vencimiento"
+                  value={
+                    trade.expiration_date
+                      ? new Date(trade.expiration_date).toLocaleDateString('es', { dateStyle: 'medium' })
+                      : null
+                  }
+                />
+              </>
+            )}
+            <Field label={trade.option_type ? 'Prima de entrada' : 'Entrada'} value={trade.entry_price} />
+            <Field label={trade.option_type ? 'Prima de salida' : 'Salida'} value={trade.exit_price} />
             <Field label="Stop loss" value={trade.stop_loss} />
             <Field label="Take profit" value={trade.take_profit} />
-            <Field label="Tamaño" value={trade.position_size} />
+            <Field label={trade.option_type ? 'Contratos' : 'Tamaño'} value={trade.position_size} />
             <Field label="Comisiones" value={trade.commission} />
             <Field label="Resultado" value={trade.pnl_amount} />
             <Field label="Resultado en R" value={trade.pnl_r != null ? `${trade.pnl_r}R` : null} />

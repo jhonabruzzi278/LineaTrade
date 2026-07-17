@@ -60,6 +60,9 @@ const initialDraft: TradeDraft = {
     commission: '',
     dateFormat: 'MM/DD/YYYY',
     fileName: '',
+    optionType: 'call',
+    strikePrice: '',
+    expirationDate: '',
   },
   entryReason: '',
   confirmations: '',
@@ -95,7 +98,13 @@ export default function NuevoTrade() {
     if (stepIndex === 0) {
       if (!draft.brokerId) return false
       if (draft.technical.method === 'file') return Boolean(draft.technical.fileName)
-      return Boolean(draft.technical.market && draft.technical.symbol && draft.technical.quantity && draft.technical.price)
+      const hasCoreFields = Boolean(
+        draft.technical.market && draft.technical.symbol && draft.technical.quantity && draft.technical.price,
+      )
+      if (draft.technical.market === 'options') {
+        return hasCoreFields && Boolean(draft.technical.strikePrice && draft.technical.expirationDate)
+      }
+      return hasCoreFields
     }
     return true
   }
@@ -118,6 +127,7 @@ export default function NuevoTrade() {
         user.id,
       )
       const tradedAt = new Date(`${draft.technical.date}T${draft.technical.time}:00`).toISOString()
+      const isOptions = draft.technical.market === 'options'
 
       const { error } = await supabase.from('trades').insert({
         user_id: user.id,
@@ -128,6 +138,9 @@ export default function NuevoTrade() {
         position_size: Number(draft.technical.quantity),
         stop_loss: draft.technical.stopLoss ? Number(draft.technical.stopLoss) : null,
         commission: draft.technical.commission ? Number(draft.technical.commission) : 0,
+        option_type: isOptions ? draft.technical.optionType : null,
+        strike_price: isOptions && draft.technical.strikePrice ? Number(draft.technical.strikePrice) : null,
+        expiration_date: isOptions && draft.technical.expirationDate ? draft.technical.expirationDate : null,
         entry_reason: orNull(draft.entryReason),
         confirmations: orNull(draft.confirmations),
         emotion: orNull(draft.psychology.emotion),
