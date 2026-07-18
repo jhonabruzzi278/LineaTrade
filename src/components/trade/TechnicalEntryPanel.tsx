@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { BuyIcon, SellIcon } from '../icons/TradeIcons'
 import { OrderTicketFields, type OrderTicketData } from './OrderTicketFields'
 import { parseTradesCsv, type ParsedTradeRow } from '../../lib/tradeImport'
+import { extractTradeFromImage } from '../../lib/tradeImageExtraction'
+import { useToast } from '../../lib/toast'
 
 export interface TechnicalEntryData {
-  method: 'manual' | 'file'
+  method: 'manual' | 'file' | 'photo'
   market: string
   symbol: string
   action: 'long' | 'short'
@@ -42,6 +44,9 @@ const inputClasses =
   'w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors'
 
 export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps) {
+  const { showToast } = useToast()
+  const [photoLoading, setPhotoLoading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
   const isOptions = data.market === 'options'
 
   function set<K extends keyof TechnicalEntryData>(key: K, value: TechnicalEntryData[K]) {
@@ -62,9 +67,51 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
     reader.readAsText(file)
   }
 
+  async function handlePhotoSelected(file: File | undefined) {
+    if (!file) return
+    setPhotoLoading(true)
+    setPhotoError('')
+    const result = await extractTradeFromImage(file)
+    setPhotoLoading(false)
+    if (!result.ok) {
+      setPhotoError(result.message)
+      return
+    }
+    const extracted = result.data
+    onChange({
+      ...data,
+      method: 'manual',
+      market: extracted.market ?? data.market,
+      symbol: extracted.symbol ?? data.symbol,
+      action: extracted.action ?? data.action,
+      optionType: extracted.option_type ?? data.optionType,
+      strikePrice: extracted.strike_price != null ? String(extracted.strike_price) : data.strikePrice,
+      expirationDate: extracted.expiration_date ?? data.expirationDate,
+      date: extracted.date ?? data.date,
+      time: extracted.time ?? data.time,
+      quantity: extracted.quantity != null ? String(extracted.quantity) : data.quantity,
+      price: extracted.price != null ? String(extracted.price) : data.price,
+      commission: extracted.commission != null ? String(extracted.commission) : data.commission,
+      orderTicket: {
+        orderNumber: extracted.order_number ?? data.orderTicket.orderNumber,
+        orderPlacedTime: extracted.order_placed_time ?? data.orderTicket.orderPlacedTime,
+        priceType: extracted.price_type ?? data.orderTicket.priceType,
+        limitPrice: extracted.limit_price != null ? String(extracted.limit_price) : data.orderTicket.limitPrice,
+        bidPrice: extracted.bid_price != null ? String(extracted.bid_price) : data.orderTicket.bidPrice,
+        askPrice: extracted.ask_price != null ? String(extracted.ask_price) : data.orderTicket.askPrice,
+        term: extracted.term ?? data.orderTicket.term,
+        allOrNone: extracted.all_or_none ?? data.orderTicket.allOrNone,
+      },
+    })
+    showToast('Datos extraídos de la foto — revisalos antes de guardar.', 'success')
+  }
+
   return (
     <div style={{ animation: 'reveal 0.25s ease-out' }}>
       <div className="flex gap-2 mb-6 border-b border-hairline">
+        <TabButton active={data.method === 'photo'} onClick={() => set('method', 'photo')}>
+          Foto del bróker
+        </TabButton>
         <TabButton active={data.method === 'file'} onClick={() => set('method', 'file')}>
           Subir archivo
         </TabButton>
@@ -73,7 +120,35 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
         </TabButton>
       </div>
 
-      {data.method === 'file' ? (
+      {data.method === 'photo' ? (
+        <div className="space-y-4">
+          <label
+            htmlFor="trade-photo"
+            className={`flex flex-col items-center justify-center gap-2 border border-dashed border-hairline rounded-sm py-10 px-4 text-center transition-colors ${
+              photoLoading ? 'opacity-50 pointer-events-none' : 'cursor-pointer hover:border-text-faint'
+            }`}
+          >
+            <span className="font-body text-[14px] text-text-muted">
+              {photoLoading
+                ? 'Leyendo la imagen con IA...'
+                : 'Sacá una foto o subí la captura de la confirmación de tu bróker'}
+            </span>
+            <span className="font-mono text-[11px] text-text-faint">
+              La IA pre-llena el formulario — vos lo revisás antes de guardar
+            </span>
+            <input
+              id="trade-photo"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={photoLoading}
+              onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
+            />
+          </label>
+          {photoError && <p className="font-body text-[13px] text-red-400">{photoError}</p>}
+        </div>
+      ) : data.method === 'file' ? (
         <div className="space-y-4">
           <label
             htmlFor="trade-file"

@@ -2,13 +2,14 @@
 // fase (PRD §3.1: tier gratuito = GPT OSS 20B vía Groq). Groq expone un
 // endpoint compatible con la API de chat completions de OpenAI.
 //
-// Nota: no se pasa `response_format: { type: 'json_object' }` — no está
-// confirmado que el modelo configurado en ai_provider_config lo soporte, y
-// forzarlo sin confirmar podría romper la request con un 400. La validación
-// de que la salida sea el JSON esperado la hace responseValidator.ts (schema +
-// retry-once), no un parámetro de la API. Si en el futuro se confirma soporte
-// para el modelo activo, agregarlo acá es un endurecimiento adicional, no un
-// reemplazo de esa validación.
+// Nota: `response_format: json_object` solo se manda si el caller pasa
+// forceJson=true (opt-in) — para gpt-oss-20b (analyze-trade) no está
+// confirmado que lo soporte, y forzarlo sin confirmar podría romper la
+// request con un 400. La validación de que la salida sea el JSON esperado la
+// hace responseValidator.ts (schema + retry-once) para ese caso, no un
+// parámetro de la API. qwen3.6-27b (extract-trade-image) sí lo tiene
+// documentado como soportado — ver console.groq.com/docs/vision — así que ahí
+// se pasa forceJson=true como endurecimiento extra sobre la misma validación.
 //
 // Bug real encontrado probando contra la API de verdad (no en el schema doc,
 // no reproducible con datos fabricados simples): gpt-oss-20b es un modelo de
@@ -28,6 +29,18 @@ import type { AIProvider, AIProviderRequest, AIProviderResponse } from '../aiPro
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
 const REASONING_MODEL_PATTERN = /gpt-oss/i
 
+// Con imagen, el content del mensaje "user" pasa de string plano al formato
+// multimodal de la API de chat completions (array de partes text/image_url,
+// imagen como data URL base64) — mismo shape que usa OpenAI/Anthropic/etc.
+// para vision, Groq lo espeja igual.
+function buildUserContent(req: AIProviderRequest): string | Array<Record<string, unknown>> {
+  if (!req.image) return req.userMessage
+  return [
+    { type: 'text', text: req.userMessage },
+    { type: 'image_url', image_url: { url: `data:${req.image.mimeType};base64,${req.image.base64}` } },
+  ]
+}
+
 export const groqProvider: AIProvider = {
   async complete(req: AIProviderRequest, apiKey: string): Promise<AIProviderResponse> {
     const response = await fetch(GROQ_ENDPOINT, {
@@ -40,9 +53,10 @@ export const groqProvider: AIProvider = {
         model: req.model,
         max_tokens: req.maxOutputTokens,
         ...(REASONING_MODEL_PATTERN.test(req.model) ? { reasoning_effort: 'low' } : {}),
+        ...(req.forceJson ? { response_format: { type: 'json_object' } } : {}),
         messages: [
           { role: 'system', content: req.systemPrompt },
-          { role: 'user', content: req.userMessage },
+          { role: 'user', content: buildUserContent(req) },
         ],
       }),
     })

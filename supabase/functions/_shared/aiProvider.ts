@@ -4,11 +4,18 @@
 // sin registrar a propósito — un provider_name no registrado debe fallar con
 // un error claro, nunca con un stub silencioso que finja funcionar.
 
+export interface AIProviderImage {
+  base64: string
+  mimeType: string
+}
+
 export interface AIProviderRequest {
   systemPrompt: string
   userMessage: string
   maxOutputTokens: number
   model: string
+  image?: AIProviderImage
+  forceJson?: boolean
 }
 
 export interface AIProviderResponse {

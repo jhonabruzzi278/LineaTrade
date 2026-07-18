@@ -389,7 +389,10 @@ deno_version = 2
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+# Desactivado — el contenedor de Logflare falla el health check de forma
+# consistente en esta máquina (Windows) y el proyecto no usa ninguna feature
+# de analytics/Studio logs que dependa de él.
+enabled = false
 port = 55327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
