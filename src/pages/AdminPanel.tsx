@@ -1,11 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { AppHeader } from '../components/AppHeader'
 import { MetricCard } from '../components/MetricCard'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+import { useToast } from '../lib/toast'
 import type { Database } from '../types/database'
 
 type SystemMetrics = Database['public']['Functions']['get_system_metrics']['Returns'][number]
+type ProviderConfig = Database['public']['Tables']['ai_provider_config']['Row']
 
 export default function AdminPanel() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null)
@@ -67,13 +69,110 @@ export default function AdminPanel() {
               <MetricCard label="Proveedor activo" value={formatProvider(metrics)} />
             </Section>
 
-            <p className="font-mono text-[11px] text-text-faint">
+            <p className="font-mono text-[11px] text-text-faint mb-10">
               Actualizado: {new Date(metrics.generated_at).toLocaleString('es-AR')}
             </p>
+
+            <ProviderConfigSection />
           </>
         )}
       </main>
     </div>
+  )
+}
+
+// Único punto de la app donde se carga la API key del proveedor por defecto
+// (tier gratuito) — antes de esto, provider_secret_id solo se seteaba a mano
+// por SQL durante desarrollo, nunca vía la app en ningún entorno.
+function ProviderConfigSection() {
+  const { showToast } = useToast()
+  const [configs, setConfigs] = useState<ProviderConfig[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [apiKey, setApiKey] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function loadConfigs() {
+    const { data, error: fetchError } = await supabase
+      .from('ai_provider_config')
+      .select('*')
+      .order('created_at', { ascending: true })
+    if (fetchError) {
+      setError(getErrorMessage(fetchError))
+    } else {
+      setConfigs(data ?? [])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    void loadConfigs()
+  }, [])
+
+  const defaultConfig = configs.find((c) => c.is_default)
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault()
+    if (!defaultConfig || !apiKey.trim()) return
+    setSaving(true)
+    setError(null)
+    const { error: saveError } = await supabase.rpc('set_provider_api_key', {
+      p_provider_config_id: defaultConfig.id,
+      p_api_key: apiKey.trim(),
+    })
+    setSaving(false)
+    if (saveError) {
+      setError(getErrorMessage(saveError))
+      return
+    }
+    setApiKey('')
+    showToast('Key del proveedor guardada.', 'success')
+    void loadConfigs()
+  }
+
+  if (loading) return null
+
+  return (
+    <Section title="Configuración del proveedor de IA (tier gratuito)">
+      <div className="col-span-2 md:col-span-4 border border-hairline rounded-sm bg-panel px-5 py-4">
+        {defaultConfig ? (
+          <>
+            <p className="font-body text-[14px] text-text-primary mb-1">
+              {defaultConfig.provider_name} · {defaultConfig.model_name}
+            </p>
+            <p className="font-mono text-[11px] text-text-faint mb-4">
+              {defaultConfig.provider_secret_id ? 'Key configurada' : 'Sin key configurada — analyze-trade y extract-trade-image fallan hasta que se cargue una'}
+            </p>
+            <form onSubmit={(e) => void handleSave(e)} className="flex items-end gap-3">
+              <div className="flex-1">
+                <label htmlFor="provider-api-key" className="font-body text-[13px] text-text-muted block mb-2">
+                  API key de {defaultConfig.provider_name}
+                </label>
+                <input
+                  id="provider-api-key"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="gsk_..."
+                  autoComplete="off"
+                  className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving || !apiKey.trim()}
+                className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+              >
+                {saving ? 'Guardando...' : 'Guardar key'}
+              </button>
+            </form>
+            {error && <p className="font-body text-[13px] text-red-400 mt-3">{error}</p>}
+          </>
+        ) : (
+          <p className="font-body text-[13px] text-text-muted">No hay proveedor por defecto configurado.</p>
+        )}
+      </div>
+    </Section>
   )
 }
 
