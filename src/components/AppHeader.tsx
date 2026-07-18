@@ -24,13 +24,15 @@ export function AppHeader() {
 
   function linkClass(path: string) {
     const active = location.pathname === path
-    return `font-body text-[13px] transition-colors ${
-      active ? 'text-text-primary' : 'text-text-muted hover:text-text-primary'
-    }`
+    const base =
+      'relative font-body text-[13px] transition-colors after:absolute after:-bottom-[6px] after:left-0 after:h-px after:bg-signal after:transition-[right] after:duration-200'
+    return active
+      ? `${base} text-text-primary after:right-0`
+      : `${base} text-text-muted hover:text-text-primary after:right-full hover:after:right-0`
   }
 
   return (
-    <header className="border-b border-hairline">
+    <header className="sticky top-0 z-30 border-b border-hairline bg-ink/80 backdrop-blur-md">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-2">
         <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
           <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
@@ -61,7 +63,7 @@ export function AppHeader() {
           )}
           <Link
             to="/nuevo-trade"
-            className="font-body text-[13px] px-3 py-1.5 sm:px-4 sm:py-2 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors whitespace-nowrap"
+            className="font-body text-[13px] px-3 py-1.5 sm:px-4 sm:py-2 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow whitespace-nowrap"
           >
             + Trade
           </Link>

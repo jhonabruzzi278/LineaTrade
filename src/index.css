@@ -15,12 +15,37 @@
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  /* Depth — dark cards read as layered via a lit top edge + a soft cast shadow.
+     Consumed as Tailwind utilities: shadow-card / shadow-elevated / shadow-glow. */
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 24px -14px rgba(0, 0, 0, 0.75);
+  --shadow-elevated: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 42px -18px rgba(0, 0, 0, 0.85);
+  --shadow-glow: 0 8px 30px -10px rgba(227, 169, 74, 0.42);
 }
 
 body {
   background-color: var(--color-ink);
   color: var(--color-text-primary);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(227, 169, 74, 0.22);
+  color: var(--color-text-primary);
+}
+
+/* Keyboard-only focus ring — additive to the amber border inputs already use,
+   so mouse users see the existing treatment and keyboard users get a clear ring. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 @keyframes trace-draw {
@@ -32,6 +57,47 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Entrance motion — compositor-friendly (opacity + transform). Apply .reveal-up
+   and stagger with an inline style={{ animationDelay }}. */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  opacity: 0;
+  animation: reveal-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Atmospheric amber glow, placed absolutely behind hero content.
+   Non-interactive, heavily blurred — pure ambience, never layout. */
+.hero-aura {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(72px);
+  background: radial-gradient(circle, rgba(227, 169, 74, 0.16) 0%, rgba(227, 169, 74, 0) 70%);
+}
+
+.steel-aura {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(80px);
+  background: radial-gradient(circle, rgba(91, 122, 153, 0.14) 0%, rgba(91, 122, 153, 0) 70%);
+}
+
+/* Fine film grain — an absolutely-positioned overlay inside a panel to add
+   texture to flat dark surfaces. Kept very low opacity so it reads as tone. */
+.grain-overlay {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  .reveal-up { opacity: 1; }
 }

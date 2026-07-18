@@ -31,19 +31,22 @@ export default function Recuperar() {
     return (
       <div className="min-h-screen bg-ink">
         <Nav />
-        <main className="max-w-md mx-auto px-6 pt-24 text-center">
-          <p className="font-mono text-[13px] text-signal mb-4">enlace enviado</p>
-          <h1 className="font-display text-[26px] text-text-primary mb-3">Revisa tu correo</h1>
-          <p className="font-body text-[15px] text-text-muted leading-relaxed">
-            Si existe una cuenta asociada a{' '}
-            <span className="text-text-primary">{email}</span>, te enviamos un enlace para
-            restablecer tu contraseña. Revisa también la carpeta de spam.
-          </p>
-          <p className="font-body text-[14px] text-text-muted mt-8 text-center">
-            <Link to="/login" className="text-signal hover:text-signal-dim transition-colors">
-              Volver a ingresar
-            </Link>
-          </p>
+        <main className="relative max-w-md mx-auto px-6 pt-24">
+          <div className="hero-aura left-1/2 -translate-x-1/2 -top-8 w-[360px] h-[260px]" aria-hidden="true" />
+          <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated text-center">
+            <p className="font-mono text-[13px] text-signal mb-4">enlace enviado</p>
+            <h1 className="font-display text-[26px] text-text-primary mb-3">Revisa tu correo</h1>
+            <p className="font-body text-[15px] text-text-muted leading-relaxed">
+              Si existe una cuenta asociada a{' '}
+              <span className="text-text-primary">{email}</span>, te enviamos un enlace para
+              restablecer tu contraseña. Revisa también la carpeta de spam.
+            </p>
+            <p className="font-body text-[14px] text-text-muted mt-8 text-center">
+              <Link to="/login" className="text-signal hover:text-signal-dim transition-colors">
+                Volver a ingresar
+              </Link>
+            </p>
+          </div>
         </main>
       </div>
     )
@@ -52,7 +55,9 @@ export default function Recuperar() {
   return (
     <div className="min-h-screen bg-ink">
       <Nav />
-      <main className="max-w-md mx-auto px-6 pt-20">
+      <main className="relative max-w-md mx-auto px-6 pt-20">
+        <div className="hero-aura left-1/2 -translate-x-1/2 -top-8 w-[360px] h-[260px]" aria-hidden="true" />
+        <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated">
         <p className="font-mono text-[13px] text-signal mb-4">recuperación</p>
         <h1 className="font-display text-[30px] text-text-primary mb-2">Recuperar contraseña</h1>
         <p className="font-body text-[15px] text-text-muted mb-8">
@@ -71,7 +76,7 @@ export default function Recuperar() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nombre@correo.com"
-              className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+              className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
             />
           </div>
 
@@ -80,11 +85,12 @@ export default function Recuperar() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
           >
             {loading ? 'Enviando...' : 'Enviar enlace'}
           </button>
         </form>
+        </div>
 
         <p className="font-body text-[14px] text-text-muted mt-6 text-center">
           ¿Recordaste tu contraseña?{' '}

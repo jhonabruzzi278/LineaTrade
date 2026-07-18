@@ -40,7 +40,7 @@ export function WizardLayout({
         </div>
         <div className="h-[2px] bg-panel-2">
           <div
-            className="h-full bg-signal transition-all duration-300"
+            className="h-full bg-signal shadow-[0_0_12px_rgba(227,169,74,0.6)] transition-all duration-500 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -62,7 +62,7 @@ export function WizardLayout({
           type="button"
           onClick={onNext}
           disabled={nextDisabled}
-          className="flex-1 font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+          className="flex-1 font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
         >
           {nextLabel}
         </button>

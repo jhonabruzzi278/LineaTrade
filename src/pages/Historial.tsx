@@ -113,8 +113,8 @@ export default function Historial() {
                 onClick={() => setStatusFilter(status)}
                 className={`font-mono text-[12px] px-3 py-2.5 rounded-sm border transition-colors ${
                   statusFilter === status
-                    ? 'border-signal text-signal'
-                    : 'border-hairline text-text-muted hover:border-text-faint'
+                    ? 'border-signal/60 text-signal bg-signal/10'
+                    : 'border-hairline text-text-muted hover:border-text-faint hover:text-text-primary'
                 }`}
               >
                 {status === 'all' ? 'todos' : status}
@@ -126,14 +126,14 @@ export default function Historial() {
         {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
 
         {!loading && filtered.length === 0 && (
-          <div className="border border-hairline rounded-sm bg-panel px-6 py-10 text-center">
+          <div className="border border-hairline rounded-sm bg-gradient-to-b from-panel-2 to-panel px-6 py-10 text-center shadow-card">
             <p className="font-body text-[15px] text-text-muted mb-4">
               {trades.length === 0 ? 'Aún no tienes trades registrados.' : 'Nada coincide con ese filtro.'}
             </p>
             {trades.length === 0 && (
               <Link
                 to="/nuevo-trade"
-                className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors"
+                className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5"
               >
                 Registrar mi primer trade
               </Link>
@@ -142,12 +142,12 @@ export default function Historial() {
         )}
 
         {!loading && filtered.length > 0 && (
-          <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden">
+          <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
             {filtered.map((trade) => (
               <Link
                 key={trade.id}
                 to={`/trades/${trade.id}`}
-                className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-panel-2 transition-colors"
+                className="group flex items-center justify-between gap-3 px-5 py-4 hover:bg-panel-2/70 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[12px] text-text-faint w-24 shrink-0">
@@ -165,8 +165,13 @@ export default function Historial() {
                   </span>
                   <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
                 </div>
-                <span className={`font-mono text-[13px] ${tradeResultColorClass(trade)}`}>
-                  {formatTradeResult(trade)}
+                <span className="flex items-center gap-2">
+                  <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
+                    {formatTradeResult(trade)}
+                  </span>
+                  <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
+                    →
+                  </span>
                 </span>
               </Link>
             ))}

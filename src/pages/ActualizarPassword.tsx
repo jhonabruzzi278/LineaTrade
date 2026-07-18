@@ -34,18 +34,21 @@ export default function ActualizarPassword() {
     return (
       <div className="min-h-screen bg-ink">
         <Nav />
-        <main className="max-w-md mx-auto px-6 pt-24 text-center">
-          <p className="font-mono text-[13px] text-signal mb-4">contraseña actualizada</p>
-          <h1 className="font-display text-[26px] text-text-primary mb-3">Listo</h1>
-          <p className="font-body text-[15px] text-text-muted leading-relaxed">
-            Ya puedes ingresar con tu nueva contraseña.
-          </p>
-          <Link
-            to="/login"
-            className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mt-8"
-          >
-            Ir a ingresar
-          </Link>
+        <main className="relative max-w-md mx-auto px-6 pt-24">
+          <div className="hero-aura left-1/2 -translate-x-1/2 -top-8 w-[360px] h-[260px]" aria-hidden="true" />
+          <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated text-center">
+            <p className="font-mono text-[13px] text-signal mb-4">contraseña actualizada</p>
+            <h1 className="font-display text-[26px] text-text-primary mb-3">Listo</h1>
+            <p className="font-body text-[15px] text-text-muted leading-relaxed">
+              Ya puedes ingresar con tu nueva contraseña.
+            </p>
+            <Link
+              to="/login"
+              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5 mt-8"
+            >
+              Ir a ingresar
+            </Link>
+          </div>
         </main>
       </div>
     )
@@ -54,7 +57,9 @@ export default function ActualizarPassword() {
   return (
     <div className="min-h-screen bg-ink">
       <Nav />
-      <main className="max-w-md mx-auto px-6 pt-20">
+      <main className="relative max-w-md mx-auto px-6 pt-20">
+        <div className="hero-aura left-1/2 -translate-x-1/2 -top-8 w-[360px] h-[260px]" aria-hidden="true" />
+        <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated">
         <p className="font-mono text-[13px] text-signal mb-4">nueva contraseña</p>
         <h1 className="font-display text-[30px] text-text-primary mb-2">Actualizar contraseña</h1>
         <p className="font-body text-[15px] text-text-muted mb-8">Elige tu nueva contraseña.</p>
@@ -71,7 +76,7 @@ export default function ActualizarPassword() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Mínimo 8 caracteres"
-              className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+              className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
             />
           </div>
 
@@ -80,11 +85,12 @@ export default function ActualizarPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
           >
             {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>
         </form>
+        </div>
       </main>
     </div>
   )
