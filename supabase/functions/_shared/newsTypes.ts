@@ -26,16 +26,15 @@ export interface FetchNewsResponse {
   partial: boolean
 }
 
-// Feeds verificados manualmente (petición real, XML válido) antes de
-// hardcodearlos aquí — ver la nota en fetch-news/index.ts. Cointelegraph en
-// español (es.cointelegraph.com/rss) devolvía 410 Gone al verificar, por eso
-// se usa la versión en inglés.
+// Feeds en español exclusivamente. Se priorizan fuentes hispanas de
+// trading/finanzas para que el producto sea coherente con su audiencia LatAm.
+// Si alguna fuente falla, fetch-news devuelve `partial: true` y sigue con
+// las que respondieron.
 export const NEWS_FEEDS: NewsFeedSource[] = [
   { url: 'https://www.criptonoticias.com/feed/', sourceName: 'CriptoNoticias', category: 'cripto' },
-  { url: 'https://cointelegraph.com/rss', sourceName: 'Cointelegraph', category: 'cripto' },
-  { url: 'https://www.fxstreet.com/rss/news', sourceName: 'FXStreet', category: 'forex' },
-  { url: 'https://www.investing.com/rss/forex.rss', sourceName: 'Investing.com — Forex', category: 'forex' },
-  { url: 'https://www.investing.com/rss/commodities.rss', sourceName: 'Investing.com — Materias primas', category: 'futuros' },
+  { url: 'https://es.cointelegraph.com/rss', sourceName: 'Cointelegraph', category: 'cripto' },
+  { url: 'https://es.investing.com/rss/forex.rss', sourceName: 'Investing.com — Forex', category: 'forex' },
+  { url: 'https://es.investing.com/rss/commodities.rss', sourceName: 'Investing.com — Materias primas', category: 'futuros' },
   { url: 'https://e00-expansion.uecdn.es/rss/mercados.xml', sourceName: 'Expansión — Mercados', category: 'acciones' },
-  { url: 'https://www.investing.com/rss/news.rss', sourceName: 'Investing.com — Actualidad', category: 'general' },
+  { url: 'https://es.investing.com/rss/news.rss', sourceName: 'Investing.com — Actualidad', category: 'general' },
 ]
