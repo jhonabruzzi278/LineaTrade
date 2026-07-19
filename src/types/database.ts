@@ -307,6 +307,45 @@ export type Database = {
           },
         ]
       }
+      news_articles: {
+        Row: {
+          category: string
+          created_at: string
+          fetched_at: string
+          id: string
+          image_url: string | null
+          published_at: string
+          source_name: string
+          summary: string | null
+          title: string
+          url: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          image_url?: string | null
+          published_at: string
+          source_name: string
+          summary?: string | null
+          title: string
+          url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source_name?: string
+          summary?: string | null
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
       objectives: {
         Row: {
           achieved: boolean
@@ -646,6 +685,38 @@ export type Database = {
           },
           {
             foreignKeyName: "trade_threads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trader_plans: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          plan: Json
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          id?: string
+          plan: Json
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          plan?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trader_plans_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

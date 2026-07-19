@@ -13,6 +13,9 @@ import TradeDetail from './pages/TradeDetail'
 import ConfiguracionIA from './pages/ConfiguracionIA'
 import AdminPanel from './pages/AdminPanel'
 import Sistema from './pages/Sistema'
+import Perfil from './pages/Perfil'
+import Noticias from './pages/Noticias'
+import IaTrader from './pages/IaTrader'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
@@ -28,6 +31,7 @@ export default function App() {
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/actualizar-password" element={<ActualizarPassword />} />
         <Route path="/privacidad" element={<Privacidad />} />
+        <Route path="/ia-trader" element={<IaTrader />} />
         <Route
           path="/onboarding"
           element={
@@ -81,6 +85,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Sistema />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute>
+              <Perfil />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/noticias"
+          element={
+            <ProtectedRoute>
+              <Noticias />
             </ProtectedRoute>
           }
         />

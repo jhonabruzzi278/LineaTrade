@@ -9,7 +9,9 @@ interface AuthContextValue {
   user: User | null
   session: Session | null
   role: ProfileRole | null
+  avatarUrl: string | null
   loading: boolean
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -17,6 +19,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [role, setRole] = useState<ProfileRole | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,14 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession)
       if (!newSession) {
         setRole(null)
+        setAvatarUrl(null)
         return
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, avatar_url')
         .eq('id', newSession.user.id)
         .maybeSingle()
       setRole(profile?.role ?? null)
+      setAvatarUrl(profile?.avatar_url ?? null)
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -45,8 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
+  // Re-lee role/avatar_url de profiles sin esperar a un cambio de sesión — la usa
+  // Perfil.tsx después de subir una foto nueva, para que el avatar del header se
+  // actualice al instante en vez de quedar desfasado hasta el próximo login.
+  async function refreshProfile() {
+    if (!session) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, avatar_url')
+      .eq('id', session.user.id)
+      .maybeSingle()
+    setRole(profile?.role ?? null)
+    setAvatarUrl(profile?.avatar_url ?? null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user: session?.user ?? null, session, role, loading }}>
+    <AuthContext.Provider value={{ user: session?.user ?? null, session, role, avatarUrl, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

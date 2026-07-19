@@ -127,6 +127,25 @@ export default function Landing() {
         </section>
 
         <section className="py-20 border-t border-hairline">
+          <p className="font-mono text-[13px] text-steel tracking-wide mb-2">test de perfil</p>
+          <h2 className="font-display text-[28px] text-text-primary mb-4 max-w-xl">
+            Convierte la IA en tu trader.
+          </h2>
+          <p className="font-body text-[15px] text-text-muted leading-relaxed max-w-xl mb-8">
+            19 preguntas sobre tu tiempo, tu dinero y tu forma de ser. El motor calcula un plan de
+            trading a tu medida — riesgo por operación, ratio riesgo:beneficio, win rate mínimo —
+            y te da un paquete listo para que tu IA (ChatGPT, Claude) diseñe y respalde la
+            estrategia. Herramienta educativa, sin asesoramiento financiero.
+          </p>
+          <Link
+            to="/ia-trader"
+            className="font-body text-[14px] px-5 py-3 rounded-sm border border-hairline text-text-primary transition-colors hover:border-signal hover:bg-panel-2/50"
+          >
+            Empezar el test — 2 minutos
+          </Link>
+        </section>
+
+        <section className="py-20 border-t border-hairline">
           <div className="relative overflow-hidden rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel px-8 py-14 text-center shadow-card">
             <div className="hero-aura left-1/2 -translate-x-1/2 -top-20 w-[420px] h-[300px]" aria-hidden="true" />
             <div className="relative">

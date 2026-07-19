@@ -1,3 +1,5 @@
+import { Switch } from '../Switch'
+
 export interface PsychologyData {
   emotion: string
   confidenceLevel: number
@@ -54,17 +56,11 @@ export function PsychologySection({ data, onChange }: PsychologySectionProps) {
       <SliderField label="Nivel de confianza" value={data.confidenceLevel} onChange={(v) => set('confidenceLevel', v)} />
       <SliderField label="Nivel de estrés" value={data.stressLevel} onChange={(v) => set('stressLevel', v)} />
 
-      <div className="space-y-3">
+      <div className="space-y-1 divide-y divide-hairline border border-hairline rounded-sm bg-panel px-4">
         {checkboxFields.map((field) => (
-          <label key={field.key} className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={data[field.key]}
-              onChange={(e) => set(field.key, e.target.checked)}
-              className="w-4 h-4 accent-signal"
-            />
-            <span className="font-body text-[14px] text-text-primary">{field.label}</span>
-          </label>
+          <div key={field.key} className="py-3.5">
+            <Switch checked={data[field.key]} onChange={(checked) => set(field.key, checked)} label={field.label} />
+          </div>
         ))}
       </div>
     </div>

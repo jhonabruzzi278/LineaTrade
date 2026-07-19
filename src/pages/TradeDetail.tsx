@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
+import { BottomNav } from '../components/BottomNav'
 import { AIAnalysisPanel } from '../components/AIAnalysisPanel'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
@@ -228,7 +229,7 @@ export default function TradeDetail() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-32">
         <div className="flex items-center gap-3 mb-1">
           <h1 className="font-display text-[26px] text-text-primary">
             {trade.instruments?.symbol ?? '—'}
@@ -495,6 +496,7 @@ export default function TradeDetail() {
           </form>
         </Section>
       </main>
+      <BottomNav />
     </div>
   )
 }

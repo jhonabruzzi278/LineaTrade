@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
-import { MetricCard } from '../components/MetricCard'
+import { BottomNav } from '../components/BottomNav'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { formatTradeResult, tradeResultColorClass } from '../lib/tradeDisplay'
-import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import type { Database } from '../types/database'
 
-type TradeStats = Database['public']['Views']['v_user_trade_stats']['Row']
 type TradeRow = Database['public']['Tables']['trades']['Row'] & {
   instruments: Pick<Database['public']['Tables']['instruments']['Row'], 'symbol' | 'market'> | null
 }
 
+const RECENT_TRADES_LIMIT = 10
+
 export default function Dashboard() {
   const { user } = useAuth()
-  const [stats, setStats] = useState<TradeStats | null>(null)
   const [recentTrades, setRecentTrades] = useState<TradeRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,27 +25,18 @@ export default function Dashboard() {
     let cancelled = false
 
     async function load() {
-      const [statsRes, tradesRes] = await Promise.all([
-        supabase.from('v_user_trade_stats').select('*').eq('user_id', user!.id).maybeSingle(),
-        supabase
-          .from('trades')
-          .select('*, instruments(symbol, market)')
-          .order('traded_at', { ascending: false })
-          .limit(5),
-      ])
+      const { data, error: fetchError } = await supabase
+        .from('trades')
+        .select('*, instruments(symbol, market)')
+        .order('traded_at', { ascending: false })
+        .limit(RECENT_TRADES_LIMIT)
       if (cancelled) return
-      if (statsRes.error) {
-        setError(getErrorMessage(statsRes.error))
+      if (fetchError) {
+        setError(getErrorMessage(fetchError))
         setLoading(false)
         return
       }
-      if (tradesRes.error) {
-        setError(getErrorMessage(tradesRes.error))
-        setLoading(false)
-        return
-      }
-      setStats(statsRes.data)
-      setRecentTrades((tradesRes.data as TradeRow[] | null) ?? [])
+      setRecentTrades((data as TradeRow[] | null) ?? [])
       setLoading(false)
     }
 
@@ -59,47 +49,26 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="flex items-start justify-between gap-3 mb-8">
-          <div>
-            <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
-            <h1 className="font-display text-[28px] text-text-primary">Dashboard</h1>
-          </div>
-          <Link
-            to="/sistema"
-            className="font-body text-[13px] text-text-muted hover:text-text-primary transition-colors whitespace-nowrap mt-1"
-          >
-            Mi sistema →
-          </Link>
+      <main className="max-w-5xl mx-auto px-6 py-10 pb-32">
+        <div className="mb-8">
+          <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
+          <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>
         </div>
 
         {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <MetricCard
-            label="Win rate"
-            value={formatPercent(stats?.win_rate)}
-            icon={<PercentageIcon className="w-4 h-4" />}
-          />
-          <MetricCard
-            label="Profit factor"
-            value={formatNumber(stats?.profit_factor)}
-            icon={<GrowthGraphIcon className="w-4 h-4" />}
-          />
-          <MetricCard label="R promedio" value={formatSigned(stats?.avg_r)} icon={<RatioIcon className="w-4 h-4" />} />
-          <MetricCard
-            label="Trades"
-            value={String(stats?.total_trades ?? 0)}
-            icon={<TradeCountIcon className="w-4 h-4" />}
-          />
-        </div>
-
-        {!loading && (stats?.total_trades ?? 0) > 0 && (stats?.closed_trades ?? 0) === 0 && (
-          <p className="font-mono text-[12px] text-text-faint mb-8">
-            win rate, profit factor y R promedio solo se calculan sobre trades cerrados —
-            todavía no tienes ninguno.
-          </p>
-        )}
+        <Link
+          to="/ia-trader"
+          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
+        >
+          <div>
+            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">test de perfil</p>
+            <p className="font-body text-[14px] text-text-primary">Convierte la IA en tu trader</p>
+          </div>
+          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
+            →
+          </span>
+        </Link>
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-[18px] text-text-primary">Últimos trades</h2>
@@ -132,21 +101,9 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+      <BottomNav />
     </div>
   )
-}
-
-function formatPercent(value: number | null | undefined): string {
-  return value == null ? '—' : `${value}%`
-}
-
-function formatNumber(value: number | null | undefined): string {
-  return value == null ? '—' : String(value)
-}
-
-function formatSigned(value: number | null | undefined): string {
-  if (value == null) return '—'
-  return value > 0 ? `+${value}` : String(value)
 }
 
 function TradeRowItem({ trade }: { trade: TradeRow }) {

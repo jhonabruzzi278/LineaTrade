@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { BuyIcon, SellIcon } from '../icons/TradeIcons'
+import { CameraIcon } from '../icons/NavIcons'
 import { OrderTicketFields, type OrderTicketData } from './OrderTicketFields'
-import { parseTradesCsv, type ParsedTradeRow } from '../../lib/tradeImport'
 import { extractTradeFromImage } from '../../lib/tradeImageExtraction'
 import { useToast } from '../../lib/toast'
 
 export interface TechnicalEntryData {
-  method: 'manual' | 'file' | 'photo'
+  photoAttached: boolean
   market: string
   symbol: string
   action: 'long' | 'short'
@@ -16,13 +16,10 @@ export interface TechnicalEntryData {
   price: string
   stopLoss: string
   commission: string
-  fileName: string
   optionType: 'call' | 'put'
   strikePrice: string
   expirationDate: string
   orderTicket: OrderTicketData
-  importedRows: ParsedTradeRow[]
-  importErrors: string[]
 }
 
 interface TechnicalEntryPanelProps {
@@ -47,40 +44,31 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
   const { showToast } = useToast()
   const [photoLoading, setPhotoLoading] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [photoPreview, setPhotoPreview] = useState('')
   const isOptions = data.market === 'options'
 
   function set<K extends keyof TechnicalEntryData>(key: K, value: TechnicalEntryData[K]) {
     onChange({ ...data, [key]: value })
   }
 
-  function handleFileSelected(file: File | undefined) {
-    if (!file) {
-      onChange({ ...data, fileName: '', importedRows: [], importErrors: [] })
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const text = String(reader.result ?? '')
-      const { rows, errors } = parseTradesCsv(text)
-      onChange({ ...data, fileName: file.name, importedRows: rows, importErrors: errors })
-    }
-    reader.readAsText(file)
-  }
-
   async function handlePhotoSelected(file: File | undefined) {
     if (!file) return
+    setPhotoPreview(URL.createObjectURL(file))
     setPhotoLoading(true)
     setPhotoError('')
     const result = await extractTradeFromImage(file)
     setPhotoLoading(false)
     if (!result.ok) {
+      // Aun si la IA no pudo leer la imagen, la foto ya cuenta como adjunta —
+      // el usuario completa los campos a mano, pero no vuelve al dropzone.
       setPhotoError(result.message)
+      onChange({ ...data, photoAttached: true })
       return
     }
     const extracted = result.data
     onChange({
       ...data,
-      method: 'manual',
+      photoAttached: true,
       market: extracted.market ?? data.market,
       symbol: extracted.symbol ?? data.symbol,
       action: extracted.action ?? data.action,
@@ -108,32 +96,22 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
 
   return (
     <div style={{ animation: 'reveal 0.25s ease-out' }}>
-      <div className="flex gap-2 mb-6 border-b border-hairline">
-        <TabButton active={data.method === 'photo'} onClick={() => set('method', 'photo')}>
-          Foto del bróker
-        </TabButton>
-        <TabButton active={data.method === 'file'} onClick={() => set('method', 'file')}>
-          Subir archivo
-        </TabButton>
-        <TabButton active={data.method === 'manual'} onClick={() => set('method', 'manual')}>
-          Agregar manualmente
-        </TabButton>
-      </div>
-
-      {data.method === 'photo' ? (
+      {!data.photoAttached ? (
         <div className="space-y-4">
           <label
             htmlFor="trade-photo"
-            className={`flex flex-col items-center justify-center gap-2 border border-dashed border-hairline rounded-sm py-10 px-4 text-center transition-colors ${
-              photoLoading ? 'opacity-50 pointer-events-none' : 'cursor-pointer hover:border-text-faint'
+            className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed border-hairline rounded-sm py-14 px-4 text-center overflow-hidden transition-colors ${
+              photoLoading ? 'opacity-60 pointer-events-none' : 'cursor-pointer hover:border-signal/50 hover:bg-panel-2/30'
             }`}
           >
-            <span className="font-body text-[14px] text-text-muted">
-              {photoLoading
-                ? 'Leyendo la imagen con IA...'
-                : 'Sacá una foto o subí la captura de la confirmación de tu bróker'}
+            <div className="hero-aura left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[220px] h-[160px]" aria-hidden="true" />
+            <span className="relative w-12 h-12 rounded-full bg-signal/10 border border-signal/30 flex items-center justify-center text-signal">
+              <CameraIcon className="w-5 h-5" />
             </span>
-            <span className="font-mono text-[11px] text-text-faint">
+            <span className="relative font-body text-[14px] text-text-primary">
+              {photoLoading ? 'Leyendo la imagen con IA...' : 'Sacá una foto o subí la captura de tu bróker'}
+            </span>
+            <span className="relative font-mono text-[11px] text-text-faint">
               La IA pre-llena el formulario — vos lo revisás antes de guardar
             </span>
             <input
@@ -148,45 +126,28 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
           </label>
           {photoError && <p className="font-body text-[13px] text-red-400">{photoError}</p>}
         </div>
-      ) : data.method === 'file' ? (
-        <div className="space-y-4">
-          <label
-            htmlFor="trade-file"
-            className="flex flex-col items-center justify-center gap-2 border border-dashed border-hairline rounded-sm py-10 px-4 text-center cursor-pointer hover:border-text-faint transition-colors"
-          >
-            <span className="font-body text-[14px] text-text-muted">
-              {data.fileName || 'Arrastra un archivo o haz clic para subirlo desde tu computador'}
-            </span>
-            <span className="font-mono text-[11px] text-text-faint">
-              CSV con el mismo formato que "Exportar CSV" en Historial
-            </span>
-            <input
-              id="trade-file"
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => handleFileSelected(e.target.files?.[0])}
-            />
-          </label>
+      ) : (
+        <div className="space-y-5 reveal-up">
+          <div className="flex items-center gap-3 border border-hairline rounded-sm bg-panel-2/60 px-3 py-2.5">
+            {photoPreview ? (
+              <img src={photoPreview} alt="" className="w-10 h-10 rounded-sm object-cover border border-hairline shrink-0" />
+            ) : (
+              <span className="w-10 h-10 rounded-sm bg-signal/10 border border-signal/30 flex items-center justify-center text-signal shrink-0">
+                <CameraIcon className="w-4 h-4" />
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-body text-[13px] text-text-primary">Foto adjunta</p>
+              <p className="font-mono text-[11px] text-text-faint">revisá y completá los datos</p>
+            </div>
+          </div>
 
-          {data.fileName && data.importErrors.length === 0 && data.importedRows.length > 0 && (
-            <p className="font-body text-[13px] text-signal">
-              {data.importedRows.length} trade{data.importedRows.length === 1 ? '' : 's'} listo
-              {data.importedRows.length === 1 ? '' : 's'} para importar.
+          {photoError && (
+            <p className="font-body text-[13px] text-red-400">
+              No pudimos leer la imagen automáticamente — completá los campos a mano.
             </p>
           )}
-          {data.importErrors.length > 0 && (
-            <div className="border border-hairline rounded-sm bg-panel px-4 py-3 space-y-1">
-              {data.importErrors.map((error, i) => (
-                <p key={i} className="font-body text-[13px] text-red-400">
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
+
           <div className="grid grid-cols-2 gap-4">
             <Field label="Mercado">
               <select value={data.market} onChange={(e) => set('market', e.target.value)} className={inputClasses}>
@@ -333,20 +294,6 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
         </div>
       )}
     </div>
-  )
-}
-
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-1 pb-3 -mb-px font-body text-[14px] border-b-2 transition-colors ${
-        active ? 'border-signal text-text-primary' : 'border-transparent text-text-faint hover:text-text-muted'
-      }`}
-    >
-      {children}
-    </button>
   )
 }
 

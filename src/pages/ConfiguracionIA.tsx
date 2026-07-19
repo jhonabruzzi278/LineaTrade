@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AppHeader } from '../components/AppHeader'
+import { BottomNav } from '../components/BottomNav'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
@@ -78,7 +79,7 @@ export default function ConfiguracionIA() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-32">
         <p className="font-mono text-[12px] text-signal tracking-wide mb-2">configuración</p>
         <h1 className="font-display text-[26px] text-text-primary mb-1">Tu propia API key (BYOK)</h1>
         <p className="font-body text-[14px] text-text-muted mb-8">
@@ -158,6 +159,7 @@ export default function ConfiguracionIA() {
           </>
         )}
       </main>
+      <BottomNav />
     </div>
   )
 }

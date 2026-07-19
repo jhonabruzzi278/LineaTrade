@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { WizardLayout } from '../components/WizardLayout'
 import { BrokerPicker } from '../components/trade/BrokerPicker'
 import { TechnicalEntryPanel, type TechnicalEntryData } from '../components/trade/TechnicalEntryPanel'
 import { PsychologySection, type PsychologyData } from '../components/trade/PsychologySection'
 import { emptyOrderTicket, hasOrderTicketData } from '../components/trade/OrderTicketFields'
+import { popularBrokers } from '../data/brokers'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { resolveInstrumentId } from '../lib/instruments'
@@ -49,7 +50,7 @@ interface TradeDraft {
 
 const initialDraft: TradeDraft = {
   technical: {
-    method: 'manual',
+    photoAttached: false,
     market: '',
     symbol: '',
     action: 'long',
@@ -59,13 +60,10 @@ const initialDraft: TradeDraft = {
     price: '',
     stopLoss: '',
     commission: '',
-    fileName: '',
     optionType: 'call',
     strikePrice: '',
     expirationDate: '',
     orderTicket: emptyOrderTicket,
-    importedRows: [],
-    importErrors: [],
   },
   entryReason: '',
   confirmations: '',
@@ -84,25 +82,47 @@ const initialDraft: TradeDraft = {
   lessonLearned: '',
 }
 
-// Registra una operación completa: origen técnico (bróker + datos de mercado),
-// contexto, psicología y aprendizaje. El paso 0 alimenta trades.* directamente;
-// contexto/psicología/aprendizaje alimentan los campos homónimos del schema.
+// Registra una operación completa: origen técnico (bróker + datos de mercado,
+// siempre partiendo de una foto del bróker), contexto, psicología y aprendizaje.
+// El paso 0 alimenta trades.* directamente; contexto/psicología/aprendizaje
+// alimentan los campos homónimos del schema.
 export default function NuevoTrade() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [stepIndex, setStepIndex] = useState(0)
   const [draft, setDraft] = useState<TradeDraft>(initialDraft)
   const [done, setDone] = useState(false)
-  const [importedCount, setImportedCount] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const isFileImport = draft.technical.method === 'file'
   const isLastStep = stepIndex === STEP_LABELS.length - 1
+
+  // Acceso rápido "Foto rápida" del FAB (/nuevo-trade?broker=primary): salta el
+  // paso de elegir bróker precargando el bróker principal del onboarding.
+  useEffect(() => {
+    if (!user || searchParams.get('broker') !== 'primary') return
+    let cancelled = false
+    async function prefillPrimaryBroker() {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('primary_broker')
+        .eq('id', user!.id)
+        .maybeSingle()
+      if (cancelled || !profile?.primary_broker) return
+      const match = popularBrokers.find((broker) => broker.id === profile.primary_broker)
+      if (match) {
+        setDraft((prev) => (prev.brokerId ? prev : { ...prev, brokerId: match.id, brokerName: match.name }))
+      }
+    }
+    void prefillPrimaryBroker()
+    return () => {
+      cancelled = true
+    }
+  }, [user, searchParams])
 
   function isStepValid(): boolean {
     if (stepIndex === 0) {
-      if (!draft.brokerId) return false
-      if (isFileImport) return draft.technical.importedRows.length > 0 && draft.technical.importErrors.length === 0
+      if (!draft.brokerId || !draft.technical.photoAttached) return false
       const hasCoreFields = Boolean(
         draft.technical.market && draft.technical.symbol && draft.technical.quantity && draft.technical.price,
       )
@@ -188,48 +208,7 @@ export default function NuevoTrade() {
     }
   }
 
-  async function importTrades() {
-    if (!user) return
-    setSaving(true)
-    setSaveError(null)
-    try {
-      for (const row of draft.technical.importedRows) {
-        const instrumentId = await resolveInstrumentId(row.symbol, row.market as InstrumentMarket, user.id)
-        const { error } = await supabase.from('trades').insert({
-          user_id: user.id,
-          instrument_id: instrumentId,
-          side: row.side,
-          status: row.status,
-          traded_at: row.tradedAt,
-          entry_price: row.entryPrice,
-          exit_price: row.exitPrice,
-          position_size: row.positionSize,
-          stop_loss: row.stopLoss,
-          take_profit: row.takeProfit,
-          commission: row.commission,
-          option_type: row.optionType,
-          strike_price: row.strikePrice,
-          expiration_date: row.expirationDate,
-          entry_reason: row.entryReason,
-          emotion: row.emotion,
-          main_mistake: row.mainMistake,
-        })
-        if (error) throw error
-      }
-      setImportedCount(draft.technical.importedRows.length)
-      setDone(true)
-    } catch (error: unknown) {
-      setSaveError(getErrorMessage(error))
-    } finally {
-      setSaving(false)
-    }
-  }
-
   function goNext() {
-    if (stepIndex === 0 && isFileImport) {
-      void importTrades()
-      return
-    }
     if (isLastStep) {
       void saveTrade()
       return
@@ -242,7 +221,7 @@ export default function NuevoTrade() {
   }
 
   if (done) {
-    return <NuevoTradeComplete symbol={draft.technical.symbol} importedCount={importedCount} />
+    return <NuevoTradeComplete symbol={draft.technical.symbol} />
   }
 
   return (
@@ -252,15 +231,7 @@ export default function NuevoTrade() {
       onBack={stepIndex > 0 ? goBack : undefined}
       onNext={goNext}
       nextDisabled={!isStepValid() || saving}
-      nextLabel={
-        saving
-          ? 'Guardando...'
-          : stepIndex === 0 && isFileImport
-            ? `Importar ${draft.technical.importedRows.length} trade${draft.technical.importedRows.length === 1 ? '' : 's'}`
-            : isLastStep
-              ? 'Guardar trade'
-              : 'Continuar'
-      }
+      nextLabel={saving ? 'Guardando...' : isLastStep ? 'Guardar trade' : 'Continuar'}
     >
       {saveError && <p className="font-body text-[13px] text-red-400 mb-6">{saveError}</p>}
 
@@ -268,7 +239,7 @@ export default function NuevoTrade() {
         <>
           <h1 className="font-display text-[26px] text-text-primary mb-2">¿De dónde viene esta operación?</h1>
           <p className="font-body text-[14px] text-text-muted mb-8">
-            Elige el bróker y cómo quieres cargar los datos técnicos.
+            Elige el bróker y subí la captura de la operación.
           </p>
           <BrokerPicker
             value={draft.brokerId}
@@ -382,26 +353,19 @@ function TextAreaField({
   )
 }
 
-function NuevoTradeComplete({ symbol, importedCount }: { symbol: string; importedCount: number | null }) {
-  const title =
-    importedCount != null
-      ? `${importedCount} trade${importedCount === 1 ? '' : 's'} importado${importedCount === 1 ? '' : 's'}`
-      : symbol
-        ? `${symbol} quedó registrado`
-        : 'Tu trade quedó registrado'
+function NuevoTradeComplete({ symbol }: { symbol: string }) {
+  const title = symbol ? `${symbol} quedó registrado` : 'Tu trade quedó registrado'
 
   return (
     <div className="min-h-screen bg-ink">
       <main className="max-w-md mx-auto px-6 pt-24 text-center">
-        <p className="font-mono text-[13px] text-signal mb-4">
-          {importedCount != null ? 'importación completa' : 'trade guardado'}
-        </p>
+        <p className="font-mono text-[13px] text-signal mb-4">trade guardado</p>
         <h1 className="font-display text-[26px] text-text-primary mb-3">{title}</h1>
         <Link
-          to={importedCount != null ? '/historial' : '/dashboard'}
+          to="/dashboard"
           className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mt-8"
         >
-          {importedCount != null ? 'Ver historial' : 'Ir al Dashboard'}
+          Ir al Dashboard
         </Link>
       </main>
     </div>

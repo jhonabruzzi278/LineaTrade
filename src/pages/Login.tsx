@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+import { hasPendingQuizAnswers } from '../lib/traderQuizStorage'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -35,6 +36,10 @@ export default function Login() {
       return
     }
 
+    if (hasPendingQuizAnswers()) {
+      navigate('/ia-trader')
+      return
+    }
     navigate(profile.onboarding_done ? '/dashboard' : '/onboarding')
   }
 
