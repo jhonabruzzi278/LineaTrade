@@ -149,8 +149,8 @@ export default function IaTrader() {
       downloadBlob(filename, blob)
       setDownloadNotice(
         includedCsv
-          ? 'Paquete descargado con plan, prompt y CSV de precios.'
-          : 'Paquete descargado con plan y prompt (sin CSV de precios — no disponible todavía para esta categoría de instrumento).',
+          ? 'Tu paquete está listo. Abre el .zip, pega el contenido de LEEME.md en tu chat de IA favorito, adjunta el CSV de precios incluido, y pídele que evalúe tu plan contra ese historial.'
+          : 'Tu paquete está listo con tu plan y el prompt para tu IA. Todavía no tenemos una fuente de precios gratuita para esta categoría de instrumento — exporta tú el histórico (por ejemplo desde TradingView) y adjúntalo junto con LEEME.md antes de pedirle el backtest a tu IA.',
       )
     } catch (err) {
       setDownloadNotice(getErrorMessage(err))
@@ -205,7 +205,11 @@ export default function IaTrader() {
 
         {user ? (
           <div className="mt-8">
-            {downloadNotice && <p className="font-body text-[13px] text-text-muted mb-4">{downloadNotice}</p>}
+            {downloadNotice && (
+              <p className="font-body text-[13px] text-text-muted mb-4 border-l-2 border-signal pl-3">
+                {downloadNotice}
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
