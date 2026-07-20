@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { BottomNav } from '../components/BottomNav'
+import { TradeListRow } from '../components/trade/TradeListRow'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
-import { formatTradeResult, tradeResultColorClass } from '../lib/tradeDisplay'
 import { tradesToCsv, downloadCsv } from '../lib/tradeExport'
 import { useToast } from '../lib/toast'
 import type { Database } from '../types/database'
@@ -151,37 +151,8 @@ export default function Historial() {
 
         {!loading && filtered.length > 0 && (
           <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
-            {filtered.map((trade) => (
-              <Link
-                key={trade.id}
-                to={`/trades/${trade.id}`}
-                className="group flex items-center justify-between gap-3 px-5 py-4 hover:bg-panel-2/70 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-[12px] text-text-faint w-24 shrink-0">
-                    {new Date(trade.traded_at).toLocaleDateString('es', { dateStyle: 'medium' })}
-                  </span>
-                  <span className="font-mono text-[13px] text-text-primary">
-                    {trade.instruments?.symbol ?? '—'}
-                  </span>
-                  <span
-                    className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-                      trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
-                    }`}
-                  >
-                    {trade.side}
-                  </span>
-                  <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
-                </div>
-                <span className="flex items-center gap-2">
-                  <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
-                    {formatTradeResult(trade)}
-                  </span>
-                  <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
-                    →
-                  </span>
-                </span>
-              </Link>
+            {filtered.map((trade, index) => (
+              <TradeListRow key={trade.id} trade={trade} index={index} showDate />
             ))}
           </div>
         )}

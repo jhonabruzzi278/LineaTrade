@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { BottomNav } from '../components/BottomNav'
 import { MetricCard } from '../components/MetricCard'
+import { TradeListRow } from '../components/trade/TradeListRow'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
-import { formatNumber, formatPercent, formatSigned, formatTradeResult, signedTone, tradeResultColorClass } from '../lib/tradeDisplay'
+import { formatNumber, formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
 import type { Database } from '../types/database'
 
 type TradeRow = Database['public']['Tables']['trades']['Row'] & {
@@ -136,46 +137,13 @@ export default function Dashboard() {
 
         {!loading && recentTrades.length > 0 && (
           <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
-            {recentTrades.map((trade) => (
-              <TradeRowItem key={trade.id} trade={trade} />
+            {recentTrades.map((trade, index) => (
+              <TradeListRow key={trade.id} trade={trade} index={index} />
             ))}
           </div>
         )}
       </main>
       <BottomNav />
     </div>
-  )
-}
-
-function TradeRowItem({ trade }: { trade: TradeRow }) {
-  return (
-    <Link
-      to={`/trades/${trade.id}`}
-      className="group flex items-center justify-between gap-3 px-5 py-4 hover:bg-panel-2/70 transition-colors"
-    >
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-[13px] text-text-primary">
-          {trade.instruments?.symbol ?? '—'}
-        </span>
-        <span
-          className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-            trade.side === 'long'
-              ? 'border-gain/40 text-gain'
-              : 'border-loss/40 text-loss'
-          }`}
-        >
-          {trade.side === 'long' ? 'long' : 'short'}
-        </span>
-        <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
-      </div>
-      <span className="flex items-center gap-2">
-        <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
-          {formatTradeResult(trade)}
-        </span>
-        <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
-          →
-        </span>
-      </span>
-    </Link>
   )
 }

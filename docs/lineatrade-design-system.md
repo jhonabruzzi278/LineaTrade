@@ -205,6 +205,17 @@ acción está activa, ver §3.2), aplicar la clase de color al ícono directamen
   podría evaluarse igual en una próxima ronda, ver §9).
 - **Toast:** borde izquierdo de 2px por tipo (`success` → `signal`, `error` → `loss`, `info`
   → `steel`).
+- **Fila de lista de trade (`components/trade/TradeListRow.tsx`):** compartida por
+  Dashboard ("Últimos trades") e Historial (lista completa) — antes cada pantalla tenía su
+  propia copia casi idéntica del markup. Tres elementos de jerarquía sobre la fila plana
+  original: (1) un riel de 3px a la izquierda con el color `gain`/`loss` según `side` —
+  reusa el mismo par semántico que ya pinta el badge y el resultado, no inventa un tercer
+  significado; (2) el símbolo en `font-display` en vez de `font-mono`, para que destaque
+  sobre los metadatos (badge, estado, fecha) que sí se quedan en mono; (3) entrada
+  escalonada vía `.reveal-up` + `animationDelay` por índice, limitada a las primeras 12
+  filas (`STAGGER_LIMIT`) — más allá de eso el delay es ruido, no pulido, en una lista sin
+  límite como Historial. Al agregar una fila de lista nueva en cualquier pantalla futura,
+  evaluar si encaja este mismo patrón antes de escribir un componente nuevo.
 
 ---
 
@@ -231,13 +242,8 @@ Encontrado durante esta auditoría, no implementado aún — orden sugerido por 
 
 1. ~~**Dashboard no muestra ninguna métrica agregada.**~~ **Resuelto 2026-07-20** — ver
    §10. Sigue documentado acá por historia; los puntos 2+ quedan como siguiente prioridad.
-2. **Filas de trade son planas comparadas con Landing.** El Landing (`hero-aura`,
-   `grain-overlay`, `reveal-up` escalonado, `TraceLine`) demuestra el nivel de pulido que el
-   sistema es capaz de dar; `Dashboard`/`Historial` son listas simples sin la misma
-   profundidad. No se trata de agregar decoración porque sí — el propio checklist de diseño
-   del equipo pide evitar "grillas de tarjetas default sin jerarquía" — pero hoy la brecha
-   entre la landing pública y el producto autenticado es demasiado grande para la misma
-   marca.
+2. ~~**Filas de trade son planas comparadas con Landing.**~~ **Resuelto 2026-07-20** — ver
+   §7 (nuevo patrón "Fila de lista de trade") y §10.
 3. **Long/short ahora tiene color semántico — extenderlo a Call/Put.** `TechnicalEntryPanel`
    ya tiene el patrón (`SegmentButton` con `tone`); evaluar si Call (alcista) / Put
    (bajista) merece el mismo tratamiento `gain`/`loss`, o si eso sobrecargaría el
@@ -289,3 +295,12 @@ del DOM (`getComputedStyle`) confirmando `rgb(14,203,129)` en long/ganancia,
 exactamente con los tokens. Datos de prueba y usuario borrados después; `.env.local`
 restaurado a su valor original (apuntaba a Supabase Cloud, se usó el modo local solo
 temporalmente para esta verificación).
+
+**2026-07-20 (ronda 3)** — Cerrado el backlog #2: nuevo componente compartido
+`components/trade/TradeListRow.tsx` (ver §7) usado ahora por `Dashboard.tsx` e
+`Historial.tsx`, que antes duplicaban casi el mismo markup de fila. Verificado contra el
+stack local con 5 trades sintéticos (mezcla long/short, ganancia/pérdida): colores de riel
+confirmados por `getComputedStyle` (verde/rojo alternando exactamente según `side`), delay
+de animación incremental confirmado (`0s, 0.04s, 0.08s...`), tipografía del símbolo
+confirmada en Space Grotesk (`font-display`). Sin errores de consola. Datos de prueba y
+usuario borrados después; `.env.local` restaurado.
