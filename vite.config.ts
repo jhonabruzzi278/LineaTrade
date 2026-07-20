@@ -1,3 +1,5 @@
+// Commit de prueba 2026-07-20: verifica si el auto-deploy de Vercel sigue disparando
+// con pushes a main. Ver CLAUDE.md / historial de deploys si esto sigue sin desplegar.
 import path from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
