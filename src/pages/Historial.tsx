@@ -97,7 +97,7 @@ export default function Historial() {
           {winRate != null && ` · ${winRate}% win rate`}
         </p>
 
-        {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
+        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <input
@@ -166,7 +166,7 @@ export default function Historial() {
                   </span>
                   <span
                     className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-                      trade.side === 'long' ? 'border-signal/40 text-signal' : 'border-steel/40 text-steel'
+                      trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
                     }`}
                   >
                     {trade.side}

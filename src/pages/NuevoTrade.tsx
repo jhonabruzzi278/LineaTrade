@@ -233,7 +233,7 @@ export default function NuevoTrade() {
       nextDisabled={!isStepValid() || saving}
       nextLabel={saving ? 'Guardando...' : isLastStep ? 'Guardar trade' : 'Continuar'}
     >
-      {saveError && <p className="font-body text-[13px] text-red-400 mb-6">{saveError}</p>}
+      {saveError && <p className="font-body text-[13px] text-loss mb-6">{saveError}</p>}
 
       {stepIndex === 0 && (
         <>

@@ -80,8 +80,8 @@ export default function Noticias() {
 
         {/* Error / partial */}
         {error && (
-          <div className="mb-6 border border-red-500/30 bg-red-500/10 rounded-sm px-4 py-3">
-            <p className="font-body text-[13px] text-red-400">{error}</p>
+          <div className="mb-6 border border-loss/30 bg-loss/10 rounded-sm px-4 py-3">
+            <p className="font-body text-[13px] text-loss">{error}</p>
           </div>
         )}
         {!error && partial && (

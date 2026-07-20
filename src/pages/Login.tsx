@@ -94,7 +94,7 @@ export default function Login() {
             />
           </div>
 
-          {error && <p className="font-body text-[13px] text-red-400">{error}</p>}
+          {error && <p className="font-body text-[13px] text-loss">{error}</p>}
 
           <button
             type="submit"

@@ -43,7 +43,7 @@ export default function AdminPanel() {
         <p className="font-mono text-[13px] text-signal mb-2">solo superadmin</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Panel de sistema</h1>
 
-        {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
+        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
         {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
 
         {!loading && metrics && (
@@ -168,7 +168,7 @@ function ProviderConfigSection() {
                 {saving ? 'Guardando...' : 'Guardar key'}
               </button>
             </form>
-            {error && <p className="font-body text-[13px] text-red-400 mt-3">{error}</p>}
+            {error && <p className="font-body text-[13px] text-loss mt-3">{error}</p>}
           </>
         ) : (
           <p className="font-body text-[13px] text-text-muted">No hay proveedor por defecto configurado.</p>

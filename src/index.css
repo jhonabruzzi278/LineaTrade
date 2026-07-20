@@ -12,6 +12,19 @@
   --color-text-muted: #8A93A3;
   --color-text-faint: #565D6B;
 
+  /* Semantic P&L pair — deliberately separate from --color-signal (the amber
+     brand accent used for CTAs/links/focus). Traders read green=gain/red=loss
+     instantly across every platform they already use (TradingView, Binance,
+     brokers); reusing the brand accent for "gain" would fight that instinct.
+     Values match the saturated green/red convention of Binance/Bybit-style
+     dark trading UIs rather than the muted editorial palette — this is the
+     one place the product should look and feel like the terminals traders
+     already trust. Both pass WCAG AA (>4.5:1) against --color-ink. */
+  --color-gain: #0ECB81;
+  --color-gain-dim: #0BA868;
+  --color-loss: #F6465D;
+  --color-loss-dim: #D8394E;
+
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;

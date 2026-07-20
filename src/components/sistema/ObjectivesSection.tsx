@@ -125,7 +125,7 @@ export function ObjectivesSection({ userId }: { userId: string }) {
         Metas que te marcás sobre tus propias métricas. El avance lo cargás vos — todavía no se
         calcula solo desde tus trades.
       </p>
-      {error && <p className="font-body text-[13px] text-red-400 mb-4">{error}</p>}
+      {error && <p className="font-body text-[13px] text-loss mb-4">{error}</p>}
       {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
       {!loading && objectives.length === 0 && (
         <p className="font-body text-[13px] text-text-faint mb-6">Sin objetivos todavía.</p>
@@ -157,7 +157,7 @@ export function ObjectivesSection({ userId }: { userId: string }) {
                     type="button"
                     onClick={() => void handleDelete(objective)}
                     aria-label="Eliminar objetivo"
-                    className="font-mono text-[13px] text-text-faint hover:text-red-400 transition-colors"
+                    className="font-mono text-[13px] text-text-faint hover:text-loss transition-colors"
                   >
                     ×
                   </button>

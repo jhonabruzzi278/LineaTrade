@@ -227,7 +227,13 @@ exception is `TraceLine.tsx`, which hardcodes hex in raw SVG attributes (`stroke
 because those aren't Tailwind-utility contexts; keep those values in sync with the tokens.
 
 Named tokens in use: `ink`/`panel`/`panel-2` (dark backgrounds), `hairline` (borders),
-`signal`/`signal-dim` (amber accent + hover), `steel`, and `text-primary`/`muted`/`faint`.
+`signal`/`signal-dim` (amber accent + hover), `steel`, `text-primary`/`muted`/`faint`, and
+— added 2026-07-20 — `gain`/`gain-dim`/`loss`/`loss-dim` (the P&L and long/short-direction
+semantic pair, replicating the Binance-style green/red trading convention; deliberately
+**not** the same as `signal`, which stays reserved for brand/CTA/focus — see
+`docs/lineatrade-design-system.md` §3.2 for why the two were conflated before this fix and
+why that was wrong). `text-loss`/`border-loss` also cover form/system error state, replacing
+what used to be hardcoded `text-red-400` across ~20 files.
 Fonts: `font-display` (Space Grotesk), `font-body` (Inter), `font-mono` (JetBrains Mono),
 all loaded from Google Fonts in `index.html`.
 
@@ -510,6 +516,11 @@ touching anything in its domain — they are the contract, not background readin
 - `docs/trade-journal-os-schema.md` — complete Supabase schema (tables, RLS, triggers, indexes).
 - `docs/trade-journal-os-context-engine.md` — the AI context engine design.
 - `docs/lineatrade-plan-implementacion.md` — phased build plan and current status.
+- `docs/lineatrade-design-system.md` — brand identity and design system: color tokens
+  (including the semantic `gain`/`loss` pair added 2026-07-20, kept deliberately separate
+  from the `signal` brand accent — see "Design system" below for the token list), typography,
+  motion, component patterns, and a prioritized backlog of further UI work per screen. Read
+  this before adding a color, a component variant, or touching P&L/long-short styling.
 
 ### The product in one line
 

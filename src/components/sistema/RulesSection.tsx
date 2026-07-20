@@ -84,7 +84,7 @@ export function RulesSection({ userId }: { userId: string }) {
       <p className="font-body text-[14px] text-text-muted mb-6">
         Tus reglas personales — el sistema que te propusiste seguir antes de entrar a un trade.
       </p>
-      {error && <p className="font-body text-[13px] text-red-400 mb-4">{error}</p>}
+      {error && <p className="font-body text-[13px] text-loss mb-4">{error}</p>}
       {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
       {!loading && rules.length === 0 && (
         <p className="font-body text-[13px] text-text-faint mb-6">Sin reglas todavía.</p>
@@ -116,7 +116,7 @@ export function RulesSection({ userId }: { userId: string }) {
                   type="button"
                   onClick={() => void handleDelete(rule)}
                   aria-label="Eliminar regla"
-                  className="font-mono text-[13px] text-text-faint hover:text-red-400 transition-colors"
+                  className="font-mono text-[13px] text-text-faint hover:text-loss transition-colors"
                 >
                   ×
                 </button>

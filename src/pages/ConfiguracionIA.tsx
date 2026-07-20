@@ -147,7 +147,7 @@ export default function ConfiguracionIA() {
                   Nunca se muestra de nuevo una vez guardada — solo se cifra y se guarda.
                 </p>
               </div>
-              {error && <p className="font-body text-[13px] text-red-400">{error}</p>}
+              {error && <p className="font-body text-[13px] text-loss">{error}</p>}
               <button
                 type="submit"
                 disabled={saving}

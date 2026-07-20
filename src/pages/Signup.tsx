@@ -93,7 +93,7 @@ export default function Signup() {
           </div>
 
           {error && (
-            <p className="font-body text-[13px] text-red-400">{error}</p>
+            <p className="font-body text-[13px] text-loss">{error}</p>
           )}
 
           <button

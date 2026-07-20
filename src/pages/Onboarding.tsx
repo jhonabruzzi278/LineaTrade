@@ -115,7 +115,7 @@ export default function Onboarding() {
           <p className="font-body text-[14px] text-text-muted mb-8">{step.subtitle}</p>
         )}
         {saveError && (
-          <p className="font-body text-[13px] text-red-400 mb-6">{saveError}</p>
+          <p className="font-body text-[13px] text-loss mb-6">{saveError}</p>
         )}
 
         {step.type === 'single' && (

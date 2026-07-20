@@ -181,7 +181,7 @@ export default function IaTrader() {
           pregunta {wizard.stepIndex + 1} de {QUESTION_IDS.length}
         </p>
         <h1 className="font-display text-[24px] text-text-primary mb-8">{currentQuestion.title}</h1>
-        {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
+        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
         <QuizStep
           question={currentQuestion}
           selectedValue={wizard.answers[currentQuestion.id]}
@@ -199,7 +199,7 @@ export default function IaTrader() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-32">
         <p className="font-mono text-[13px] text-signal mb-2">tu plan de trading</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Convierte la IA en tu trader</h1>
-        {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
+        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
 
         <PlanReport plan={plan} blurred={!user} />
 

@@ -12,6 +12,7 @@ import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { CameraIcon } from '../components/icons/NavIcons'
+import { formatNumber, formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
 import type { Database } from '../types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -21,19 +22,6 @@ function optionLabel(stepId: string, value: string | null): string | null {
   if (!value) return null
   const step = onboardingSteps.find((s) => s.id === stepId)
   return step?.options.find((o) => o.value === value)?.label ?? value
-}
-
-function formatPercent(value: number | null | undefined): string {
-  return value == null ? '—' : `${value}%`
-}
-
-function formatNumber(value: number | null | undefined): string {
-  return value == null ? '—' : String(value)
-}
-
-function formatSigned(value: number | null | undefined): string {
-  if (value == null) return '—'
-  return value > 0 ? `+${value}` : String(value)
 }
 
 export default function Perfil() {
@@ -135,7 +123,7 @@ export default function Perfil() {
             )}
           </div>
         </div>
-        {photoError && <p className="font-body text-[12px] text-red-400 mb-4">{photoError}</p>}
+        {photoError && <p className="font-body text-[12px] text-loss mb-4">{photoError}</p>}
         <div className="mb-8" />
 
         {!loading && facts.length > 0 && (
@@ -163,7 +151,12 @@ export default function Perfil() {
             value={formatNumber(stats?.profit_factor)}
             icon={<GrowthGraphIcon className="w-4 h-4" />}
           />
-          <MetricCard label="R promedio" value={formatSigned(stats?.avg_r)} icon={<RatioIcon className="w-4 h-4" />} />
+          <MetricCard
+            label="R promedio"
+            value={formatSigned(stats?.avg_r)}
+            icon={<RatioIcon className="w-4 h-4" />}
+            tone={signedTone(stats?.avg_r)}
+          />
           <MetricCard
             label="Trades"
             value={String(stats?.total_trades ?? 0)}

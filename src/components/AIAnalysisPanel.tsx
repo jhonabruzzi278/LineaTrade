@@ -110,7 +110,7 @@ export function AIAnalysisPanel({ tradeId, initialAnalysis }: Props) {
         </p>
       )}
 
-      {error && <p className="font-body text-[13px] text-red-400 mb-3">{error}</p>}
+      {error && <p className="font-body text-[13px] text-loss mb-3">{error}</p>}
 
       <div className="flex items-center gap-3">
         <button

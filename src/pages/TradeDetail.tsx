@@ -236,7 +236,7 @@ export default function TradeDetail() {
           </h1>
           <span
             className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-              trade.side === 'long' ? 'border-signal/40 text-signal' : 'border-steel/40 text-steel'
+              trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
             }`}
           >
             {trade.side}
@@ -244,7 +244,7 @@ export default function TradeDetail() {
           <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
           {trade.pnl_amount != null && (
             <span
-              className={`font-mono text-[13px] ml-auto ${trade.pnl_amount >= 0 ? 'text-signal' : 'text-red-400'}`}
+              className={`font-mono text-[13px] ml-auto ${trade.pnl_amount >= 0 ? 'text-gain' : 'text-loss'}`}
             >
               {trade.pnl_amount >= 0 ? '+' : ''}
               {trade.pnl_amount}
@@ -256,7 +256,7 @@ export default function TradeDetail() {
           {new Date(trade.traded_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
 
-        {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
+        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
 
         {trade.status === 'open' && (
           <div className="border border-hairline rounded-sm bg-panel px-5 py-4 mb-8">
@@ -289,7 +289,7 @@ export default function TradeDetail() {
                 sin stop loss definido — el resultado en R no se podrá calcular
               </p>
             )}
-            {closeError && <p className="font-body text-[13px] text-red-400 mt-3">{closeError}</p>}
+            {closeError && <p className="font-body text-[13px] text-loss mt-3">{closeError}</p>}
             <div className="mt-4">
               <OrderTicketFields data={closeOrderTicket} onChange={setCloseOrderTicket} />
             </div>
@@ -373,7 +373,7 @@ export default function TradeDetail() {
             {trade.followed_plan && <Tag label="Siguió el plan" />}
             {trade.had_fomo && <Tag label="Tuvo FOMO" />}
             {trade.overtraded && <Tag label="Overtrading" />}
-            {trade.moved_stop_loss && <Tag label="Movió el stop (autoreporte)" />}
+            {trade.moved_stop_loss && <Tag label="Movió el stop (autorreporte)" />}
           </div>
           {stopLossChanges != null && stopLossChanges > 0 && (
             <p className="font-body text-[13px] text-text-muted mt-4 border-l-2 border-signal pl-3">
@@ -463,7 +463,7 @@ export default function TradeDetail() {
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => void handleUploadImage(e)} />
               </label>
             </div>
-            {imageError && <p className="font-body text-[13px] text-red-400 mt-2">{imageError}</p>}
+            {imageError && <p className="font-body text-[13px] text-loss mt-2">{imageError}</p>}
           </div>
 
           <div className="space-y-3 mb-4">

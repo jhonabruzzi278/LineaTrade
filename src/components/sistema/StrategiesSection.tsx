@@ -87,7 +87,7 @@ export function StrategiesSection({ userId }: { userId: string }) {
         Los setups que reconocés como tuyos — para más adelante poder ver qué estrategia te
         funciona y cuál no.
       </p>
-      {error && <p className="font-body text-[13px] text-red-400 mb-4">{error}</p>}
+      {error && <p className="font-body text-[13px] text-loss mb-4">{error}</p>}
       {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
       {!loading && strategies.length === 0 && (
         <p className="font-body text-[13px] text-text-faint mb-6">Sin estrategias todavía.</p>
@@ -119,7 +119,7 @@ export function StrategiesSection({ userId }: { userId: string }) {
                   type="button"
                   onClick={() => void handleDelete(strategy)}
                   aria-label="Eliminar estrategia"
-                  className="font-mono text-[13px] text-text-faint hover:text-red-400 transition-colors"
+                  className="font-mono text-[13px] text-text-faint hover:text-loss transition-colors"
                 >
                   ×
                 </button>

@@ -29,7 +29,7 @@ const TOAST_DURATION_MS = 4000
 
 const TOAST_BORDER_CLASS: Record<ToastType, string> = {
   success: 'border-l-signal',
-  error: 'border-l-red-400',
+  error: 'border-l-loss',
   info: 'border-l-steel',
 }
 

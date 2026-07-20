@@ -124,7 +124,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
               onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
             />
           </label>
-          {photoError && <p className="font-body text-[13px] text-red-400">{photoError}</p>}
+          {photoError && <p className="font-body text-[13px] text-loss">{photoError}</p>}
         </div>
       ) : (
         <div className="space-y-5 reveal-up">
@@ -143,7 +143,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
           </div>
 
           {photoError && (
-            <p className="font-body text-[13px] text-red-400">
+            <p className="font-body text-[13px] text-loss">
               No pudimos leer la imagen automáticamente — completá los campos a mano.
             </p>
           )}
@@ -175,12 +175,12 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
 
           <Field label="Acción">
             <div className="flex gap-3">
-              <SegmentButton active={data.action === 'long'} onClick={() => set('action', 'long')}>
-                <BuyIcon className="w-4 h-4" />
+              <SegmentButton active={data.action === 'long'} tone="gain" onClick={() => set('action', 'long')}>
+                <BuyIcon className={`w-4 h-4 ${data.action === 'long' ? 'text-gain' : ''}`} />
                 Compra (long)
               </SegmentButton>
-              <SegmentButton active={data.action === 'short'} onClick={() => set('action', 'short')}>
-                <SellIcon className="w-4 h-4" />
+              <SegmentButton active={data.action === 'short'} tone="loss" onClick={() => set('action', 'short')}>
+                <SellIcon className={`w-4 h-4 ${data.action === 'short' ? 'text-loss' : ''}`} />
                 Venta (short)
               </SegmentButton>
             </div>
@@ -297,15 +297,29 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
   )
 }
 
-function SegmentButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+const SEGMENT_TONE_ACTIVE_CLASS = {
+  signal: 'border-signal bg-signal/10 text-text-primary',
+  gain: 'border-gain bg-gain/10 text-text-primary',
+  loss: 'border-loss bg-loss/10 text-text-primary',
+} as const
+
+function SegmentButton({
+  active,
+  tone = 'signal',
+  onClick,
+  children,
+}: {
+  active: boolean
+  tone?: keyof typeof SEGMENT_TONE_ACTIVE_CLASS
+  onClick: () => void
+  children: ReactNode
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-sm border font-body text-[14px] transition-colors ${
-        active
-          ? 'border-signal bg-signal/10 text-text-primary'
-          : 'border-hairline bg-panel text-text-muted hover:border-text-faint'
+        active ? SEGMENT_TONE_ACTIVE_CLASS[tone] : 'border-hairline bg-panel text-text-muted hover:border-text-faint'
       }`}
     >
       {children}

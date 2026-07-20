@@ -2,21 +2,25 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { BottomNav } from '../components/BottomNav'
+import { MetricCard } from '../components/MetricCard'
+import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
-import { formatTradeResult, tradeResultColorClass } from '../lib/tradeDisplay'
+import { formatNumber, formatPercent, formatSigned, formatTradeResult, signedTone, tradeResultColorClass } from '../lib/tradeDisplay'
 import type { Database } from '../types/database'
 
 type TradeRow = Database['public']['Tables']['trades']['Row'] & {
   instruments: Pick<Database['public']['Tables']['instruments']['Row'], 'symbol' | 'market'> | null
 }
+type TradeStats = Database['public']['Views']['v_user_trade_stats']['Row']
 
 const RECENT_TRADES_LIMIT = 10
 
 export default function Dashboard() {
   const { user } = useAuth()
   const [recentTrades, setRecentTrades] = useState<TradeRow[]>([])
+  const [stats, setStats] = useState<TradeStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,18 +29,22 @@ export default function Dashboard() {
     let cancelled = false
 
     async function load() {
-      const { data, error: fetchError } = await supabase
-        .from('trades')
-        .select('*, instruments(symbol, market)')
-        .order('traded_at', { ascending: false })
-        .limit(RECENT_TRADES_LIMIT)
+      const [tradesRes, statsRes] = await Promise.all([
+        supabase
+          .from('trades')
+          .select('*, instruments(symbol, market)')
+          .order('traded_at', { ascending: false })
+          .limit(RECENT_TRADES_LIMIT),
+        supabase.from('v_user_trade_stats').select('*').eq('user_id', user!.id).maybeSingle(),
+      ])
       if (cancelled) return
-      if (fetchError) {
-        setError(getErrorMessage(fetchError))
+      if (tradesRes.error) {
+        setError(getErrorMessage(tradesRes.error))
         setLoading(false)
         return
       }
-      setRecentTrades((data as TradeRow[] | null) ?? [])
+      setRecentTrades((tradesRes.data as TradeRow[] | null) ?? [])
+      setStats(statsRes.data ?? null)
       setLoading(false)
     }
 
@@ -55,7 +63,40 @@ export default function Dashboard() {
           <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>
         </div>
 
-        {error && <p className="font-body text-[13px] text-red-400 mb-6">{error}</p>}
+        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
+
+        {!loading && (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <MetricCard
+                label="Win rate"
+                value={formatPercent(stats?.win_rate)}
+                icon={<PercentageIcon className="w-4 h-4" />}
+              />
+              <MetricCard
+                label="Profit factor"
+                value={formatNumber(stats?.profit_factor)}
+                icon={<GrowthGraphIcon className="w-4 h-4" />}
+              />
+              <MetricCard
+                label="R promedio"
+                value={formatSigned(stats?.avg_r)}
+                icon={<RatioIcon className="w-4 h-4" />}
+                tone={signedTone(stats?.avg_r)}
+              />
+              <MetricCard
+                label="Trades"
+                value={String(stats?.total_trades ?? 0)}
+                icon={<TradeCountIcon className="w-4 h-4" />}
+              />
+            </div>
+            {(stats?.total_trades ?? 0) > 0 && (stats?.closed_trades ?? 0) === 0 && (
+              <p className="font-mono text-[12px] text-text-faint -mt-6 mb-8">
+                win rate, profit factor y R promedio solo se calculan sobre trades cerrados.
+              </p>
+            )}
+          </>
+        )}
 
         <Link
           to="/ia-trader"
@@ -119,8 +160,8 @@ function TradeRowItem({ trade }: { trade: TradeRow }) {
         <span
           className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
             trade.side === 'long'
-              ? 'border-signal/40 text-signal'
-              : 'border-steel/40 text-steel'
+              ? 'border-gain/40 text-gain'
+              : 'border-loss/40 text-loss'
           }`}
         >
           {trade.side === 'long' ? 'long' : 'short'}
