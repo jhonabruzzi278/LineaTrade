@@ -4,11 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-LineaTrade is a Spanish-language marketing/onboarding front end for a trading-journal
-product. The pitch: it records a trader's operations (technique, context, psychology)
+LineaTrade is a Spanish-language, mobile-first trading-journal product, deployed to
+production. The pitch: it records a trader's operations (technique, context, psychology)
 and surfaces behavioral patterns — explicitly **not** a signals/prediction tool. All
 copy is in Spanish (LatAm audience); keep new user-facing text in Spanish and match the
 sober, evidence-first tone of the existing content.
+
+Beyond the core journal loop (Nuevo Trade → Dashboard → Historial → Detalle de Trade),
+the app has grown to include a Spanish-language news feed (`/noticias`), a public
+trader-profile quiz that generates a personalized plan (`/ia-trader`), a personal
+objectives/rules/strategies tracker (`/sistema`), a profile page with avatar upload
+(`/perfil`), options-contract trading support, and order-ticket detail — none of this
+was in the original phase roadmap (see "Beyond Fase 4" under "Roadmap phases" below).
+**If you're orienting yourself in this repo, don't trust this file's phase/table counts
+at face value without checking "Roadmap phases" and "Backend" below for the latest
+correction** — this doc has previously gone stale relative to the code once already
+(caught and resynced 2026-07-19), and the fix was to add explicit counts/dates rather
+than assume prose age implies staleness.
 
 Auth and persistence are **real, not mocked**. `Signup`/`Login`/`Recuperar`/
 `ActualizarPassword` call actual `supabase.auth.*` methods; `Onboarding`, `NuevoTrade`,
@@ -81,15 +93,46 @@ Small SPA. `main.tsx` mounts `<App/>`, which is only a router:
   email's link. Supabase auto-detects the recovery token in the URL and opens a
   temporary session (`detectSessionInUrl`, on by default); the page just calls
   `supabase.auth.updateUser({ password })` against that session.
+- `/privacidad` → `pages/Privacidad.tsx` — static privacy-policy page, not gated by
+  `<ProtectedRoute>` (a legal page needs to be readable pre-signup).
+- `/ia-trader` → `pages/IaTrader.tsx` — **deliberately not wrapped in `<ProtectedRoute>`**
+  (`App.tsx`), unlike almost every other feature route. This is intentional, not an
+  oversight: it's a public "convierte la IA en tu trader" quiz that computes a
+  personalized `TraderPlan` client-side (`lib/traderPlanEngine.ts`, a deterministic
+  scoring engine, explicitly "sin LLM" — no AI call involved despite the name) so an
+  anonymous visitor can see value before registering. For an anonymous user, answers are
+  stashed in `sessionStorage` (`lib/traderQuizStorage.ts`) and the plan renders
+  "blurred" past the first section (`PlanReport`'s `blurred` prop) with a CTA to
+  `/registro`; `Login.tsx` redirects back to `/ia-trader` after login so the pending
+  answers get consumed and persisted to the `trader_plans` table (one insert per retake,
+  no update — most recent row wins). Linked from `Landing.tsx` and `Dashboard.tsx`.
+  Logged-in users can also download a `.zip` (`lib/traderPackage.ts`, via `jszip`) with
+  the plan as Markdown, a prompt file meant to be pasted into an external AI chat, and —
+  for crypto instruments only — a Binance price-history CSV. Don't confuse this with
+  `lib/tradeExport.ts` (`Historial.tsx`'s CSV export of the user's own `trades` rows) —
+  unrelated feature, same "let the user take their data out" spirit, different data.
 - `/onboarding` → `pages/Onboarding.tsx` (**protected**) — post-signup profile quiz.
   Shown after login when `profiles.onboarding_done = false` (see `Login.tsx`'s
   post-signin redirect). On finish, persists answers to `profiles` and sets
   `onboarding_done = true`.
 - `/nuevo-trade` → `pages/NuevoTrade.tsx` (**protected**) — broker picker → technical
-  entry (manual form; file-upload is UI-only, blocked at save time with an explicit
-  message — see "Backend") → contexto → psicología → aprendizaje. On finish, resolves/
-  creates the `instruments` row (`lib/instruments.ts`) and inserts into `trades`, then
-  routes to `/dashboard`.
+  entry → contexto → psicología → aprendizaje. **The technical-entry step now requires a
+  photo of the trade ticket** (`TechnicalEntryPanel.tsx`'s `handlePhotoSelected`): commit
+  `7f89396` removed the old three-way `manual`/`file`/`photo` tab selector entirely,
+  including the "Subir archivo" CSV-import tab. `lib/tradeImport.ts` (`parseTradesCsv`)
+  is now **orphaned dead code** — nothing in the repo imports it anymore. **Don't trust
+  this file's older claim that CSV import is "UI-only, blocked at save"** — that was
+  true right up until `7f89396`, but the tab is gone now, not blocked. Decide explicitly
+  (resurrect the tab, or delete the dead file) before building on top of it. The photo is
+  base64-encoded client-side and sent directly to the `extract-trade-image` Edge Function
+  — it never touches Storage (see "Photo-based trade extraction" below). A failed
+  extraction still unblocks the step so the user can fill the form by hand — it's the
+  *photo* that's mandatory, not a successful AI read of it. The form also supports
+  options contracts (`option_type`/`strike_price`/`expiration_date`, only written when
+  `market === 'options'` — see "Options trading & order tickets" below) alongside spot/
+  CFD. On finish, resolves/creates the `instruments` row (`lib/instruments.ts`), inserts
+  into `trades`, optionally inserts an `'open'`-leg `trade_orders` row via the same
+  `OrderTicketFields.tsx` used in `TradeDetail.tsx`, then routes to `/dashboard`.
 - `/dashboard` → `pages/Dashboard.tsx` (**protected**) — metric cards from
   `v_user_trade_stats` (win rate/profit factor/avg R show `—`, not a fabricated number,
   when there are no closed trades yet — there's currently no "close a trade" flow, so
@@ -106,7 +149,18 @@ Small SPA. `main.tsx` mounts `<App/>`, which is only a router:
   "Closing a trade" below). Also queries `trade_history` for `field_name = 'stop_loss'`
   changes and, if `moved_stop_loss` was self-reported false while the count is > 0,
   surfaces that mismatch inline — the cheapest possible demonstration of the product's
-  core differentiator without needing the AI engine.
+  core differentiator without needing the AI engine. Closing a trade can also capture a
+  `'close'`-leg `trade_orders` row via `OrderTicketFields.tsx` (same optional, collapsed-
+  by-default component used for the `'open'` leg in `NuevoTrade.tsx`) — see "Options
+  trading & order tickets" below.
+- `/configuracion/ia` → `pages/ConfiguracionIA.tsx` (**protected**) — BYOK management.
+  See "Roadmap phases" → Fase 3 below for the RPCs/Vault details.
+- `/sistema` → `pages/Sistema.tsx` (**protected**) — see "Sistema (objectives/rules/
+  strategies)" below.
+- `/perfil` → `pages/Perfil.tsx` (**protected**) — see "Perfil & avatar upload" below.
+- `/noticias` → `pages/Noticias.tsx` (**protected**) — see "Noticias (news feed)" below.
+- `/admin` → `pages/AdminPanel.tsx` (**protected**, and gated a second time by
+  `<SuperAdminRoute>`/`is_superadmin()`) — see "Roadmap phases" → Fase 4 below.
 
 All private routes are wrapped in `<ProtectedRoute>` (`components/ProtectedRoute.tsx`),
 which reads session state from `<AuthProvider>` (`lib/auth.tsx`, wraps `<App/>` in
@@ -120,9 +174,13 @@ user to `null`, and `<ProtectedRoute>` reacts to that itself — an earlier vers
 `ProtectedRoute`'s own redirect, landing on `/login` instead. Don't re-add that call.
 
 Structure: `pages/` are route-level default exports; `components/` are named exports
-shared across pages (`Nav`, `AppHeader`, `TraceLine`, `WizardLayout`, `ProtectedRoute`).
+shared across pages (`Nav`, `AppHeader`, `TraceLine`, `WizardLayout`, `ProtectedRoute`,
+`SuperAdminRoute`, `BottomNav`, `Avatar`, `Switch`, `PwaUpdatePrompt`).
 `components/trade/` holds pieces specific to the trade-entry flow (`BrokerPicker`,
-`TechnicalEntryPanel`, `PsychologySection`). `BrokerPicker` filters its 37-broker list by
+`TechnicalEntryPanel`, `PsychologySection`, `OrderTicketFields` — see "Options trading &
+order tickets" below). `components/sistema/` holds `ObjectivesSection`/`RulesSection`/
+`StrategiesSection` (see "Sistema" below); `components/traderQuiz/` holds `QuizStep`/
+`PlanReport` (see the `/ia-trader` route entry above). `BrokerPicker` filters its 37-broker list by
 both free-text search and a `category` field (`acciones`/`forex`/`cripto`/`futuros`/
 `otro`, added to `data/brokers.ts`'s `Broker` type) — if you add a broker, classify it by
 its dominant identity, not every asset class it technically supports (e.g. Interactive
@@ -139,7 +197,19 @@ handles `AuthApiError` specially — Supabase's `PostgrestError` is a plain obje
 the "Salir" button off-screen. Its fix: hide the wordmark below `sm:`, tighter gaps on
 mobile, `whitespace-nowrap` on the CTA. If you add a 5th nav item, re-check 375px before
 calling it done — this product is mobile-first, and the desktop viewport won't show you
-the failure. Same lesson caught a second time in `TechnicalEntryPanel`: the
+the failure.
+
+**Navigation was redesigned in commit `7f89396`**: primary nav moved out of `AppHeader`
+entirely and into `<BottomNav/>` ("estilo isla, como Instagram" per its own code comment)
+— `AppHeader` is now wordmark-only. `BottomNav` links to `/dashboard`, `/historial`,
+`/nuevo-trade`, `/noticias`, plus an `<Avatar/>` linking to `/perfil`; it does **not**
+link to `/sistema` or `/ia-trader` directly (reachable via the links list on `Perfil`
+instead). It has no `md:`/`sm:` responsive-hiding classes — it renders at every
+breakpoint, "mobile-first pero también cómoda en desktop," not a mobile-only affordance.
+`AppHeader` and `BottomNav` are rendered together on the same page (e.g. `Sistema.tsx`,
+`Perfil.tsx`) — they're complementary, not alternatives to swap based on viewport.
+
+Same 375px-first lesson caught a second time in `TechnicalEntryPanel`: the
 Cantidad/Precio/Comisiones row was a bare `grid-cols-3`, cramming three numeric inputs
 into ~80px each on a narrow phone — fixed to `grid-cols-2 md:grid-cols-3`, matching the
 responsive-grid pattern already used by `MetricCard` rows on Dashboard/AdminPanel. When
@@ -217,18 +287,51 @@ editorial choice and wasn't touched.
 
 The database is real and the frontend is wired to it. Setup:
 
-- **Migrations**: `supabase/migrations/*.sql`, 26 files, applied in order. The first 10
-  are one-per-schema-doc-section (extensions + profiles, instruments, strategies/rules,
-  trades, trade_history audit trigger, trade_images + storage bucket, trade_threads,
-  objectives, AI tables, audit_log) — faithful copies of the SQL in
-  `docs/trade-journal-os-schema.md`. The next 4 are real fixes discovered while wiring
-  auth (see "Three real RLS bugs" below) plus a couple of small schema extensions the UI
-  needed. The remaining 12 belong to Fase 3 (AI stats views, atomic rate limiting, BYOK
-  key vault, service-role AI access) and Fase 4 (SuperAdmin system metrics) — see
-  "Roadmap phases" below — plus one small data migration for the Lineatrader→LineaTrade
-  rebrand. That doc is the source of truth; if you need a schema change, edit the doc's
-  intent first, then add a **new** migration (never edit an already-applied one, per the
-  doc's own §11).
+- **Migrations**: `supabase/migrations/*.sql`, **33 files** (resynced 2026-07-19; if
+  you're reading this later, recount with `ls supabase/migrations/ | wc -l` before
+  trusting this number). The first 26 are as previously documented: 10 one-per-schema-
+  doc-section migrations (extensions + profiles, instruments, strategies/rules, trades,
+  trade_history audit trigger, trade_images + storage bucket, trade_threads, objectives,
+  AI tables, audit_log) faithful to `docs/trade-journal-os-schema.md`; 4 real fixes
+  discovered while wiring auth (see "Three real RLS bugs" below) plus small schema
+  extensions; 2 for the stats view and the close-trade PnL trigger; 8 for Fase 3 (AI
+  stats views, atomic rate limiting, BYOK key vault, service-role AI access); 1 for Fase
+  4 (SuperAdmin system metrics); 1 for the Lineatrader→LineaTrade rebrand. **The 7 after
+  that are newer feature work, shipped after Fase 4 closed** (see "Beyond Fase 4" under
+  "Roadmap phases" below for what they back):
+  1. `20260716120000_options_trading_support.sql` — adds `option_type` enum
+     (`'call'|'put'`) and `strike_price`/`expiration_date` columns to `trades`; also
+     rewrites `trg_calculate_trade_pnl()` to apply a ×100 contract multiplier to
+     `pnl_amount` when the resolved instrument's `market = 'options'` (options quote
+     per-share; `pnl_r` is unaffected since the multiplier cancels out of the ratio).
+  2. `20260716130000_trade_order_tickets.sql` — adds `trade_orders`, one row per
+     **order leg** (`'open'`/`'close'`, unique per `(trade_id, leg)`) — a trade is one
+     row, but a broker generates two distinct orders (entry and exit), so this is a
+     genuinely separate concept from `trades` itself, not a duplicate.
+  3. `20260719120000_avatars_storage.sql` — creates the `avatars` Storage bucket,
+     **public** (unlike `trade-images`) — see "Perfil & avatar upload" below for why
+     that's a deliberate, not accidental, difference.
+  4. `20260719130000_news_articles.sql` — read-only catalog table for `/noticias`; RLS
+     allows `select` only, no `insert`/`update`/`delete` policy for `authenticated`
+     despite the broad `GRANT` (same read-only-catalog pattern as `ai_analysis`/
+     `trade_history`).
+  5. `20260719140000_grant_service_role_news_access.sql` — grants `service_role` access
+     to `news_articles`. Same bug class as the original grants fix: `service_role`
+     bypasses RLS but Postgres never auto-grants it table privileges, so the
+     `fetch-news` function's service-role upserts would otherwise fail with "permission
+     denied" before RLS is even evaluated.
+  6. `20260719150000_trader_plans.sql` — one row per quiz completion (`answers`/`plan`
+     jsonb), owner-only RLS, insert-only (no update — a retake is a new row, most
+     recent wins by `created_at`).
+  7. `20260719173629_refresh_postgrest_schema_cache.sql` — a trivial migration whose
+     only purpose is forcing Supabase Cloud's PostgREST to reload its schema cache; see
+     "PostgREST schema cache staleness" below.
+
+  The schema doc (`docs/trade-journal-os-schema.md`) is the source of truth for the
+  original 26; it predates migrations 27-33 and hasn't been updated for them — treat the
+  migrations themselves as the source of truth for anything the doc doesn't cover. If
+  you need a schema change, add a **new** migration (never edit an already-applied one,
+  per the doc's own §11).
 - **Seed**: `supabase/seed.sql` — a starter `instruments` catalog (forex majors, top
   crypto, common US stocks/indices/futures). Not specified verbatim in the schema doc;
   it's a reasonable default set for local dev, extend it as needed.
@@ -270,11 +373,18 @@ Worth understanding before adding a policy to a new table, or a view over one:
    policy at all. Supabase's current default (both cloud and local CLI) no longer
    auto-exposes new tables to `anon`/`authenticated` (see `api.auto_expose_new_tables` in
    `config.toml`); the schema doc predates that default and never declared explicit
-   grants. Fix: `grant select, insert, update, delete` on all 15 tables to `authenticated`
-   only (deliberately nothing to `anon` — this product has no public surface). This is
-   safe to do broadly because RLS policies (or their absence) still gate what's actually
-   allowed per table/operation — e.g. `trade_history`/`ai_analysis`/`audit_log` have no
-   `insert` policy, so the blanket grant doesn't open writes to them.
+   grants. Fix: `grant select, insert, update, delete` on all 15 tables (that existed at
+   the time) to `authenticated` only (deliberately nothing to `anon` — this product has
+   no public surface). This is safe to do broadly because RLS policies (or their
+   absence) still gate what's actually allowed per table/operation — e.g.
+   `trade_history`/`ai_analysis`/`audit_log` have no `insert` policy, so the blanket
+   grant doesn't open writes to them. Every table added since (`news_articles`,
+   `trade_orders`, `trader_plans`, `user_ai_settings`, `ai_prompts`) got its own `GRANT`
+   in its own migration, following this same rule — and `news_articles` needed the
+   *exact same bug* fixed a second time, but for `service_role` instead of
+   `authenticated` (migration `20260719140000` — see the migration list above). This bug
+   class recurs any time a new role needs table access, so check for it explicitly
+   whenever a new table will be read/written by a `service_role` Edge Function.
 3. **Views bypass RLS by default** (`20260702120000_user_trade_stats_view.sql`). A plain
    Postgres view runs with its *creator's* privileges, not the querying user's — so a
    naive `create view public.v_user_trade_stats as select user_id, ... from trades group
@@ -313,10 +423,23 @@ Current local endpoints (`npm run db:status` to reprint):
 
 ### Verified state
 
-All 15 tables exist with RLS enabled on every one (`select relrowsecurity from pg_class
-where relnamespace = 'public'::regnamespace and relkind = 'r'` — all `t`), matching the
-schema doc's "RLS activado en TODAS las tablas sin excepción" rule. `pgcrypto`, `pgsodium`,
-and `vector` extensions are all installed successfully in the local Postgres 17 image.
+At the time this section was first written, all 15 tables existed with RLS enabled on
+every one (`select relrowsecurity from pg_class where relnamespace = 'public'::regnamespace
+and relkind = 'r'` — all `t`), matching the schema doc's "RLS activado en TODAS las
+tablas sin excepción" rule. `pgcrypto`, `pgsodium`, and `vector` extensions are all
+installed successfully in the local Postgres 17 image.
+
+**As of 2026-07-19, `src/types/database.ts` (generated, so authoritative) lists 18
+tables** — `ai_analysis`, `ai_prompts`, `ai_provider_config`, `ai_usage_daily`,
+`audit_log`, `instruments`, `news_articles`, `objectives`, `profiles`, `strategies`,
+`trade_history`, `trade_images`, `trade_orders`, `trade_threads`, `trader_plans`,
+`trader_rules`, `trades`, `user_ai_settings` — **and 4 views**, not the single
+`v_user_trade_stats` this section originally described: `v_user_trade_stats`,
+`v_user_stats_by_strategy`, `v_user_stats_by_emotion`, `v_rule_violations`. The RLS-
+enabled-on-every-table claim above was not re-verified against the live database during
+this pass (that would require a live `execute_sql`/psql check, out of scope for a docs
+resync) — re-run the `pg_class` query above if you need to confirm it still holds for
+the 3 newest tables specifically.
 
 Full loop verified against the running stack, not just compiled: real `signUp` → fetched
 the confirmation email from Mailpit's API → confirmed → real `signInWithPassword` →
@@ -331,10 +454,15 @@ which is the intended posture for a product with no public surface.
 
 The app is live at **`https://lineartrade.vercel.app`**, wired to a separate Supabase
 Cloud project (ref `pcmftbzpzeliurrnyidt`) — a different database from local Docker, but
-the identical schema: all 26 migrations plus `seed.sql` were pushed to it via
+the identical schema: the original 26 migrations plus `seed.sql` were pushed to it via
 `supabase link --project-ref ... && supabase db push --include-seed`, authenticated with
 a personal `SUPABASE_ACCESS_TOKEN` (never committed anywhere — exported inline per
-command, not stored in `.env*`).
+command, not stored in `.env*`). Migrations 27-33 (options/order-tickets/avatars/news/
+trader-plans, listed under "Backend" above) ship the features that are live in
+production today (Noticias, options trading, Perfil/avatar), so treat them as pushed too
+— re-run `supabase db push` against the cloud project if you ever find cloud behind
+local, rather than assuming the "26 migrations" figure from the original Production
+verification still bounds what's live.
 
 **Don't run `supabase config push` against the cloud project.** `config.toml`'s
 `[auth].site_url` is `http://localhost:5180`, meaningful only for local `supabase start`;
@@ -359,6 +487,19 @@ already wired for `main`; a normal `git push` is enough to ship.
 Production currently uses Supabase's default built-in email sender for confirmation/reset
 mail (rate-limited, not a real SMTP provider) — fine for early testing, worth replacing
 with a real SMTP integration before relying on it for actual users.
+
+### PostgREST schema cache staleness
+
+Real incident, not hypothetical: after pushing a migration to Supabase Cloud, PostgREST
+can keep serving its **old** cached schema — a newly-added table/column is invisible to
+the REST API (and therefore to any Edge Function or frontend query touching it) even
+though the migration applied successfully in Postgres itself. This happened for real
+with `news_articles`/`trader_plans`. Fix in this repo: a deliberately trivial migration,
+`20260719173629_refresh_postgrest_schema_cache.sql`, whose only job is forcing a reload.
+If a migration lands cleanly but queries against its new objects still 404/error as if
+they don't exist, suspect this before suspecting the migration itself — push another
+no-op migration (or use the Supabase dashboard's "reload schema" action) rather than
+re-debugging SQL that already worked once.
 
 ## Planned product architecture
 
@@ -409,6 +550,10 @@ snapshot of the trade so it stays coherent even if the trade is later edited.
   Groq/DeepSeek/OpenRouter/Ollama/LM Studio. Free-tier default: GPT OSS 20B via Groq,
   3 analyses/day, rate-limited via the `ai_usage_daily` table (no Redis). BYOK removes the
   limit. Model/provider are **never hardcoded** — they live in `ai_provider_config`.
+  `AdminPanel.tsx`'s `ProviderConfigSection` (added commit `12d014d`) is the first
+  app-level UI for this — it's API-key entry only (via `set_provider_api_key` RPC),
+  read-only for provider/model name; changing *which* provider/model is default still
+  requires a direct SQL update to `ai_provider_config`, not a UI control.
 - **Observability:** Sentry (errors) + PostHog (product, via an `AnalyticsEvent` interface);
   `audit_log` for security. Fixed ~12-event taxonomy in the PRD; never put financial or
   psychological values in event properties.
@@ -423,11 +568,16 @@ types, auth/CRUD, closing a trade, and `trade_images` Storage upload — is done
 verified locally, including a real upload → signed URL → display round trip and a
 confirmed-denied anonymous request to the private bucket. See "Images" below.
 
-The one deliberately-still-open non-Fase-2 item: `NuevoTrade`'s "Subir archivo" tab
-(bulk-import trades from a broker CSV/statement) is a **different feature** from
-`trade_images` (per-trade screenshots) — it's UI-only and explicitly blocked at save
-time with a message pointing at "Agregar manualmente". Don't conflate the two when
-someone asks "is file upload done" — the answer is "yes for images, no for CSV import".
+**Update 2026-07-19 — the CSV-import item below is stale, kept for history:** it
+described `NuevoTrade`'s "Subir archivo" tab (bulk-import from a broker CSV/statement)
+as a distinct feature from `trade_images`, UI-only and blocked at save. That was
+accurate through commit `3315345`, but commit `7f89396` **removed the entire tab**
+(along with the `manual`/`file`/`photo` selector it was part of). `lib/tradeImport.ts`
+(`parseTradesCsv`) is now orphaned dead code with zero importers — the feature isn't
+"blocked," it no longer exists in the UI. If asked "is CSV import done," the accurate
+answer is "it was built, then removed; the parser is still in the repo unused." See
+"Beyond Fase 4" below for what replaced it as the primary trade-entry-assist mechanism
+(mandatory photo + AI extraction).
 
 **Fase 3 (motor de IA)** shipped the `analyze-trade` Edge Function
 (`supabase/functions/analyze-trade`) plus `/configuracion/ia` (`ConfiguracionIA.tsx`) for
@@ -443,6 +593,135 @@ AI usage — via the `get_system_metrics()` RPC (`security definer`, so it can r
 all users deliberately, unlike the per-user `v_user_trade_stats` view). Sentry/PostHog
 observability from the PRD's "Intended full stack" is **not** wired up yet — treat that
 as still open if someone asks about error tracking or product analytics.
+
+### Beyond Fase 4
+
+None of this has a formal phase number — it shipped after the roadmap's 5 phases were
+already closed, without a new phase being declared in `docs/`. Treat the list below,
+not the phase table, as the current edge of the product:
+
+- **Options trading & order tickets** — spot/CFD trades and options contracts now share
+  `NuevoTrade.tsx`'s form; `trade_orders` adds one row per order leg (`'open'`/`'close'`)
+  as a genuinely separate concept from `trades` (a broker generates two orders per
+  trade, `trades` is still one row). See "Options trading & order tickets" below.
+- **Photo-based trade extraction (AI vision)** replaced manual-only entry as the default
+  path into `NuevoTrade`, and CSV import as described above. See "Photo-based trade
+  extraction" below.
+- **Noticias** (`/noticias`) — a Spanish-language news feed, RSS-sourced, refreshed
+  on-demand (no cron). See "Noticias (news feed)" below.
+- **Sistema** (`/sistema`) — user-defined objectives/rules/strategies. See "Sistema
+  (objectives/rules/strategies)" below.
+- **Perfil** (`/perfil`) — profile page + avatar upload to a **public** bucket
+  (deliberately different from `trade-images`' private-bucket pattern). See "Perfil &
+  avatar upload" below.
+- **IA Trader / trader plan engine** (`/ia-trader`) — see the route entry near the top
+  of "Architecture / conventions" above; it's the one route without `<ProtectedRoute>`.
+- **Navigation redesign** — `BottomNav` took over primary nav from `AppHeader`. See the
+  note under "Architecture / conventions" above.
+
+### Options trading & order tickets
+
+`trades` gained `option_type` (`'call'|'put'`), `strike_price`, `expiration_date`
+(migration `20260716120000`). `TechnicalEntryPanel.tsx` conditionally renders Tipo/
+Strike/Vencimiento fields when `market === 'options'`, and relabels "Contratos"/"Prima
+por acción" with a note that the multiplier is automatic — `trg_calculate_trade_pnl()`
+applies a ×100 contract multiplier to `pnl_amount` for options (looked up from the
+resolved instrument's `market`), leaving `pnl_r` unaffected since the multiplier cancels
+out of the ratio. **Real bug already found and fixed**: `new Date(trade.expiration_date)`
+on a date-only string (`"2026-03-27"`) parses as UTC midnight, so `toLocaleDateString`
+rendered it a day earlier in negative-UTC-offset timezones (caught with a real SPXW put
+showing the wrong expiration date). Fix: `formatDateOnly()` in `lib/tradeDisplay.ts`
+builds the `Date` from local y/m/d components instead of parsing the ISO string
+directly — use it (or the same pattern) for **any** date-only field in this codebase,
+not just this one.
+
+`trade_orders` (migration `20260716130000`) is one row per order **leg**
+(`'open'`/`'close'`, unique per `(trade_id, leg)`) — not a duplicate of `trades`, since a
+broker issues two distinct orders (entry, exit) per trade. `OrderTicketFields.tsx` is an
+optional, collapsed-by-default form ("+ Detalles de la orden (opcional)") reused in both
+`NuevoTrade.tsx` (the `'open'` leg, inserted right after the trade row) and
+`TradeDetail.tsx` (the `'close'` leg, on closing the trade). RLS uses a denormalized
+`user_id = auth.uid()`, same pattern as `trade_threads`.
+
+### Photo-based trade extraction (AI vision)
+
+`extract-trade-image` (`supabase/functions/extract-trade-image`) takes a base64 image
+(5MB cap, `jpeg`/`png`/`webp` only) and calls Groq's vision-capable model (the function's
+own comment notes only `qwen/qwen3.6-27b` has vision support today — check that comment
+before assuming any other configured provider works here) with `forceJson: true`,
+retrying once on invalid JSON. It shares the `ai_usage_daily` rate limiter with
+`analyze-trade` and resolves the API key the same way (BYOK or shared default via
+Vault). It returns structured fields (market, symbol, action, option fields, date/time,
+quantity, price, commission, plus order-ticket fields) and **never persists the image**
+— nothing is written to Storage, unlike `trade_images`. Frontend:
+`lib/tradeImageExtraction.ts` (`extractTradeFromImage`) base64-encodes client-side and
+invokes the function directly. This is now the **only** entry point into
+`TechnicalEntryPanel.tsx`'s step 0 — see the `/nuevo-trade` route entry above for why a
+failed extraction still lets the user proceed manually.
+
+### Noticias (news feed)
+
+`Noticias.tsx` renders an editorial layout (serif masthead, a hero article, then a
+`grid-cols-1 md:grid-cols-2 lg:grid-cols-3` grid for the rest) with category chips that
+are horizontally scrollable on mobile and wrapped/centered on desktop (`overflow-x-auto`
+vs `md:flex-wrap md:justify-center md:overflow-visible` — 7 chips don't fit on a 375px
+screen, and centered wrapping left an awkward short second line, per the code's own
+comment). "Fuerza fuentes en español" is **not** a runtime filter — it's a hardcoded
+list of Spanish-language RSS feeds (`supabase/functions/_shared/newsTypes.ts`'s
+`NEWS_FEEDS`: `es.investing.com` ×3, `es.cointelegraph.com`, `criptonoticias.com`,
+Expansión) baked into the Edge Function, chosen for LatAm audience coherence.
+
+`lib/news.ts`'s `fetchNews()` doesn't query `news_articles` or cache anything client-side
+— it always calls `supabase.functions.invoke('fetch-news')`, delegating freshness logic
+entirely to the Edge Function. `fetch-news` has **no cron/pg_cron** — refresh happens
+on-demand: if the newest cached row is older than `STALE_MS` (25 minutes), the *next*
+page load triggers a re-fetch of all RSS feeds (`Promise.allSettled`) and an `upsert`
+into `news_articles` (`onConflict: 'url'`) via a `service_role` client; otherwise it just
+serves what's cached (capped at 120 articles). `news_articles` (migration
+`20260719130000`) is a read-only catalog for users — `select`-only RLS policy, no
+insert/update/delete for `authenticated` despite the broad table `GRANT` — matching the
+`ai_analysis`/`trade_history` pattern of "grant is broad, RLS narrows it to what's
+actually allowed."
+
+### Sistema (objectives/rules/strategies)
+
+Three tabs, each doing simple soft-delete CRUD (a `deleted_at` column, not a hard
+`delete`) directly against its own table via the Supabase client — no server-side
+endpoint layer:
+
+- `ObjectivesSection.tsx` → `objectives` (title, `metric_type`:
+  `win_rate`/`profit_factor`/`r_avg`/`custom`, target_value, period_start/end, and a
+  manually-updated `current_value`/`achieved` toggle).
+- `RulesSection.tsx` → `trader_rules` (title, description, `is_active` toggle).
+- `StrategiesSection.tsx` → `strategies` (name, description, `is_active` toggle).
+
+**`v_rule_violations` exists as a view (migration `20260703100000`) but is not consumed
+anywhere in `Sistema.tsx` or `TradeDetail.tsx`** — its only consumer today is the AI
+context builder (`supabase/functions/_shared/contextBuilder.ts`), which feeds it into
+`analyze-trade`'s context. Per that migration's own comment, it only covers the
+`stop_loss_moved` flag for now — there's no generic rules engine that cross-references
+`trader_rules.title` against actual trade behavior yet. Don't assume declaring a rule in
+`Sistema` automatically gets checked against trades; today it doesn't, beyond the one
+hardcoded stop-loss check already described under the `/trades/:id` route above.
+
+### Perfil & avatar upload
+
+`Perfil.tsx` shows the avatar (click-to-upload), display name/email, onboarding-derived
+facts, trade stats from `v_user_trade_stats`, and a links list to `/historial`,
+`/sistema`, `/configuracion/ia`, and (superadmin only) `/admin`.
+
+`lib/avatarUpload.ts` validates size (≤5MB) and MIME type (`image/*`), then uploads to a
+**fixed** path `{userId}/avatar` with `upsert: true` — a new photo always overwrites,
+never accumulates. **The `avatars` bucket is created `public: true`** (migration
+`20260719120000`), unlike `trade-images`. This is deliberate, not an oversight: an RLS
+storage policy still restricts insert/update/delete to the user's own folder prefix, but
+reads are public and use `getPublicUrl()` + a `?v=<timestamp>` cache-busting query param,
+never `createSignedUrl()`. The tradeoff (per the code's own comment) is intentional: a
+signed URL would mean an extra Storage round-trip on every header/avatar render across
+every page, for data (a profile photo) that isn't sensitive the way trade screenshots
+are. **Don't copy this pattern onto `trade-images`** or any future genuinely private
+bucket — the public-bucket choice here is specific to "this data isn't sensitive," not a
+general precedent.
 
 ### Closing a trade
 

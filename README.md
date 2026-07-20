@@ -8,11 +8,14 @@ nunca predicciones, nunca asesoría financiera. El principio que sostiene toda l
 arquitectura: **el backend calcula los hechos (SQL, determinístico) y la IA solo los
 interpreta; jamás calcula ni inventa.**
 
-**Estado:** 🚧 En desarrollo — proyecto colaborativo. **Fases 0, 1 y 2 completas**: todas
-las pantallas planeadas (onboarding, auth, Nuevo Trade, Dashboard, Historial, Detalle de
-Trade) existen y hablan con Supabase de verdad (local, vía Docker), incluyendo cierre de
-trade con cálculo de PnL/R y subida de imágenes a Storage — verificado de punta a punta,
-no solo compilado. Ver [roadmap](#roadmap-por-fases).
+**Estado:** 🚀 En producción — `https://lineartrade.vercel.app`. **Fases 0 a 4
+completas** (onboarding, pantallas privadas, backend real, motor de IA, panel
+SuperAdmin) y el alcance ya creció más allá del roadmap original: Noticias (feed
+editorial en español), IA Trader, Sistema (objetivos/reglas/estrategias), Perfil,
+trades de opciones, carga de trade por foto vía IA, e import CSV (UI, aún bloqueado al
+guardar). **Gap real conocido:** no hay tests automatizados, CI, ni monitoring
+(Sentry/PostHog) todavía — ver [`aidlc-docs/`](aidlc-docs/) para el detalle completo del
+estado auditado. Ver [roadmap](#roadmap-por-fases).
 
 ---
 
@@ -122,11 +125,13 @@ hex ni fuentes en componentes** — reutiliza o agrega un token.
 | **0** | Onboarding visual (Landing, Registro, Login, Recuperar) | ✅ Completa |
 | **1** | Pantallas privadas: Onboarding, Nuevo Trade, Dashboard, Detalle, Historial | ✅ Completa |
 | **2** | Backend real: schema, tipos generados, Auth, CRUD, Storage | ✅ Completa — schema, RLS, grants, Auth, CRUD, cierre de trade (PnL/R en un trigger) y subida de imágenes a `trade-images` (URLs firmadas, bucket privado), todo conectado y verificado local |
-| **3** | Motor de IA: Edge Function de contexto, proveedores, rate limiting, BYOK | ⬜ |
-| **4** | Panel SuperAdmin + observabilidad (Sentry, PostHog, audit_log) | ⬜ |
+| **3** | Motor de IA: Edge Function de contexto, proveedores, rate limiting, BYOK | ✅ Completa |
+| **4** | Panel SuperAdmin + `audit_log` | ✅ Completa — observabilidad externa (Sentry, PostHog) sigue **pendiente** |
+| — | Más allá del roadmap original: Noticias, IA Trader, Sistema, Perfil, opciones, carga de trade por foto, import CSV (UI) | ✅ Construido, sin roadmap formal previo |
 
 Plan detallado y desglose de tareas: [`docs/lineatrade-plan-implementacion.md`](docs/lineatrade-plan-implementacion.md)
-y [CONTRIBUTING.md](CONTRIBUTING.md#desarrollo-por-partes).
+y [CONTRIBUTING.md](CONTRIBUTING.md#desarrollo-por-partes). Auditoría completa del estado
+real (incluyendo gaps de testing/CI/monitoring): [`aidlc-docs/00_PROJECT_METADATA.md`](aidlc-docs/00_PROJECT_METADATA.md).
 
 ---
 
@@ -139,3 +144,20 @@ construir features. Ver el [índice de docs](docs/README.md).
 
 Este es un proyecto colaborativo en desarrollo. Antes de tu primer PR, lee
 [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 📋 Documentación del Proyecto (AI-DLC)
+
+Este proyecto sigue la metodología AI-DLC. Estado actual: **Operations** (desplegado en
+producción), con gaps de madurez operativa conocidos y documentados — sin tests
+automatizados, sin CI, sin monitoring externo todavía.
+
+Documentación completa en [`/aidlc-docs/`](./aidlc-docs/):
+- [Metadata y estado auditado](./aidlc-docs/00_PROJECT_METADATA.md)
+- [Requirements](./aidlc-docs/requirements/)
+- [Domain model y arquitectura](./aidlc-docs/design-artifacts/ARCHITECTURE.md)
+- [Testing Strategy](./aidlc-docs/testing/TEST_STRATEGY.md)
+- [Deployment](./aidlc-docs/deployment/) / [Operations](./aidlc-docs/operations/)
+
+Última auditoría: 2026-07-19
