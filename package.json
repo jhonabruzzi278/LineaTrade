@@ -15,11 +15,17 @@
     "db:types": "supabase gen types typescript --local > src/types/database.ts && cp src/types/database.ts supabase/functions/_shared/database.types.ts"
   },
   "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.17",
+    "@radix-ui/react-slot": "^1.3.0",
     "@supabase/supabase-js": "^2.110.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "jszip": "^3.10.1",
+    "lucide-react": "^1.25.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

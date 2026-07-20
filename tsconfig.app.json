@@ -7,6 +7,9 @@
     "types": ["vite/client", "vite-plugin-pwa/react"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

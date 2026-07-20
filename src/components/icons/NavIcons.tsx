@@ -67,7 +67,7 @@ export function HistoryIcon({ className }: IconProps) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M6 6h12M6 12h12M6 18h8" />
+      <path d="M6 6h12M6 12h12M6 18h12" />
     </svg>
   )
 }

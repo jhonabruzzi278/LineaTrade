@@ -25,7 +25,7 @@ elevar eso**, no reemplazarlo. Este documento:
    ganancia/pérdida no seguía la convención universal de trading (§3.2).
 3. Deja un backlog priorizado, pantalla por pantalla, para las próximas rondas (§9).
 
-**Trabajo de esta ronda ya aplicado al código** (ver §3.2 y el changelog en §10):
+**Trabajo de esta ronda ya aplicado al código** (ver §3.2 y el changelog en §11):
 tokens `--color-gain`/`--color-loss` nuevos en `src/index.css`, aplicados a badges
 long/short, resultado de P&L, y botones Compra/Venta; ~25 usos de `text-red-400` hardcodeado
 (mensajes de error) migrados al token semántico `text-loss`.
@@ -145,6 +145,22 @@ ambigüedad visual importa, ahí sí separar en `--color-danger`.
 `--shadow-card` / `--shadow-elevated` / `--shadow-glow` ya existentes — reutilizar, no
 inventar sombras nuevas por componente.
 
+### 3.5 Puente de tokens shadcn/ui (nuevo — ver §10 "Fundación shadcn/ui")
+
+`src/index.css`'s `@theme` block define los nombres semánticos estándar de shadcn
+(`background`/`foreground`/`primary`/`card`/`muted`/`accent`/`destructive`/`border`/
+`input`/`ring`, etc.), cada uno apuntando con `var()` a un token de marca que ya existía
+(`background` → `ink`, `primary` → `signal`, `destructive` → `loss`, `border` → `hairline`,
+...). **Son alias, no una paleta nueva** — no hay ningún hex nuevo en ese bloque. Esto
+significa que un componente shadcn recién copiado (`npx shadcn add lo-que-sea`, o pegado a
+mano) usa clases como `bg-primary`/`text-muted-foreground` y ya sale con los colores de
+marca correctos, sin tocar una sola clase de color. **Regla:** si agregás un componente
+shadcn nuevo, no le agregues colores de marca a mano (`bg-signal` en vez de `bg-primary`)
+salvo que necesites algo que el puente no cubre (como los hover `-dim` de §3.2, que sí se
+usan directo — ver `components/ui/button.tsx`). Y al revés: nunca agregues un nombre
+semántico nuevo a este bloque apuntando a un hex crudo — siempre a un token de §3.1/§3.2
+existente.
+
 ---
 
 ## 4. Tipografía
@@ -256,10 +272,52 @@ Encontrado durante esta auditoría, no implementado aún — orden sugerido por 
    footer del Landing y como wordmark en `AppHeader`. El ícono de marca real (el trazo
    ámbar, `src/assets/pwa-icon-source.svg`) no tiene una versión de wordmark+ícono combinada
    para usos fuera de la PWA (redes, press kit, etc.) — evaluar si hace falta.
+6. **Migrar los botones existentes a `<Button>` (`components/ui/button.tsx`).** El
+   componente ya existe (ver §10) pero ningún botón del código lo usa todavía — cada
+   pantalla sigue con su propia clase inline (`bg-signal text-ink ... hover:bg-signal-dim
+   hover:shadow-glow hover:-translate-y-0.5`, repetida en Landing, Dashboard, TradeDetail,
+   etc.). Migrar es mecánico pero tocar ~15+ archivos merece su propia ronda con
+   verificación, no colarse dentro de otro cambio.
 
 ---
 
-## 10. Changelog
+## 10. Fundación shadcn/ui (decisión de arquitectura, 2026-07-20)
+
+El dueño del producto confirmó explícitamente adoptar shadcn/ui como base para componentes
+interactivos/compuestos nuevos (acordeones, diálogos, menús — lo que Radix cubre), en vez
+de seguir escribiendo cada uno a mano. Esto es un cambio de arquitectura real, no un
+componente suelto — documentado acá para que quede claro qué se decidió y qué no:
+
+- **Qué se instaló:** `class-variance-authority`, `clsx`, `tailwind-merge`,
+  `@radix-ui/react-accordion`, `@radix-ui/react-slot`, `lucide-react`. Alias de path `@/*`
+  → `./src/*` en `tsconfig.json`/`tsconfig.app.json`/`vite.config.ts`. `src/lib/utils.ts`
+  con el helper `cn()` estándar de shadcn (`clsx` + `tailwind-merge`).
+- **Qué NO se instaló:** `next` ni nada de Next.js. La referencia que originó este trabajo
+  venía de un proyecto Next.js (`next/link`, convención de shadcn CLI pensada para App
+  Router) — LineaTrade es Vite + `react-router-dom` y sigue siéndolo. Los componentes
+  copiados usan `Link` de `react-router-dom`, no `next/link`. Tampoco se instaló Magic UI
+  ni `tw-animate-css` — no fueron confirmados explícitamente en esta ronda.
+- **Cómo conviven los dos sistemas:** no conviven como dos sistemas — shadcn corre sobre
+  los tokens de marca existentes vía el puente de §3.5. `components/ui/` son componentes
+  "copiados y adaptados" (el espíritu real de shadcn: el código es tuyo, no un paquete de
+  node_modules que consumís como caja negra), no una librería externa con su propia
+  identidad visual. Dos ajustes deliberados sobre el shadcn "de fábrica": `rounded-sm` en
+  vez de `rounded-md`/`rounded-lg` (match con el radio de 2px que usa todo el producto,
+  ver §7), y sin `forwardRef` (React 19 acepta `ref` como prop plana — ver `CLAUDE.md` →
+  Stack).
+- **`components/ui/button.tsx` y `components/ui/accordion.tsx`** son los primeros dos.
+  `Button` no reemplazó ningún botón existente en esta ronda — los ~15+ botones repartidos
+  por el código siguen con su clase inline. Migrarlos a `<Button>` es trabajo aparte (ver
+  backlog #6), no algo que deba pasar solo porque el componente ya existe.
+- **Bug de plataforma encontrado:** en el navegador embebido usado para verificar este
+  trabajo, la propiedad CSS moderna `rotate` (la que Tailwind v4 genera para utilidades
+  `rotate-*`) no se aplicaba — `getComputedStyle().rotate` se quedaba en `0deg` incluso
+  seteada a mano por `style.setProperty`. `transform: rotate(...)` sí funcionó. Por eso
+  `AccordionTrigger`'s flecha usa `[&[data-state=open]>svg]:[transform:rotate(180deg)]`
+  (sintaxis de propiedad arbitraria) en vez de `rotate-180` — más compatible, no solo un
+  parche para esta herramienta puntual.
+
+## 11. Changelog
 
 **2026-07-20 (ronda 1)** — Primera versión de este documento. Agregados `--color-gain`/
 `--color-gain-dim`/`--color-loss`/`--color-loss-dim` a `src/index.css`. Migrados a estos
@@ -304,3 +362,16 @@ confirmados por `getComputedStyle` (verde/rojo alternando exactamente según `si
 de animación incremental confirmado (`0s, 0.04s, 0.08s...`), tipografía del símbolo
 confirmada en Space Grotesk (`font-display`). Sin errores de consola. Datos de prueba y
 usuario borrados después; `.env.local` restaurado.
+
+**2026-07-20 (ronda 4)** — Fundación shadcn/ui (ver §10 para el detalle completo de la
+decisión): `components/ui/button.tsx` y `components/ui/accordion.tsx`, puente de tokens en
+`src/index.css` (§3.5), alias `@/*`. Nueva sección de FAQ en `Landing.tsx` (5 preguntas en
+español, contenido real de journal de trading — no el placeholder de e-commerce de la
+referencia original), construida con el `Accordion` nuevo. Corregido también
+`HistoryIcon` (`components/icons/NavIcons.tsx`) — sus 3 barras horizontales no eran del
+mismo largo (`M6 6h12M6 12h12M6 18h8`, la tercera medía 8 en vez de 12); ahora las tres
+miden 12. Verificado: `npm run build`/`lint` limpios; acordeón probado en el navegador —
+abre/cierra correctamente (`data-state` confirmado), contenido visible, flecha rota 180°
+(tras cambiar de la propiedad CSS `rotate` a `transform: rotate()` por el bug de
+plataforma descrito en §10); path del `HistoryIcon` confirmado con las 3 barras iguales;
+sin errores de consola.

@@ -1,6 +1,40 @@
 import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { TraceLine } from '../components/TraceLine'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion'
+
+const faqItems = [
+  {
+    id: 'senales',
+    question: '¿LineaTrade me da señales o me dice qué operar?',
+    answer:
+      'No. LineaTrade no es una herramienta de señales ni de predicción de mercado — no te dice qué comprar ni cuándo. Registra lo que vos ya operaste (técnica, contexto, psicología) y te muestra los patrones de comportamiento que se repiten. Te ayudamos a cometer menos errores, no a "ganar más".',
+  },
+  {
+    id: 'metricas',
+    question: '¿De dónde salen el win rate, el profit factor y el R promedio?',
+    answer:
+      'Todos salen de cálculos directos sobre tus propios trades cerrados, nunca de una estimación ni de un modelo de IA. Si la IA analiza un trade, solo puede citar cifras que ya existen en tu journal — no inventa ni redondea para sonar convincente.',
+  },
+  {
+    id: 'broker',
+    question: '¿Tengo que conectar la cuenta de mi bróker?',
+    answer:
+      'No. Registrás cada operación a mano o sacándole una foto al ticket de tu bróker — la IA lee la imagen y precarga los datos, pero vos revisás y confirmás antes de guardar. LineaTrade nunca pide acceso ni credenciales de tu cuenta de trading.',
+  },
+  {
+    id: 'privacidad',
+    question: '¿Quién puede ver mis trades?',
+    answer:
+      'Solo vos. No hay rankings, no hay perfiles públicos, no hay nada compartido entre usuarios. El único acceso externo posible es soporte técnico del equipo, y ese acceso queda siempre registrado — nunca es silencioso.',
+  },
+  {
+    id: 'ia-gratis',
+    question: '¿Es gratis analizar mis trades con IA?',
+    answer:
+      'Sí, con un límite diario en el modelo compartido. Si querés análisis ilimitados podés conectar tu propia API key desde Configuración — el costo de esos análisis corre por tu cuenta, sin límite de LineaTrade.',
+  },
+]
 
 const entries = [
   {
@@ -143,6 +177,45 @@ export default function Landing() {
           >
             Empezar el test — 2 minutos
           </Link>
+        </section>
+
+        <section className="py-20 border-t border-hairline">
+          <div className="grid gap-10 md:grid-cols-5 md:gap-12">
+            <div className="md:col-span-2">
+              <p className="font-mono text-[13px] text-steel tracking-wide mb-2">preguntas frecuentes</p>
+              <h2 className="font-display text-[28px] text-text-primary mb-4">
+                Antes de registrar tu primer trade.
+              </h2>
+              <p className="font-body text-[15px] text-text-muted leading-relaxed hidden md:block">
+                Para más detalle sobre cómo tratamos tus datos, ver la{' '}
+                <Link to="/privacidad" className="text-signal hover:text-signal-dim transition-colors">
+                  política de privacidad
+                </Link>
+                .
+              </p>
+            </div>
+
+            <div className="md:col-span-3">
+              <Accordion type="single" collapsible>
+                {faqItems.map((item) => (
+                  <AccordionItem key={item.id} value={item.id}>
+                    <AccordionTrigger className="text-[15px]">{item.question}</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-[14px]">{item.answer}</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+
+            <p className="font-body text-[15px] text-text-muted leading-relaxed md:hidden">
+              Para más detalle sobre cómo tratamos tus datos, ver la{' '}
+              <Link to="/privacidad" className="text-signal hover:text-signal-dim transition-colors">
+                política de privacidad
+              </Link>
+              .
+            </p>
+          </div>
         </section>
 
         <section className="py-20 border-t border-hairline">

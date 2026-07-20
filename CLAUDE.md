@@ -71,6 +71,17 @@ bundling, so run it to verify changes compile.
 - **react-router-dom v7** — routing declared in `src/App.tsx` via `<BrowserRouter>`
 - **Vite 8** as bundler/dev server
 - **Tailwind CSS v4** via the `@tailwindcss/vite` plugin — there is **no `tailwind.config.js`**
+- **shadcn/ui foundation** (added 2026-07-20) — `components/ui/` holds Radix-primitive
+  components (`button.tsx`, `accordion.tsx` so far) built with `class-variance-authority`
+  + the standard `cn()` helper (`src/lib/utils.ts`, `clsx` + `tailwind-merge`). Path alias
+  `@/*` → `./src/*` in `tsconfig.json`/`tsconfig.app.json`/`vite.config.ts`. **Not** a
+  second design system: shadcn's standard semantic color names
+  (`background`/`primary`/`destructive`/etc.) are aliased in `src/index.css`'s `@theme`
+  block to the existing brand tokens, so a freshly copied shadcn component is on-brand
+  with zero color edits — see `docs/lineatrade-design-system.md` §3.5 and §10 before
+  adding another `components/ui/` file or touching this token bridge. This is Vite +
+  react-router, **not Next.js** — copied shadcn snippets that assume `next/link` or the
+  Next.js App Router need adapting, not pasting verbatim.
 - **oxlint** (not ESLint) for linting; TypeScript strict mode via `tsconfig.app.json`
 - **Supabase** (local, via Docker + the Supabase CLI) — Postgres, Auth, Storage, Studio.
   `@supabase/supabase-js` is installed; `src/lib/supabase.ts` is the typed client. See

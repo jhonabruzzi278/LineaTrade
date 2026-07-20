@@ -25,6 +25,33 @@
   --color-loss: #F6465D;
   --color-loss-dim: #D8394E;
 
+  /* shadcn/ui token bridge — added 2026-07-20 alongside components/ui/ (Radix +
+     class-variance-authority). Deliberately NOT shadcn's default zinc/slate palette:
+     every semantic name below is aliased to a brand token that already existed, so a
+     copied shadcn component is on-brand the moment it's pasted in, with zero
+     component-level color edits. This is the one and only color system — these are
+     aliases, not a second palette. Don't add a raw hex value here; point at an
+     existing --color-* token above instead. See docs/lineatrade-design-system.md §3.5. */
+  --color-background: var(--color-ink);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-panel);
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: var(--color-panel-2);
+  --color-popover-foreground: var(--color-text-primary);
+  --color-primary: var(--color-signal);
+  --color-primary-foreground: var(--color-ink);
+  --color-secondary: var(--color-panel-2);
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-muted: var(--color-panel-2);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-accent: var(--color-panel-2);
+  --color-accent-foreground: var(--color-text-primary);
+  --color-destructive: var(--color-loss);
+  --color-destructive-foreground: var(--color-ink);
+  --color-border: var(--color-hairline);
+  --color-input: var(--color-hairline);
+  --color-ring: var(--color-signal);
+
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -81,6 +108,28 @@ html {
 .reveal-up {
   opacity: 0;
   animation: reveal-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Radix Accordion's open/close height animation — driven by the
+   --radix-accordion-content-height custom property Radix sets at runtime. Hand-rolled
+   here rather than pulling in the tw-animate-css package, matching this project's
+   existing convention (keyframe in index.css, no animation-plugin dependency). */
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
 }
 
 /* Atmospheric amber glow, placed absolutely behind hero content.
