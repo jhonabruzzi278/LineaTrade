@@ -28,7 +28,7 @@
   link` funcionan desde una shell fresca). Variables de entorno gestionadas vía la
   API REST de Vercel con un token personal, no vía `vercel env` CLI.
 - **Supabase Cloud**: proyecto `pcmftbzpzeliurrnyidt`, separado del stack local Docker.
-  Mismo schema (33 migraciones + seed), aplicado vía `supabase db push`.
+  Mismo schema (34 migraciones + seed), aplicado vía `supabase db push`.
 - **No hay Dockerfile propio del frontend** — el frontend se construye y sirve vía la
   plataforma de Vercel (build nativo de Vite), no un contenedor gestionado por el equipo.
 - **Docker sí se usa para el stack local de Supabase** (`supabase start`), no para

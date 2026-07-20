@@ -41,6 +41,16 @@ por fase — útil como sustituto de un log de generación que nunca existió fo
     plataforma editorial forzando fuentes en español, responsive real (chips
     scrolleables mobile / grid 3 cols desktop)
 
+## Actualización 2026-07-20 (posterior al audit original)
+
+16. `5237012` → `7030d01` → `5228ca7` → `410a07b` — identidad de marca (tokens
+    `gain`/`loss`), `TradeListRow` compartido entre Dashboard/Historial (riel de color +
+    jerarquía tipográfica), fundación shadcn/ui (Radix + FAQ en Landing), más fuentes de
+    Noticias (mercado/tecnología).
+17. Sesión de auditoría de documentación (ver `prompts.md`): elimina
+    `src/lib/tradeImport.ts` (parser de CSV huérfano desde `7f89396`, decisión ya no
+    pendiente) y agrega una sección de descarga de la app con CTAs a `Landing.tsx`.
+
 ## Observación honesta sobre este log
 
 Este archivo se generó **retroactivamente a partir de `git log`**, no en tiempo real

@@ -13,7 +13,7 @@ no solo en el doc).
 | Registro de trade | Bróker + entrada técnica + contexto + psicología + aprendizaje | ✅ `NuevoTrade.tsx` + `components/trade/*` |
 | Registro de trade — opciones | Contratos de opciones (no solo spot) | ✅ migración `20260716120000_options_trading_support.sql` |
 | Registro de trade — foto | Extracción de datos de trade desde una imagen vía IA vision | ✅ Edge Function `extract-trade-image` |
-| Registro de trade — CSV | Import masivo desde extracto de bróker | ⬜ UI-only, bloqueado explícitamente al guardar (`lib/tradeImport.ts` existe pero CLAUDE.md confirma que el guardado real está bloqueado) |
+| Registro de trade — CSV | Import masivo desde extracto de bróker | ❌ Eliminado (2026-07-20) — el tab de UI ya se había quitado en `7f89396`; `lib/tradeImport.ts` (el parser huérfano) fue borrado del todo por decisión explícita del dueño del repo, en vez de resucitarlo |
 | Cierre de trade | Exit price → trigger SQL calcula `pnl_amount`/`pnl_r`, nunca el cliente | ✅ `trg_calculate_trade_pnl`, verificado a mano contra un ejemplo real |
 | Dashboard | Métricas agregadas desde vista SQL, nunca calculadas en el cliente o por IA | ✅ `v_user_trade_stats` + `Dashboard.tsx` |
 | Historial | Listado filtrable por símbolo/estado | ✅ `Historial.tsx` |
@@ -28,6 +28,7 @@ no solo en el doc).
 | Perfil | Avatar upload | ✅ `Perfil.tsx`, `lib/avatarUpload.ts`, migración `20260719120000_avatars_storage.sql` |
 | Trader Plan / Quiz | Motor de recomendación de plan basado en quiz | ✅ `traderQuizStorage.ts`, `traderPlanEngine.ts`, `PlanReport.tsx`, tabla `trader_plans` |
 | SuperAdmin | Métricas agregadas del sistema, config de proveedor de IA | ✅ `AdminPanel.tsx`, `get_system_metrics()`, config en `ai_provider_config` |
+| Descarga de app (Landing) | CTA para instalar la PWA + CTA para descargar un APK de Android | ✅ (2026-07-20) — botón "Instalar app" funcional (`hooks/useInstallPrompt.ts`); "Descargar APK" sirve `public/downloads/lineatrade.apk`, el paquete real firmado (`com.lineartrade.app`) generado vía PWABuilder, mismo fingerprint que `assetlinks.json`. `LineaTrade.aab` (para Google Play) y el `signing.keystore` quedaron fuera del repo por diseño — ver `CLAUDE.md`'s "PWA-to-APK" |
 | Orden / ticket | Detalle de ticket de orden | ✅ `OrderTicketFields.tsx`, tabla `trade_orders` |
 
 ## No funcionales

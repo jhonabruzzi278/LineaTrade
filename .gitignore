@@ -19,6 +19,10 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Firma de Android (TWA/APK) — nunca commitear, ver guía de conversión PWA→APK
+*.keystore
+*.jks
+
 # Editores / OS
 .vscode/*
 !.vscode/extensions.json

@@ -27,7 +27,7 @@ src/
 
 supabase/
 ├── config.toml                 # Puertos movidos a 5532x (limitación real de Windows/Hyper-V)
-├── migrations/                  # 33 archivos, uno por cambio incremental de schema
+├── migrations/                  # 34 archivos, uno por cambio incremental de schema
 ├── seed.sql                      # Catálogo inicial de instruments
 └── functions/                     # analyze-trade, extract-trade-image, fetch-news, _shared
 

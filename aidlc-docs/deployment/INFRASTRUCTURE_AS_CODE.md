@@ -4,7 +4,7 @@
 
 | Recurso | Dónde | Cobertura |
 |---|---|---|
-| Schema de base de datos | `supabase/migrations/*.sql` (33 archivos) | Completa — cada cambio de schema es una migración nueva, nunca se edita una ya aplicada (regla explícita del propio `docs/trade-journal-os-schema.md` §11) |
+| Schema de base de datos | `supabase/migrations/*.sql` (34 archivos) | Completa — cada cambio de schema es una migración nueva, nunca se edita una ya aplicada (regla explícita del propio `docs/trade-journal-os-schema.md` §11) |
 | Seed de datos inicial | `supabase/seed.sql` | Catálogo de `instruments` para desarrollo local |
 | Config de servicios locales (Auth, Storage, puertos) | `supabase/config.toml` | Completa para el stack **local** — no se aplica 1:1 a Cloud (ver riesgo en `DEPLOYMENT_CHECKLIST.md`) |
 | Edge Functions | `supabase/functions/{analyze-trade,extract-trade-image,fetch-news}/` | Código versionado; deploy es un comando CLI (`supabase functions deploy`), no confirmado si está automatizado en CI |

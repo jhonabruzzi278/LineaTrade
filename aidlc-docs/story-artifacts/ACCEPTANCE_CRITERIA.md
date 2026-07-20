@@ -58,7 +58,8 @@ compilación) más los invariantes de negocio explícitos en `docs/`.
 
 ## ⚠️ Pendiente de validación humana
 
-- No hay criterios de aceptación documentados para: IA Trader, el flujo completo de
-  import CSV (más allá de "está bloqueado al guardar"), ni para el motor de
+- No hay criterios de aceptación documentados para: IA Trader, ni para el motor de
   recomendación de `traderPlanEngine.ts` (qué inputs producen qué planes no está
   especificado en ningún doc, solo en el código).
+- ~~El flujo completo de import CSV~~ — ya no aplica: la funcionalidad fue eliminada
+  (2026-07-20), no solo bloqueada. Ver `requirements/REQUIREMENTS.md`.

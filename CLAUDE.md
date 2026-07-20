@@ -94,7 +94,24 @@ bundling, so run it to verify changes compile.
 
 Small SPA. `main.tsx` mounts `<App/>`, which is only a router:
 
-- `/` → `pages/Landing.tsx`
+- `/` → `pages/Landing.tsx` — includes a Spanish FAQ section (5 questions, real journal
+  content, not e-commerce placeholder copy) built on the first `components/ui/`
+  primitives, `Accordion`/`AccordionItem`/`AccordionTrigger`/`AccordionContent` (see
+  "shadcn/ui foundation" under "Stack" above for why a copied Radix component needs no
+  color edits to be on-brand). Also has an app-download section (`#descargar`, three
+  entry points on the page: a hero link, the dedicated section, and a link in the
+  closing CTA) with two real CTAs — an "Instalar app" button wired to `hooks/
+  useInstallPrompt.ts` (listens for the `beforeinstallprompt`/`appinstalled` browser
+  events; where the browser doesn't support it — Safari/iOS, Firefox — clicking falls
+  back to a toast with manual instructions instead of doing nothing), and a "Descargar
+  APK (Android)" link pointing at `APK_DOWNLOAD_URL` (`/downloads/lineatrade.apk`).
+  **The real signed APK is committed at `public/downloads/lineatrade.apk`** (added
+  2026-07-20, ~950KB, generated via PWABuilder against `com.lineartrade.app` — the same
+  package/signing identity already registered in `public/.well-known/assetlinks.json`,
+  see "PWA-to-APK" below for provenance). That extension is outside `vite-plugin-pwa`'s
+  `globPatterns` (`**/*.{js,css,html,svg,png,ico}`, see "PWA (installable)" below), so
+  it doesn't bloat the
+  service-worker precache the way a stray asset elsewhere in `public/` would.
 - `/registro` → `pages/Signup.tsx` (route path is Spanish)
 - `/login` → `pages/Login.tsx`
 - `/recuperar` → `pages/Recuperar.tsx` — calls `resetPasswordForEmail`; always shows the
@@ -130,11 +147,11 @@ Small SPA. `main.tsx` mounts `<App/>`, which is only a router:
   entry → contexto → psicología → aprendizaje. **The technical-entry step now requires a
   photo of the trade ticket** (`TechnicalEntryPanel.tsx`'s `handlePhotoSelected`): commit
   `7f89396` removed the old three-way `manual`/`file`/`photo` tab selector entirely,
-  including the "Subir archivo" CSV-import tab. `lib/tradeImport.ts` (`parseTradesCsv`)
-  is now **orphaned dead code** — nothing in the repo imports it anymore. **Don't trust
-  this file's older claim that CSV import is "UI-only, blocked at save"** — that was
-  true right up until `7f89396`, but the tab is gone now, not blocked. Decide explicitly
-  (resurrect the tab, or delete the dead file) before building on top of it. The photo is
+  including the "Subir archivo" CSV-import tab. `lib/tradeImport.ts` (`parseTradesCsv`),
+  the orphaned parser left behind by that removal, was **deleted outright on 2026-07-20**
+  by explicit decision of the repo owner — CSV import is not "blocked" or "pending a
+  decision" anymore, it doesn't exist in any form. If it's wanted again, it needs to be
+  rebuilt, not resurrected. The photo is
   base64-encoded client-side and sent directly to the `extract-trade-image` Edge Function
   — it never touches Storage (see "Photo-based trade extraction" below). A failed
   extraction still unblocks the step so the user can fill the form by hand — it's the
@@ -189,7 +206,12 @@ shared across pages (`Nav`, `AppHeader`, `TraceLine`, `WizardLayout`, `Protected
 `SuperAdminRoute`, `BottomNav`, `Avatar`, `Switch`, `PwaUpdatePrompt`).
 `components/trade/` holds pieces specific to the trade-entry flow (`BrokerPicker`,
 `TechnicalEntryPanel`, `PsychologySection`, `OrderTicketFields` — see "Options trading &
-order tickets" below). `components/sistema/` holds `ObjectivesSection`/`RulesSection`/
+order tickets" below) plus `TradeListRow` (added commit `7030d01`), extracted from
+near-duplicate row markup that used to live separately in `Dashboard.tsx` and
+`Historial.tsx` — a 3px left rail colored `gain`/`loss` by `side`, the symbol promoted to
+`font-display` for hierarchy over the metadata line, and a staggered reveal-up entrance
+capped at the first 12 rows so long lists (Historial) don't turn the animation into
+noise. `components/sistema/` holds `ObjectivesSection`/`RulesSection`/
 `StrategiesSection` (see "Sistema" below); `components/traderQuiz/` holds `QuizStep`/
 `PlanReport` (see the `/ia-trader` route entry above). `BrokerPicker` filters its 37-broker list by
 both free-text search and a `category` field (`acciones`/`forex`/`cripto`/`futuros`/
@@ -265,13 +287,33 @@ this same pattern (keyframe in `index.css`, applied via inline `style` or a plai
 
 ### PWA (installable)
 
-`vite-plugin-pwa` is configured in `vite.config.ts` (`registerType: 'autoUpdate'`,
+`vite-plugin-pwa` is configured in `vite.config.ts` (`registerType: 'prompt'` — **not**
+`'autoUpdate'`, deliberately: with financial data on screen the app shouldn't reload
+itself out from under the user, so `PwaUpdatePrompt.tsx`'s `useRegisterSW` hook surfaces
+a toast and lets the user pick when to reload instead; `injectRegister: false` because
+that same hook does the SW registration by hand, not the plugin's auto-injected script;
 `workbox.globPatterns` scoped to `**/*.{js,css,html,svg,png,ico}`). It only precaches the
 app shell — **it deliberately never caches Supabase requests** (auth, trades, storage);
 those are financial/session data that must always be fetched live, never served stale
 from a service worker. `index.html` carries the iOS install meta tags
 (`apple-mobile-web-app-*`, `apple-touch-icon`) since `vite-plugin-pwa` only auto-injects
 the manifest link and the SW-register script, not iOS-specific tags.
+
+**PWA-to-APK**: there is no native Android build pipeline in this repo — the APK at
+`public/downloads/lineatrade.apk` is a TWA (Trusted Web Activity) generated externally
+via PWABuilder.com against the live manifest, then committed by hand; this repo does
+not automate that build. **This is the second generation of that package** — a first
+attempt used the wrong Package ID (`app.vercel.lineartrade.twa`) and was discarded
+before ever reaching Play Console (see commit `faec8e3`); the current one uses
+`com.lineartrade.app` and `start_url=/dashboard`, matching
+`public/.well-known/assetlinks.json`. PWABuilder also produced `LineaTrade.aab`
+(Android App Bundle, required if this is ever submitted to Google Play — not needed for
+the direct-download CTA) and `signing.keystore` + its password
+(`signing-key-info.txt`) — **both kept outside this repo** (`.gitignore` blocks
+`*.keystore`/`*.jks` as a backstop). Losing the keystore means losing the ability to
+publish a future update under the same app identity; if it's ever regenerated, the new
+fingerprint must be re-synced into `assetlinks.json` and redeployed, or the installed
+app opens inside a Chrome Custom Tab (URL bar visible) instead of true full-screen.
 
 The manifest icons (`public/pwa-192.png`, `public/pwa-512.png`, `public/apple-touch-icon.png`)
 are rendered from `src/assets/pwa-icon-source.svg` — the app's actual amber trend-line
@@ -304,7 +346,7 @@ editorial choice and wasn't touched.
 
 The database is real and the frontend is wired to it. Setup:
 
-- **Migrations**: `supabase/migrations/*.sql`, **33 files** (resynced 2026-07-19; if
+- **Migrations**: `supabase/migrations/*.sql`, **34 files** (resynced 2026-07-20; if
   you're reading this later, recount with `ls supabase/migrations/ | wc -l` before
   trusting this number). The first 26 are as previously documented: 10 one-per-schema-
   doc-section migrations (extensions + profiles, instruments, strategies/rules, trades,
@@ -313,7 +355,7 @@ The database is real and the frontend is wired to it. Setup:
   discovered while wiring auth (see "Three real RLS bugs" below) plus small schema
   extensions; 2 for the stats view and the close-trade PnL trigger; 8 for Fase 3 (AI
   stats views, atomic rate limiting, BYOK key vault, service-role AI access); 1 for Fase
-  4 (SuperAdmin system metrics); 1 for the Lineatrader→LineaTrade rebrand. **The 7 after
+  4 (SuperAdmin system metrics); 1 for the Lineatrader→LineaTrade rebrand. **The 8 after
   that are newer feature work, shipped after Fase 4 closed** (see "Beyond Fase 4" under
   "Roadmap phases" below for what they back):
   1. `20260716120000_options_trading_support.sql` — adds `option_type` enum
@@ -343,9 +385,12 @@ The database is real and the frontend is wired to it. Setup:
   7. `20260719173629_refresh_postgrest_schema_cache.sql` — a trivial migration whose
      only purpose is forcing Supabase Cloud's PostgREST to reload its schema cache; see
      "PostgREST schema cache staleness" below.
+  8. `20260720144409_news_articles_add_tecnologia_category.sql` — extends
+     `news_articles`' category check constraint to allow `'tecnologia'`, backing the
+     Xataka/Hipertextual feeds described under "Noticias (news feed)" below.
 
   The schema doc (`docs/trade-journal-os-schema.md`) is the source of truth for the
-  original 26; it predates migrations 27-33 and hasn't been updated for them — treat the
+  original 26; it predates migrations 27-34 and hasn't been updated for them — treat the
   migrations themselves as the source of truth for anything the doc doesn't cover. If
   you need a schema change, add a **new** migration (never edit an already-applied one,
   per the doc's own §11).
@@ -594,12 +639,14 @@ confirmed-denied anonymous request to the private bucket. See "Images" below.
 described `NuevoTrade`'s "Subir archivo" tab (bulk-import from a broker CSV/statement)
 as a distinct feature from `trade_images`, UI-only and blocked at save. That was
 accurate through commit `3315345`, but commit `7f89396` **removed the entire tab**
-(along with the `manual`/`file`/`photo` selector it was part of). `lib/tradeImport.ts`
-(`parseTradesCsv`) is now orphaned dead code with zero importers — the feature isn't
-"blocked," it no longer exists in the UI. If asked "is CSV import done," the accurate
-answer is "it was built, then removed; the parser is still in the repo unused." See
-"Beyond Fase 4" below for what replaced it as the primary trade-entry-assist mechanism
-(mandatory photo + AI extraction).
+(along with the `manual`/`file`/`photo` selector it was part of), leaving
+`lib/tradeImport.ts` (`parseTradesCsv`) as orphaned dead code with zero importers.
+**Update 2026-07-20 — fully removed:** `lib/tradeImport.ts` itself was deleted, by
+explicit product decision rather than being resurrected. If asked "is CSV import done,"
+the accurate answer is "it was built, then removed from the UI, then the dead parser was
+deleted too — there is no CSV import path in this codebase today." See "Beyond Fase 4"
+below for what replaced it as the primary trade-entry-assist mechanism (mandatory photo +
+AI extraction).
 
 **Fase 3 (motor de IA)** shipped the `analyze-trade` Edge Function
 (`supabase/functions/analyze-trade`) plus `/configuracion/ia` (`ConfiguracionIA.tsx`) for
@@ -627,8 +674,8 @@ not the phase table, as the current edge of the product:
   as a genuinely separate concept from `trades` (a broker generates two orders per
   trade, `trades` is still one row). See "Options trading & order tickets" below.
 - **Photo-based trade extraction (AI vision)** replaced manual-only entry as the default
-  path into `NuevoTrade`, and CSV import as described above. See "Photo-based trade
-  extraction" below.
+  path into `NuevoTrade`, and CSV import (now fully removed, not just orphaned — see
+  above) as described above. See "Photo-based trade extraction" below.
 - **Noticias** (`/noticias`) — a Spanish-language news feed, RSS-sourced, refreshed
   on-demand (no cron). See "Noticias (news feed)" below.
 - **Sistema** (`/sistema`) — user-defined objectives/rules/strategies. See "Sistema

@@ -2,6 +2,13 @@ import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { TraceLine } from '../components/TraceLine'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion'
+import { useInstallPrompt } from '../hooks/useInstallPrompt'
+import { useToast } from '../lib/toast'
+
+// Actualizar esta ruta cuando el APK real esté generado y subido (ver guía de
+// conversión PWA → APK). Hasta entonces el botón de descarga apunta a un
+// archivo que todavía no existe en public/downloads/.
+const APK_DOWNLOAD_URL = '/downloads/lineatrade.apk'
 
 const faqItems = [
   {
@@ -60,6 +67,20 @@ const entries = [
 ]
 
 export default function Landing() {
+  const { canInstall, promptInstall } = useInstallPrompt()
+  const { showToast } = useToast()
+
+  const handleInstallClick = async () => {
+    if (canInstall) {
+      await promptInstall()
+      return
+    }
+    showToast(
+      'Tu navegador no ofrece instalación directa. En Android: menú ⋮ → Agregar a pantalla de inicio. En iPhone: Compartir → Agregar a inicio.',
+      'info',
+    )
+  }
+
   return (
     <div className="min-h-screen bg-ink">
       <Nav />
@@ -105,6 +126,12 @@ export default function Landing() {
                 className="font-body text-[14px] px-5 py-3 rounded-sm border border-hairline text-text-primary transition-colors hover:border-text-faint hover:bg-panel-2/50"
               >
                 Ver cómo funciona
+              </a>
+              <a
+                href="#descargar"
+                className="font-body text-[14px] text-text-muted transition-colors hover:text-text-primary"
+              >
+                Descargar app ↓
               </a>
             </div>
 
@@ -179,6 +206,50 @@ export default function Landing() {
           </Link>
         </section>
 
+        <section id="descargar" className="py-20 border-t border-hairline scroll-mt-20">
+          <div className="grid gap-10 md:grid-cols-5 md:gap-12 items-start">
+            <div className="md:col-span-2">
+              <p className="font-mono text-[13px] text-steel tracking-wide mb-2">app instalable</p>
+              <h2 className="font-display text-[28px] text-text-primary mb-4">
+                Llevá tu bitácora en el bolsillo.
+              </h2>
+              <p className="font-body text-[15px] text-text-muted leading-relaxed">
+                LineaTrade es una PWA instalable: funciona como una app nativa — ícono en tu
+                pantalla de inicio, pantalla completa, sin barra del navegador — sin pasar por
+                ninguna tienda de aplicaciones.
+              </p>
+            </div>
+
+            <div className="md:col-span-3">
+              <div className="relative overflow-hidden rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-card">
+                <div className="grain-overlay absolute inset-0" aria-hidden="true" />
+                <div className="relative flex flex-col gap-5">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={handleInstallClick}
+                      className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5"
+                    >
+                      Instalar app
+                    </button>
+                    <a
+                      href={APK_DOWNLOAD_URL}
+                      download
+                      className="font-body text-[14px] px-5 py-3 rounded-sm border border-hairline text-text-primary transition-colors hover:border-text-faint hover:bg-panel-2/50"
+                    >
+                      Descargar APK (Android)
+                    </a>
+                  </div>
+                  <p className="font-mono text-[12px] text-text-faint leading-relaxed">
+                    En iPhone no hay instalación con un click: abrí lineartrade.vercel.app en
+                    Safari → tocá Compartir → Agregar a inicio.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="py-20 border-t border-hairline">
           <div className="grid gap-10 md:grid-cols-5 md:gap-12">
             <div className="md:col-span-2">
@@ -225,12 +296,20 @@ export default function Landing() {
               <h2 className="font-display text-[28px] text-text-primary mb-4">
                 Tu próximo trade puede ser el primero registrado.
               </h2>
-              <Link
-                to="/registro"
-                className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5 mt-4"
-              >
-                Crear cuenta gratis
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+                <Link
+                  to="/registro"
+                  className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5"
+                >
+                  Crear cuenta gratis
+                </Link>
+                <a
+                  href="#descargar"
+                  className="font-body text-[14px] text-text-muted transition-colors hover:text-text-primary"
+                >
+                  o instalá la app →
+                </a>
+              </div>
             </div>
           </div>
         </section>

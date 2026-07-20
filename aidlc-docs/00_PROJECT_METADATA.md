@@ -2,13 +2,13 @@
 
 **Project Name:** LineaTrade (rebranded from "Lineatrader" — see commit `2f4a067`)
 **Owner:** JONAHBRUZZI (git user on this repo)
-**Analyzed On:** 2026-07-19
+**Analyzed On:** 2026-07-19, re-audited 2026-07-20
 **Current Phase:** **Operations** (deployed to production), with genuine Construction-phase
 gaps still open — see "Status" below. Treat this as the honest label, not "Mixed": the
 app has real users reachable at a live URL, backed by a separate Supabase Cloud project,
 so it is not merely "ready to deploy" — it **is** deployed. The gaps (no automated tests,
 no CI, no monitoring) are operational maturity debt, not phase misclassification.
-**Last Updated:** 2026-07-19
+**Last Updated:** 2026-07-20
 
 ## Status
 
@@ -16,24 +16,23 @@ no CI, no monitoring) are operational maturity debt, not phase misclassification
   the context-engine doc are thorough, predate the code, and are treated as the living
   contract (CLAUDE.md: "the doc is the source of truth; if you need a schema change, edit
   the doc's intent first, then add a new migration").
-- [x] Construction Phase — complete for everything CLAUDE.md's "Fase 0–4" describes, **and
-  the codebase has grown well past that** since CLAUDE.md was last updated (commit
-  `f6ef475`, before Fase 3/4 even). Real, additional shipped work not reflected in
-  CLAUDE.md's phase table: Fase 3 (motor de IA) and Fase 4 (SuperAdmin) per
-  `docs/lineatrade-plan-implementacion.md`, plus — per `git log` and current
-  `src/types/database.ts` — IA Trader (`/ia-trader`), Noticias (`/noticias`, an editorial
-  news feed with Spanish-source enforcement), Perfil (`/perfil`, avatar upload), Sistema
-  (`/sistema`: objectives/rules/strategies), options-contract trading support, CSV trade
-  import, photo-based trade extraction via AI vision (`extract-trade-image` Edge
-  Function), order-ticket detail, and a "trader plan" quiz/report engine
-  (`traderQuizStorage.ts`, `traderPlanEngine.ts`, `PlanReport.tsx`). None of this is
-  captured in CLAUDE.md's roadmap table or in the root `README.md`'s roadmap table — both
-  say "Fase 3/4 ⬜ pendiente" and neither mentions Noticias/IA Trader/Sistema/Perfil at
-  all. This is real documentation drift, not a gap in the underlying work.
-  ⚠️ **Recommend re-syncing CLAUDE.md and README.md's roadmap tables against actual
-  `src/pages/` and `supabase/migrations/` content** — out of scope for this audit (which
-  only touches `/aidlc-docs/` and `README.md` per its own ground rules), flagged here for
-  a human to action.
+- [x] Construction Phase — complete for everything CLAUDE.md's "Fase 0–4" describes, plus
+  everything shipped after (Fase 3/4, IA Trader, Noticias, Perfil, Sistema, options
+  trading, photo-based trade extraction, order-ticket detail, trader plan engine — see
+  `requirements/REQUIREMENTS.md` for the module-by-module state). **Update 2026-07-20:**
+  the drift this section originally flagged (CLAUDE.md's roadmap table describing "Fase
+  3/4 ⬜ pendiente" and omitting Noticias/IA Trader/Sistema/Perfil) was real at the time
+  this file was first written (2026-07-19) but has since been fixed directly in
+  `CLAUDE.md` — commits `155221f`/`1fe39b8` resynced the roadmap table, and this session
+  additionally corrected three smaller staleness items caught in a follow-up pass: the
+  migrations count (33→34, missing the `tecnologia`-category migration), the shared
+  `TradeListRow` component (extracted in `7030d01`, wasn't mentioned in CLAUDE.md's
+  structure section), and the FAQ section added to `Landing.tsx` in `5228ca7`. **CSV
+  trade import, listed here previously as shipped work, was removed entirely on
+  2026-07-20** (`lib/tradeImport.ts` deleted, not just left orphaned) — see
+  `requirements/REQUIREMENTS.md`'s CSV row and `prompts.md` for the session that did it.
+  The recommendation this section used to make (re-sync CLAUDE.md's roadmap table) is
+  **done, not still open** — no further action needed here.
 - [~] Operations Phase — **partial**. The deploy pipeline itself works (GitHub → Vercel
   auto-deploy on push to `main`, confirmed in CLAUDE.md's "Production" section) and the
   app has been live and used. But there is **no test suite of any kind** (`find src -iname
