@@ -1,7 +1,13 @@
 # LineaTrade — PRD Técnico Consolidado
 
 **Versión:** 2.0 (post-arquitectura)
-**Estado:** Listo para iniciar desarrollo
+**Estado:** Listo para iniciar desarrollo — **nota 2026-07-19:** el MVP de la sección 7
+ya está construido casi por completo (Sentry/PostHog son la única pieza pendiente). El
+producto real también incluye módulos que no forman parte de este PRD en absoluto
+(trading de opciones, tickets de orden, extracción de trade por foto vía IA, Noticias,
+Sistema de objetivos/reglas/estrategias, Perfil con avatar, IA Trader/quiz de plan) —
+ver `CLAUDE.md` → "Beyond Fase 4" para el detalle. Este documento sigue describiendo el
+diseño original; no se reescribió para retroactivamente incluir ese trabajo posterior.
 **Documentos relacionados:** `trade-journal-os-schema.md` (schema completo de Supabase), `trade-journal-os-context-engine.md` (motor de contexto de IA)
 
 ---

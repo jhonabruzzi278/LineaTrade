@@ -1,5 +1,14 @@
 # LineaTrade — Schema Completo de Supabase
 
+> **Nota de alcance (agregada 2026-07-19):** este documento cubre las tablas y RLS
+> originales del proyecto — las que respaldan las migraciones `supabase/migrations/
+> 20260701*` a `20260706*` (26 migraciones). **No cubre las 7 migraciones posteriores**
+> (`20260716*`/`20260719*`: opciones, `trade_orders`, `avatars`, `news_articles`,
+> `trader_plans`, y el refresh de schema cache de PostgREST) — esas tablas nunca se
+> retro-documentaron aquí en el mismo formato SQL. Para esas, las migraciones mismas son
+> la fuente de verdad; `CLAUDE.md` → "Backend" y "Beyond Fase 4" tienen el resumen en
+> prosa. No asumas que "no está en este doc" significa "no existe en el schema real."
+
 Convenciones: tablas en plural, snake_case, `uuid` como PK vía `gen_random_uuid()`, soft delete con `deleted_at`, auditoría con `created_at/updated_at`, RLS activado en TODAS las tablas sin excepción.
 
 ---

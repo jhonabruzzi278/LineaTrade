@@ -105,6 +105,17 @@ group by t.user_id;
 
 Estas vistas son la **única** fuente permitida para `aggregate_stats`. La Edge Function que construye el contexto solo hace `select * from v_user_stats_30d where user_id = $1` — nunca pide al LLM que calcule un porcentaje.
 
+> **Nota de implementación (agregada 2026-07-19):** `v_user_stats_30d` tal como está
+> definida arriba **nunca se creó con ese nombre ni con esa ventana de 30 días**. La
+> migración `20260702120000_user_trade_stats_view.sql` implementó en su lugar
+> `v_user_trade_stats` (todo el historial, sin filtro de fecha), y
+> `20260703100000_ai_stats_views.sql` documenta explícitamente la decisión de no agregar
+> `v_user_stats_30d` — Fase 3 reutiliza `v_user_trade_stats` para `aggregate_stats` en su
+> lugar. `v_user_stats_by_strategy`, `v_user_stats_by_emotion`, y `v_rule_violations` sí
+> se implementaron con esos nombres exactos. Ver `docs/trade-journal-os-schema.md`
+> §10.3 para el SQL real. Si vas a tocar `contextBuilder.ts`, verifica el nombre de vista
+> contra el schema real, no contra este bloque de código.
+
 ---
 
 ## 3. Trade Snapshot — coherencia con el schema ya definido

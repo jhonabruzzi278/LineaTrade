@@ -129,17 +129,33 @@ de imágenes a `trade-images` (URLs firmadas — el bucket es privado) — todo 
 local y verificado, incluyendo una subida real con verificación de que el objeto existe
 en Storage y que una request anónima al bucket es rechazada.
 
-**Nota:** el tab "Subir archivo" de `NuevoTrade` (importar trades desde un CSV/extracto
-de bróker) es una **feature distinta** de la subida de imágenes de arriba — sigue siendo
-solo UI, bloqueada explícitamente al guardar. No es lo mismo "subida de imágenes" que
-"importar trades desde archivo".
+**Nota (actualizada 2026-07-19, la versión anterior quedó obsoleta):** el tab "Subir
+archivo" de `NuevoTrade` (importar trades desde un CSV/extracto de bróker) **ya no
+existe** — se construyó como feature distinta de la subida de imágenes, pero se removió
+por completo en el commit `7f89396` junto con el resto del selector manual/archivo/foto.
+`lib/tradeImport.ts` quedó como código muerto sin ningún import en el repo. No confundas
+esto con la nota vieja de "sigue bloqueada al guardar" — ya no está en la UI, punto.
 
-### ⬜ Fase 3 — Motor de IA
+### ✅ Fase 3 — Motor de IA (completa)
 Edge Function que construye el contexto por capas, `ai_provider_config`, botón
 "Analizar con IA" en el detalle, rate limiting (`ai_usage_daily`) y BYOK.
 
-### ⬜ Fase 4 — Panel SuperAdmin y observabilidad
-Módulos de admin, Sentry + PostHog, Edge Function auditada para soporte.
+### ✅ Fase 4 — Panel SuperAdmin (completa) — observabilidad todavía pendiente
+Módulos de admin y Edge Function auditada para soporte: hechos. Sentry + PostHog (la
+observabilidad de la PRD) **siguen sin conectar** — ver `CLAUDE.md`.
+
+### 🚀 Más allá de Fase 4 (sin numeración formal)
+El producto siguió creciendo después de cerrar las 5 fases de este plan, sin que se
+declarara una fase nueva: trading de opciones (`option_type`/`strike_price`/
+`expiration_date` + multiplicador ×100 en el trigger de PnL), tickets de orden
+(`trade_orders`, un registro por leg apertura/cierre), extracción de trade por foto vía
+IA vision (`extract-trade-image`, ahora el único punto de entrada a Nuevo Trade),
+Noticias (feed editorial en español, RSS, refresco on-demand), Sistema (objetivos/
+reglas/estrategias), Perfil + avatar (bucket público, a diferencia de `trade-images`),
+IA Trader (quiz público que genera un plan determinístico sin LLM), y el rediseño de
+navegación (`BottomNav`). Detalle técnico completo en `CLAUDE.md` → "Beyond Fase 4" y en
+`docs/lineatrade-plan-implementacion.md` → "Beyond Fase 4". Si vas a construir sobre
+alguno de estos módulos, empieza por ahí, no por este archivo.
 
 ---
 
