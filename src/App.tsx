@@ -15,6 +15,7 @@ import AdminPanel from './pages/AdminPanel'
 import Sistema from './pages/Sistema'
 import Perfil from './pages/Perfil'
 import Noticias from './pages/Noticias'
+import NoticiaDetail from './pages/NoticiaDetail'
 import IaTrader from './pages/IaTrader'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
@@ -101,6 +102,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Noticias />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/noticias/:id"
+          element={
+            <ProtectedRoute>
+              <NoticiaDetail />
             </ProtectedRoute>
           }
         />

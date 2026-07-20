@@ -375,3 +375,22 @@ abre/cierra correctamente (`data-state` confirmado), contenido visible, flecha r
 (tras cambiar de la propiedad CSS `rotate` a `transform: rotate()` por el bug de
 plataforma descrito en §10); path del `HistoryIcon` confirmado con las 3 barras iguales;
 sin errores de consola.
+
+**2026-07-20 (ronda 5)** — Noticias: vista de detalle en la app (`/noticias/:id`,
+`NoticiaDetail.tsx`) con el resumen completo del feed (tope subido de 320 a 800
+caracteres — sigue siendo solo el campo `summary` que la fuente ya publica para
+sindicación, nunca el cuerpo completo del artículo, que no está licenciado para
+reproducirse acá), imagen grande, CTA externo hacia la fuente, botón de compartir
+(`navigator.share` con fallback a portapapeles) y hasta 4 artículos relacionados de la
+misma categoría. Nueva categoría `tecnologia` (migración `20260720144409`) y 4 fuentes
+nuevas verificadas en vivo antes de agregarse: Xataka y Hipertextual (tecnología, español)
+y — excepción deliberada a "solo español", a pedido explícito — Yahoo Finance y
+MarketWatch (mercado, inglés). Ver `CLAUDE.md` → "Noticias (news feed)" para el detalle
+completo. Verificado contra el stack local con `supabase functions serve fetch-news`
+corriendo (para poder probar el refresh de RSS real, no sintético): las 4 fuentes nuevas
+trajeron artículos reales con la categoría correcta, la fila de categorías mobile
+(375px) confirmada sin overflow horizontal de página pese a pasar de 7 a 8 chips, botón
+de compartir y CTA externo con >44px de alto confirmados por `getBoundingClientRect`, sin
+errores de consola. Datos de prueba (usuario) borrados después — los artículos de
+`news_articles` no son datos de usuario, se dejaron como caché local real. `.env.local`
+restaurado.

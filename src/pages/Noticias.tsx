@@ -1,27 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { BottomNav } from '../components/BottomNav'
-import { fetchNews, NEWS_CATEGORY_LABELS, type NewsArticle, type NewsCategory } from '../lib/news'
+import { fetchNews, timeAgo, NEWS_CATEGORY_LABELS, type NewsArticle, type NewsCategory } from '../lib/news'
 
 type CategoryFilter = 'all' | NewsCategory
-const CATEGORY_FILTERS: CategoryFilter[] = ['all', 'cripto', 'forex', 'acciones', 'futuros', 'general', 'otro']
-
-function formatPublished(dateIso: string): string {
-  const d = new Date(dateIso)
-  return d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
-function timeAgo(dateIso: string): string {
-  const diff = Date.now() - new Date(dateIso).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'Ahora'
-  if (minutes < 60) return `Hace ${minutes} min`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Hace ${hours} h`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `Hace ${days} d`
-  return formatPublished(dateIso)
-}
+const CATEGORY_FILTERS: CategoryFilter[] = ['all', 'cripto', 'forex', 'acciones', 'tecnologia', 'futuros', 'general', 'otro']
 
 export default function Noticias() {
   const [articles, setArticles] = useState<NewsArticle[]>([])
@@ -137,12 +121,7 @@ export default function Noticias() {
           <>
             {/* Hero article */}
             {hero && (
-              <a
-                href={hero.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group block mb-10"
-              >
+              <Link to={`/noticias/${hero.id}`} className="group block mb-10">
                 <article className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-hairline rounded-sm overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card hover:shadow-elevated transition-shadow duration-300">
                   {/* Image */}
                   <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[340px] bg-panel-2 overflow-hidden">
@@ -186,7 +165,7 @@ export default function Noticias() {
                     </div>
                   </div>
                 </article>
-              </a>
+              </Link>
             )}
 
             {/* Divider entre hero y grid */}
@@ -203,11 +182,9 @@ export default function Noticias() {
                 misma columna que en mobile). */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 lg:gap-x-8 gap-y-10">
               {rest.map((article, i) => (
-                <a
+                <Link
                   key={article.id}
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  to={`/noticias/${article.id}`}
                   className="group flex flex-col gap-3"
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
@@ -249,7 +226,7 @@ export default function Noticias() {
                       {article.summary}
                     </p>
                   )}
-                </a>
+                </Link>
               ))}
             </div>
           </>

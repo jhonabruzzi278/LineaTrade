@@ -686,12 +686,35 @@ failed extraction still lets the user proceed manually.
 `Noticias.tsx` renders an editorial layout (serif masthead, a hero article, then a
 `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` grid for the rest) with category chips that
 are horizontally scrollable on mobile and wrapped/centered on desktop (`overflow-x-auto`
-vs `md:flex-wrap md:justify-center md:overflow-visible` — 7 chips don't fit on a 375px
-screen, and centered wrapping left an awkward short second line, per the code's own
-comment). "Fuerza fuentes en español" is **not** a runtime filter — it's a hardcoded
-list of Spanish-language RSS feeds (`supabase/functions/_shared/newsTypes.ts`'s
-`NEWS_FEEDS`: `es.investing.com` ×3, `es.cointelegraph.com`, `criptonoticias.com`,
-Expansión) baked into the Edge Function, chosen for LatAm audience coherence.
+vs `md:flex-wrap md:justify-center md:overflow-visible` — now **8** chips, still fits the
+375px scroll row, per the code's own comment). "Fuerza fuentes en español" (the original
+design intent, still true for most sources) is **not** a runtime filter — it's the hardcoded
+list of feeds in `supabase/functions/_shared/newsTypes.ts`'s `NEWS_FEEDS`. **As of
+2026-07-20 this list has a deliberate exception**: Yahoo Finance and MarketWatch (English)
+were added alongside the Spanish sources, at explicit product request, to cover US market
+news that breaks in English before any Spanish outlet carries it. Xataka and Hipertextual
+(Spanish tech blogs) were added under a new `tecnologia` category (migration
+`20260720144409`, extending `news_articles`' category check constraint) — cards render
+their category badge same as any other source, so the language mix is visible, not hidden.
+Every feed URL in `NEWS_FEEDS` was verified live via `curl` before being added — a
+plausible-looking RSS URL that 404s just silently degrades to `partial: true`, no error
+surfaced to the user.
+
+**`/noticias/:id` (`NoticiaDetail.tsx`, added 2026-07-20)** — an in-app article reading
+view: full `summary` field (now capped at 800 chars server-side, up from 320 — see
+`fetch-news/index.ts`), full-size image, source/category/date, a "Leer la nota completa en
+{source}" external CTA, a share button (`navigator.share` with clipboard-copy fallback),
+and up to 4 related articles from the same category (`getRelatedArticles` in `lib/news.ts`,
+a direct `news_articles` select — the table's already `select`-authenticated by RLS, no
+need to round-trip through the Edge Function for a single cached row).
+**This is deliberately not full-article reproduction** — RSS feeds license a headline +
+short description for syndication, not the complete copyrighted article body, and
+`summary` has never been anything but that description field. The external CTA is a
+required part of the page, not an afterthought: it's the only legitimate way to deliver
+"read the complete article," short of scraping the source (which this app does not do).
+Noticias.tsx's cards link to this internal route now (`<Link to={`/noticias/${id}`}>`)
+instead of opening the source directly in a new tab — the direct-to-source link still
+exists, just one tap deeper, inside the detail page.
 
 `lib/news.ts`'s `fetchNews()` doesn't query `news_articles` or cache anything client-side
 — it always calls `supabase.functions.invoke('fetch-news')`, delegating freshness logic

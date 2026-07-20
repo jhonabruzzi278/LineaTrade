@@ -34,7 +34,11 @@ async function fetchFeed(parser: Parser, feed: (typeof NEWS_FEEDS)[number]) {
     category: feed.category,
     title: item.title ?? '(sin título)',
     url: item.link ?? '',
-    summary: item.contentSnippet ? item.contentSnippet.slice(0, 320) : null,
+    // 800 en vez de 320: la vista de detalle (/noticias/:id) muestra este campo
+    // completo, no solo un recorte de card — pero sigue siendo únicamente el
+    // resumen que el feed ya publica en <description>, nunca el cuerpo completo
+    // del artículo (eso no está licenciado para redistribución, ver NoticiaDetail.tsx).
+    summary: item.contentSnippet ? item.contentSnippet.slice(0, 800) : null,
     image_url: item.enclosure?.url ?? null,
     published_at: item.isoDate ?? (item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()),
     fetched_at: new Date().toISOString(),
