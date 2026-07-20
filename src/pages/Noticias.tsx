@@ -90,14 +90,18 @@ export default function Noticias() {
           </p>
         )}
 
-        {/* Category nav */}
-        <div className="flex items-center justify-center gap-1 md:gap-2 flex-wrap mb-8">
+        {/* Category nav — fila scrolleable de una sola línea en mobile (7 chips
+            no entran en 375px; el wrap centrado dejaba una segunda línea coja),
+            centrada y sin scroll en desktop donde sí sobra espacio. */}
+        <div
+          className="flex items-center gap-2 overflow-x-auto md:flex-wrap md:justify-center md:overflow-visible pb-1 mb-8 -mx-6 px-6 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {CATEGORY_FILTERS.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setCategoryFilter(cat)}
-              className={`font-mono text-[11px] md:text-[12px] px-3 py-1.5 rounded-sm border transition-colors ${
+              className={`shrink-0 font-mono text-[11px] md:text-[12px] px-3 py-2 md:py-1.5 rounded-sm border transition-colors ${
                 categoryFilter === cat
                   ? 'border-signal/40 bg-signal/15 text-signal'
                   : 'border-hairline text-text-muted hover:text-text-primary hover:border-text-faint'
@@ -112,12 +116,14 @@ export default function Noticias() {
         <div className="border-t border-hairline mb-8" />
 
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-pulse">
-            <div className="md:col-span-2 h-[300px] rounded-sm bg-panel-2" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
+            <div className="md:col-span-2 lg:col-span-3 h-[300px] rounded-sm bg-panel-2" />
             <div className="h-40 rounded-sm bg-panel-2" />
             <div className="h-40 rounded-sm bg-panel-2" />
             <div className="h-40 rounded-sm bg-panel-2" />
-            <div className="h-40 rounded-sm bg-panel-2" />
+            <div className="h-40 rounded-sm bg-panel-2 hidden lg:block" />
+            <div className="h-40 rounded-sm bg-panel-2 hidden lg:block" />
+            <div className="h-40 rounded-sm bg-panel-2 hidden lg:block" />
           </div>
         )}
 
@@ -192,8 +198,10 @@ export default function Noticias() {
               <div className="flex-1 border-t border-hairline" />
             </div>
 
-            {/* Grid editorial */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+            {/* Grid editorial — 1 col en mobile, 2 en tablet, 3 en desktop ancho
+                (aprovecha el max-w-5xl del contenedor en vez de estirar la
+                misma columna que en mobile). */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 lg:gap-x-8 gap-y-10">
               {rest.map((article, i) => (
                 <a
                   key={article.id}
