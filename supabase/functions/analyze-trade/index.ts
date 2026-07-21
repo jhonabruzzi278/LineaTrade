@@ -19,6 +19,7 @@ import { buildPrompt, FREE_TIER_MAX_OUTPUT_TOKENS } from '../_shared/promptBuild
 import { validateAIResponse } from '../_shared/responseValidator.ts'
 import { createProviderRegistry, resolveProvider, UnregisteredProviderError } from '../_shared/aiProvider.ts'
 import { groqProvider } from '../_shared/providers/groq.ts'
+import { openaiProvider } from '../_shared/providers/openai.ts'
 import { mockProvider } from '../_shared/providers/mock.ts'
 import type { AnalyzeTradeErrorBody, AnalyzeTradeErrorCode } from '../_shared/types.ts'
 
@@ -26,10 +27,12 @@ const requestBodySchema = z.object({ trade_id: z.string().uuid() })
 
 const registry = createProviderRegistry()
 registry.set('groq', groqProvider)
+registry.set('openai', openaiProvider)
 if (Deno.env.get('AI_MOCK_PROVIDER') === 'true') {
   // Solo para dev/CI local — nunca se activa a menos que la env var esté
   // explícitamente en 'true' (no existe en producción).
   registry.set('groq', mockProvider)
+  registry.set('openai', mockProvider)
 }
 
 function errorResponse(status: number, code: AnalyzeTradeErrorCode, error: string, extra?: Record<string, number>) {

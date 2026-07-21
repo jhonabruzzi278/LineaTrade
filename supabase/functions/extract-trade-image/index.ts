@@ -17,16 +17,33 @@ import { validateExtractionResponse } from '../_shared/extractionValidator.ts'
 import {
   EXTRACTION_SYSTEM_PROMPT,
   EXTRACTION_USER_MESSAGE,
-  EXTRACTION_MODEL,
+  DEFAULT_BYOK_EXTRACTION_MODEL,
   EXTRACTION_MAX_OUTPUT_TOKENS,
 } from '../_shared/extractionPrompt.ts'
+import { createProviderRegistry, resolveProvider, UnregisteredProviderError } from '../_shared/aiProvider.ts'
 import { groqProvider } from '../_shared/providers/groq.ts'
+import { openaiProvider } from '../_shared/providers/openai.ts'
 import { extractionMockProvider } from '../_shared/providers/extractionMock.ts'
-import type { AIProvider } from '../_shared/aiProvider.ts'
 
-// Mismo interruptor que analyze-trade — solo se activa si AI_MOCK_PROVIDER
-// está explícitamente en 'true' (nunca en producción, no está seteado ahí).
-const activeProvider: AIProvider = Deno.env.get('AI_MOCK_PROVIDER') === 'true' ? extractionMockProvider : groqProvider
+// Antes, el proveedor quedaba hardcodeado a Groq acá (a diferencia de
+// analyze-trade, que sí resolvía dinámicamente vía este mismo registry) —
+// bug real: guardar una key de OpenAI como "key agnóstica" desde /admin
+// igual terminaba llamando al endpoint de Groq con esa key, que Groq rechaza
+// con 401, surfaceado como 502 "El proveedor de IA falló". Fix: mismo
+// registry + resolveProvider que analyze-trade, así el provider_name
+// configurado en ai_provider_config (o en user_ai_settings.byok_provider)
+// se respeta de verdad.
+const registry = createProviderRegistry()
+registry.set('groq', groqProvider)
+registry.set('openai', openaiProvider)
+if (Deno.env.get('AI_MOCK_PROVIDER') === 'true') {
+  // Solo para dev/CI local — nunca se activa a menos que la env var esté
+  // explícitamente en 'true' (no existe en producción). Se pisan ambas
+  // entradas para que el mock funcione sin importar qué proveedor esté
+  // configurado en ai_provider_config al momento de probar.
+  registry.set('groq', extractionMockProvider)
+  registry.set('openai', extractionMockProvider)
+}
 
 type ExtractErrorCode = 'UNAUTHENTICATED' | 'BAD_REQUEST' | 'RATE_LIMIT' | 'PROVIDER_UNAVAILABLE' | 'VALIDATION_FAILED' | 'UNKNOWN'
 
@@ -90,21 +107,33 @@ Deno.serve(async (req: Request) => {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const usingByok = Boolean(byokSettings?.use_own_key && byokSettings.byok_secret_id && byokSettings.byok_provider === 'groq')
+  // Antes esto exigía byok_provider === 'groq' porque solo Groq tenía
+  // implementación real — ya no hace falta esa restricción, resolveProvider
+  // de abajo devuelve un 501 claro (UnregisteredProviderError) si el
+  // proveedor BYOK del usuario no está en el registry, en vez de necesitar
+  // este chequeo duplicado acá.
+  const usingByok = Boolean(byokSettings?.use_own_key && byokSettings.byok_secret_id)
   const source: 'free_tier' | 'byok' = usingByok ? 'byok' : 'free_tier'
 
+  let providerName: string
+  let modelName: string
   let apiKey: string
+
   if (usingByok && byokSettings) {
     const decryptedSecret = await readVaultSecret(serviceClient, byokSettings.byok_secret_id as string)
     if (!decryptedSecret) {
       return errorResponse(500, 'PROVIDER_UNAVAILABLE', 'No se pudo leer la key BYOK configurada.')
     }
+    providerName = byokSettings.byok_provider ?? 'groq'
+    // No hay un modelo de extracción configurable por usuario BYOK todavía
+    // (user_ai_settings no tiene columna de modelo) — mismo alcance acotado
+    // que ya documenta analyze-trade para su propio modelo BYOK.
+    modelName = DEFAULT_BYOK_EXTRACTION_MODEL
     apiKey = decryptedSecret
   } else {
     const { data: providerConfig } = await serviceClient
       .from('ai_provider_config')
-      .select('provider_secret_id')
-      .eq('provider_name', 'groq')
+      .select('provider_name, model_name, provider_secret_id')
       .eq('is_default', true)
       .eq('is_active', true)
       .maybeSingle()
@@ -116,7 +145,19 @@ Deno.serve(async (req: Request) => {
     if (!decryptedSecret) {
       return errorResponse(503, 'PROVIDER_UNAVAILABLE', 'No se pudo leer la key del proveedor por defecto.')
     }
+    providerName = providerConfig.provider_name
+    modelName = providerConfig.model_name
     apiKey = decryptedSecret
+  }
+
+  let activeProvider
+  try {
+    activeProvider = resolveProvider(registry, providerName)
+  } catch (err) {
+    if (err instanceof UnregisteredProviderError) {
+      return errorResponse(501, 'PROVIDER_UNAVAILABLE', err.message)
+    }
+    throw err
   }
 
   let rateLimit
@@ -143,7 +184,7 @@ Deno.serve(async (req: Request) => {
           systemPrompt: effectiveSystemPrompt,
           userMessage: EXTRACTION_USER_MESSAGE,
           maxOutputTokens: EXTRACTION_MAX_OUTPUT_TOKENS,
-          model: EXTRACTION_MODEL,
+          model: modelName,
           image: { base64: imageBase64, mimeType: imageMimeType },
           forceJson: true,
         },

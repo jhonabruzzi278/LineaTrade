@@ -83,9 +83,28 @@ export default function AdminPanel() {
   )
 }
 
+// Proveedores con implementación real en el registry de ambos Edge
+// Functions (analyze-trade, extract-trade-image — ver supabase/functions/
+// _shared/providers/). Esta lista es manual porque no hay forma de
+// compartir un tipo entre el bundle de Vite y el runtime Deno: si se agrega
+// un proveedor nuevo allá, hay que agregarlo acá también o el selector va a
+// ofrecer un valor que resuelve en un 501 "no implementado".
+const SUPPORTED_PROVIDERS = [
+  { value: 'groq', label: 'Groq' },
+  { value: 'openai', label: 'OpenAI' },
+]
+
 // Único punto de la app donde se carga la API key del proveedor por defecto
-// (tier gratuito) — antes de esto, provider_secret_id solo se seteaba a mano
-// por SQL durante desarrollo, nunca vía la app en ningún entorno.
+// (tier gratuito) y se elige qué proveedor/modelo usa — antes de esto,
+// provider_secret_id y provider_name/model_name solo se seteaban a mano por
+// SQL durante desarrollo, nunca vía la app en ningún entorno. Bug real que
+// esto causó: guardar acá una key de un proveedor distinto al que ya tenía
+// la fila (ej. una key de OpenAI contra una fila etiquetada 'groq') hacía
+// que ambos Edge Functions llamaran igual al proveedor viejo con una key que
+// no le pertenece — rechazada con 401, surfaceada como 502 genérico. Ahora
+// cambiar el proveedor (RPC set_provider_model) limpia la key vieja del
+// mismo saque, así el input de abajo pasa a pedir la key correcta antes de
+// que cualquiera de los dos Edge Functions vuelva a andar.
 function ProviderConfigSection() {
   const { showToast } = useToast()
   const [configs, setConfigs] = useState<ProviderConfig[]>([])
@@ -93,6 +112,9 @@ function ProviderConfigSection() {
   const [error, setError] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState('')
   const [saving, setSaving] = useState(false)
+  const [providerName, setProviderName] = useState('')
+  const [modelName, setModelName] = useState('')
+  const [savingProviderModel, setSavingProviderModel] = useState(false)
 
   async function loadConfigs() {
     const { data, error: fetchError } = await supabase
@@ -112,6 +134,32 @@ function ProviderConfigSection() {
   }, [])
 
   const defaultConfig = configs.find((c) => c.is_default)
+
+  useEffect(() => {
+    if (defaultConfig) {
+      setProviderName(defaultConfig.provider_name)
+      setModelName(defaultConfig.model_name)
+    }
+  }, [defaultConfig?.provider_name, defaultConfig?.model_name])
+
+  async function handleSaveProviderModel(e: FormEvent) {
+    e.preventDefault()
+    if (!defaultConfig || !providerName.trim() || !modelName.trim()) return
+    setSavingProviderModel(true)
+    setError(null)
+    const { error: saveError } = await supabase.rpc('set_provider_model', {
+      p_provider_config_id: defaultConfig.id,
+      p_provider_name: providerName.trim(),
+      p_model_name: modelName.trim(),
+    })
+    setSavingProviderModel(false)
+    if (saveError) {
+      setError(getErrorMessage(saveError))
+      return
+    }
+    showToast('Proveedor y modelo actualizados.', 'success')
+    void loadConfigs()
+  }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault()
@@ -139,12 +187,56 @@ function ProviderConfigSection() {
       <div className="col-span-2 md:col-span-4 border border-hairline rounded-sm bg-panel px-5 py-4">
         {defaultConfig ? (
           <>
-            <p className="font-body text-[14px] text-text-primary mb-1">
-              {defaultConfig.provider_name} · {defaultConfig.model_name}
-            </p>
             <p className="font-mono text-[11px] text-text-faint mb-4">
               {defaultConfig.provider_secret_id ? 'Key configurada' : 'Sin key configurada — analyze-trade y extract-trade-image fallan hasta que se cargue una'}
             </p>
+
+            <form onSubmit={(e) => void handleSaveProviderModel(e)} className="flex items-end gap-3 mb-4">
+              <div>
+                <label htmlFor="provider-name" className="font-body text-[13px] text-text-muted block mb-2">
+                  Proveedor
+                </label>
+                <select
+                  id="provider-name"
+                  value={providerName}
+                  onChange={(e) => setProviderName(e.target.value)}
+                  className="bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary focus:outline-none focus:border-signal transition-colors"
+                >
+                  {SUPPORTED_PROVIDERS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label htmlFor="model-name" className="font-body text-[13px] text-text-muted block mb-2">
+                  Modelo
+                </label>
+                <input
+                  id="model-name"
+                  type="text"
+                  value={modelName}
+                  onChange={(e) => setModelName(e.target.value)}
+                  placeholder="ej. gpt-4o-mini, openai/gpt-oss-20b"
+                  className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={savingProviderModel || !providerName.trim() || !modelName.trim()}
+                className="font-body text-[14px] px-5 py-3 rounded-sm border border-hairline text-text-primary hover:border-signal/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {savingProviderModel ? 'Guardando...' : 'Guardar proveedor y modelo'}
+              </button>
+            </form>
+            <p className="font-mono text-[11px] text-text-faint mb-5">
+              Este modelo se usa tanto para el análisis de comportamiento (texto, analyze-trade) como para la
+              extracción de datos de fotos (visión, extract-trade-image) — tiene que soportar ambas capacidades, o el
+              segundo va a fallar. Cambiar el proveedor borra la key guardada: vas a tener que cargar una key nueva
+              abajo.
+            </p>
+
             <form onSubmit={(e) => void handleSave(e)} className="flex items-end gap-3">
               <div className="flex-1">
                 <label htmlFor="provider-api-key" className="font-body text-[13px] text-text-muted block mb-2">

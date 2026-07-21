@@ -36,5 +36,12 @@ Reglas duras, no negociables:
 
 export const EXTRACTION_USER_MESSAGE = 'Leé esta confirmación de orden y devolvé el JSON con los datos que puedas leer con claridad.'
 
-export const EXTRACTION_MODEL = 'qwen/qwen3.6-27b'
+// El modelo del tier gratuito ya no está hardcodeado acá — sale de
+// ai_provider_config.model_name (ver extract-trade-image/index.ts), igual
+// que analyze-trade. Este default solo cubre BYOK, que todavía no tiene
+// selector de modelo por usuario (ver el mismo comentario en
+// analyze-trade/index.ts) — 'qwen/qwen3.6-27b' es el modelo con visión
+// confirmado en Groq (console.groq.com/docs/vision), pero si el usuario
+// configuró BYOK con otro proveedor este nombre puede no existir ahí.
+export const DEFAULT_BYOK_EXTRACTION_MODEL = 'qwen/qwen3.6-27b'
 export const EXTRACTION_MAX_OUTPUT_TOKENS = 800
