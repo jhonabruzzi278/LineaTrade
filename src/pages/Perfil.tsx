@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
 import { getInitials } from '../components/Avatar'
@@ -75,10 +76,10 @@ export default function Perfil() {
 
   const facts = profile
     ? [
-        optionLabel('experience', profile.trading_experience),
-        optionLabel('accountType', profile.account_type),
-        optionLabel('broker', profile.primary_broker),
-      ].filter((v): v is string => Boolean(v))
+        { key: 'experience', label: 'Experiencia', value: optionLabel('experience', profile.trading_experience) },
+        { key: 'accountType', label: 'Cuenta', value: optionLabel('accountType', profile.account_type) },
+        { key: 'broker', label: 'Broker', value: optionLabel('broker', profile.primary_broker) },
+      ].filter((fact): fact is { key: string; label: string; value: string } => Boolean(fact.value))
     : []
 
   return (
@@ -86,9 +87,11 @@ export default function Perfil() {
       <AppHeader />
       <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
         {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie
-            propia, como la tarjeta de cuenta de TradingView (avatar, usuario, plan). */}
-        <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card px-6 py-6 mb-6">
-          <div className="flex items-center gap-4">
+            propia, como la tarjeta de cuenta de TradingView (avatar, usuario, plan).
+            `pl-4` (en vez de `pr-6` simétrico) acerca la foto al borde de la tarjeta;
+            `gap-3` (antes `gap-4`) la acerca un poco más al bloque de texto. */}
+        <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card pl-4 pr-6 py-6 mb-6">
+          <div className="flex items-center gap-3">
             <label
               htmlFor="avatar-upload"
               className={`group relative shrink-0 cursor-pointer ${photoUploading ? 'opacity-60 pointer-events-none' : ''}`}
@@ -116,11 +119,16 @@ export default function Perfil() {
                 onChange={(e) => void handleAvatarSelected(e.target.files?.[0])}
               />
             </label>
+            {/* Jerarquía clara: nombre grande arriba (con fallback genérico, no el
+                email — un email de 20px lee raro como titular), rol como chip
+                secundario en la misma línea, y el email SIEMPRE abajo en un solo
+                lugar (antes solo aparecía si había display_name, y como fallback
+                del propio h1 si no — dos rutas distintas para el mismo dato). */}
             <div className="min-w-0">
               <p className="font-mono text-[13px] text-signal mb-1">tu perfil</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display text-[20px] text-text-primary break-all">
-                  {profile?.display_name || user?.email}
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="font-display text-[20px] text-text-primary truncate">
+                  {profile?.display_name || 'Tu cuenta'}
                 </h1>
                 {role && (
                   <span className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-sm border border-dashed border-text-faint text-text-faint shrink-0">
@@ -128,22 +136,24 @@ export default function Perfil() {
                   </span>
                 )}
               </div>
-              {profile?.display_name && (
-                <p className="font-body text-[13px] text-text-muted break-all">{user?.email}</p>
-              )}
+              <p className="font-body text-[13px] text-text-muted break-all">{user?.email}</p>
             </div>
           </div>
           {photoError && <p className="font-body text-[12px] text-loss mt-4">{photoError}</p>}
 
+          {/* Tags como chips etiquetados en grilla (antes: pills sueltas en flex-wrap
+              sin ningún indicio de qué representaba cada una) — cada uno con su
+              categoría en mono/mayúscula arriba y el valor abajo, más legible que
+              una fila de texto suelto. */}
           {!loading && facts.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-hairline">
+            <div className="grid grid-cols-3 gap-2 mt-5 pt-5 border-t border-hairline">
               {facts.map((fact) => (
-                <span
-                  key={fact}
-                  className="font-mono text-[11px] tracking-wide px-3 py-1.5 rounded-sm border border-hairline bg-panel text-text-muted"
-                >
-                  {fact}
-                </span>
+                <div key={fact.key} className="min-w-0 rounded-sm border border-hairline bg-panel px-2.5 py-2">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-faint mb-0.5">
+                    {fact.label}
+                  </p>
+                  <p className="font-body text-[12px] text-text-primary truncate">{fact.value}</p>
+                </div>
               ))}
             </div>
           )}
@@ -196,8 +206,9 @@ export default function Perfil() {
         <button
           type="button"
           onClick={handleSignOut}
-          className="font-body text-[13px] text-text-faint hover:text-text-primary transition-colors"
+          className="w-full flex items-center justify-center gap-2 font-body text-[14px] font-medium px-5 py-3 rounded-sm border border-loss/40 text-loss transition-colors duration-200 hover:bg-loss/10 hover:border-loss"
         >
+          <LogOut className="w-4 h-4" />
           Cerrar sesión
         </button>
       </main>

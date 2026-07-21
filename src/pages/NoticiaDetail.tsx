@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type TouchEvent } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
 import { SourceAvatar } from '../components/SourceAvatar'
 import { useToast } from '../lib/toast'
 import {
   getNewsArticleById,
+  getAdjacentArticleIds,
   getRelatedArticles,
   timeAgo,
   formatPublished,
@@ -15,6 +16,10 @@ import {
   type NewsArticle,
 } from '../lib/news'
 
+// Umbral en px para que un touchmove horizontal cuente como swipe de
+// navegación en vez de un scroll/tap accidental.
+const SWIPE_THRESHOLD_PX = 60
+
 // Vista de lectura en la app — pero solo hasta donde el feed RSS realmente licencia:
 // título + resumen (`summary`, el <description> que la fuente ya publica para
 // sindicación) + imagen provista por la fuente. El cuerpo completo del artículo vive en
@@ -22,11 +27,17 @@ import {
 // CTA hacia la fuente es una pieza necesaria de esta pantalla, no un adorno.
 export default function NoticiaDetail() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const [article, setArticle] = useState<NewsArticle | null>(null)
   const [related, setRelated] = useState<NewsArticle[]>([])
+  const [adjacent, setAdjacent] = useState<{ prevId: string | null; nextId: string | null }>({
+    prevId: null,
+    nextId: null,
+  })
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const touchStartX = useRef<number | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -41,6 +52,7 @@ export default function NoticiaDetail() {
         return
       }
       setArticle(found)
+      setAdjacent(getAdjacentArticleIds(found.id))
       setLoading(false)
       const relatedArticles = await getRelatedArticles(found.category, found.id)
       if (!cancelled) setRelated(relatedArticles)
@@ -64,6 +76,22 @@ export default function NoticiaDetail() {
     }
     await navigator.clipboard.writeText(shareUrl)
     showToast('Link copiado.', 'success')
+  }
+
+  // Swipe horizontal para pasar a la noticia anterior/siguiente dentro del
+  // mismo orden en que aparecen en /noticias (ver getAdjacentArticleIds en
+  // lib/news.ts) — silencioso si no hay vecino de ese lado (llegada directa
+  // sin pasar por la lista, o extremo del listado).
+  function handleTouchStart(e: TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+  }
+  function handleTouchEnd(e: TouchEvent) {
+    if (touchStartX.current === null) return
+    const delta = e.changedTouches[0].clientX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(delta) < SWIPE_THRESHOLD_PX) return
+    const targetId = delta < 0 ? adjacent.nextId : adjacent.prevId
+    if (targetId) navigate(`/noticias/${targetId}`)
   }
 
   if (loading) {
@@ -96,24 +124,79 @@ export default function NoticiaDetail() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-2xl mx-auto px-6 py-8 pb-28">
-        <Link
-          to="/noticias"
-          className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors mb-6"
-        >
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-            <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Noticias
-        </Link>
+      <main
+        className="max-w-2xl mx-auto px-6 py-8 pb-28"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* "‹ ›" navegan a la nota anterior/siguiente en el mismo orden del
+            listado (ver getAdjacentArticleIds) — el gesto principal es el
+            swipe horizontal sobre todo el contenido (handleTouchStart/End
+            en <main>), esto es el equivalente clicable/con teclado para
+            quien no está en touch. Deshabilitado (no placeholder vacío)
+            cuando no hay vecino de ese lado. */}
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            to="/noticias"
+            className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Noticias
+          </Link>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={!adjacent.prevId}
+              onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)}
+              aria-label="Noticia anterior"
+              title="Noticia anterior"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 1 3 7l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              disabled={!adjacent.nextId}
+              onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)}
+              aria-label="Siguiente noticia"
+              title="Siguiente noticia"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 1 11 7l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
         {/* Masthead de fuente — logo + nombre, como el crédito de agencia
-            (Reuters, etc.) en la parte superior de una nota. */}
-        <div className="flex items-center gap-2 mb-5">
-          <SourceAvatar name={article.source_name} size="md" />
-          <span className="font-mono text-[13px] font-bold text-text-primary uppercase tracking-wide">
-            {article.source_name}
-          </span>
+            (Reuters, etc.) en la parte superior de una nota. El botón de
+            compartir vive acá (no abajo, junto al CTA) para que el CTA de
+            "leer completa" pueda ocupar todo el ancho como acción principal. */}
+        <div className="flex items-center justify-between gap-2 mb-5">
+          <div className="flex items-center gap-2 min-w-0">
+            <SourceAvatar name={article.source_name} size="md" />
+            <span className="font-mono text-[13px] font-bold text-text-primary uppercase tracking-wide truncate">
+              {article.source_name}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            aria-label="Compartir"
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full border border-hairline text-text-muted hover:text-text-primary hover:border-text-faint transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
+            </svg>
+          </button>
         </div>
 
         <h1 className="font-body text-[26px] md:text-[30px] font-bold text-text-primary leading-[1.25] mb-3">
@@ -130,8 +213,12 @@ export default function NoticiaDetail() {
           </span>
         </div>
 
+        {/* Imagen deliberadamente chica (antes: hero a todo ancho en 16:10) —
+            acá es solo contexto visual, no el punto de la pantalla. El valor
+            real es la extracción de "Puntos clave" de abajo, que ahora es lo
+            que domina el espacio. */}
         {article.image_url && (
-          <div className="relative aspect-[16/10] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-7">
+          <div className="relative w-full aspect-[21/9] max-h-[160px] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-6">
             <img
               src={article.image_url}
               alt=""
@@ -144,11 +231,18 @@ export default function NoticiaDetail() {
         )}
 
         {/* Puntos clave — el resumen del feed partido en oraciones, no una
-            síntesis por IA (ver comentario de splitIntoKeyPoints en lib/news.ts). */}
+            síntesis por IA (ver comentario de splitIntoKeyPoints en lib/news.ts).
+            Envuelto en su propia tarjeta (antes: texto suelto sin fondo) para que
+            sea lo primero que destaque en la pantalla, no la imagen. */}
         {article.summary && (
-          <div className="mb-8">
-            <p className="font-body text-[13px] font-semibold text-text-primary mb-3">Puntos clave</p>
-            <ul className="space-y-3">
+          <div className="rounded-sm border border-hairline bg-panel-2/60 px-5 py-5 mb-6">
+            <p className="flex items-center gap-1.5 font-mono text-[12px] font-bold uppercase tracking-wider text-signal mb-4">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+              </svg>
+              Puntos clave
+            </p>
+            <ul className="space-y-3.5">
               {splitIntoKeyPoints(article.summary).map((point, i) => (
                 <li key={i} className="flex items-start gap-2.5">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 mt-[3px] text-signal">
@@ -161,38 +255,27 @@ export default function NoticiaDetail() {
           </div>
         )}
 
-        <div className="flex items-center gap-3 mb-10">
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 font-body text-[14px] px-5 py-3.5 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow"
-          >
-            Leer la nota completa en {article.source_name}
-            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M3 11 11 3M11 3H5M11 3v6"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </a>
-          <button
-            type="button"
-            onClick={() => void handleShare()}
-            aria-label="Compartir"
-            className="shrink-0 w-[52px] h-[52px] flex items-center justify-center rounded-sm border border-hairline text-text-muted hover:text-text-primary hover:border-text-faint transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
-            </svg>
-          </button>
-        </div>
+        {/* CTA principal a todo ancho — antes competía por espacio con el botón
+            de compartir en la misma fila; compartir ya se movió al masthead de
+            arriba, así que esta es la única acción acá, la más prominente de
+            la pantalla después de los puntos clave. */}
+        <a
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 font-body text-[15px] px-5 py-4 rounded-sm bg-signal text-ink font-semibold transition-all duration-200 hover:bg-signal-dim hover:shadow-glow mb-10"
+        >
+          Leer la nota completa en {article.source_name}
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path
+              d="M3 11 11 3M11 3H5M11 3v6"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </a>
 
         {related.length > 0 && (
           <>

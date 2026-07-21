@@ -89,6 +89,27 @@ export async function getNewsArticleById(id: string): Promise<NewsArticle | null
   return (data as NewsArticle | null) ?? null
 }
 
+/**
+ * Vecinos del artículo `id` dentro del MISMO orden en que se muestran en
+ * `/noticias` (el cache de sesión, no filtrado por categoría) — para el
+ * swipe/flechas "anterior · siguiente" en NoticiaDetail. Solo funciona si el
+ * usuario ya visitó `/noticias` en esta sesión (cache poblado); si llegó por
+ * link directo sin pasar por la lista, no hay "orden" del que derivar
+ * vecinos, así que devuelve `null` en ambos — NoticiaDetail simplemente no
+ * muestra la navegación en vez de inventar un orden a partir de una sola
+ * consulta directa.
+ */
+export function getAdjacentArticleIds(id: string): { prevId: string | null; nextId: string | null } {
+  if (!newsCache) return { prevId: null, nextId: null }
+  const list = newsCache.articles
+  const index = list.findIndex((article) => article.id === id)
+  if (index === -1) return { prevId: null, nextId: null }
+  return {
+    prevId: index > 0 ? list[index - 1].id : null,
+    nextId: index < list.length - 1 ? list[index + 1].id : null,
+  }
+}
+
 export async function getRelatedArticles(category: NewsCategory, excludeId: string): Promise<NewsArticle[]> {
   // El cache ya trae el listado completo ordenado por fecha desc — filtrar en
   // memoria evita otro round-trip. Si no alcanza (cache vacío para esa

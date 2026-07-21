@@ -214,7 +214,18 @@ near-duplicate row markup that used to live separately in `Dashboard.tsx` and
 `Historial.tsx` — a 3px left rail colored `gain`/`loss` by `side`, the symbol promoted to
 `font-display` for hierarchy over the metadata line, and a staggered reveal-up entrance
 capped at the first 12 rows so long lists (Historial) don't turn the animation into
-noise. `components/sistema/` holds `ObjectivesSection`/`RulesSection`/
+noise. **Real mobile-overlap bug fixed 2026-07-21**: the row used to be one
+`justify-between` line with symbol, side badge, date, *and* status all crammed into the
+left group alongside the P&L result on the right — on narrow widths that left group ran
+out of room, and since none of its children had `truncate`/wrap of their own, they simply
+overflowed the shrunk flex item and rendered on top of the result on the right (verified
+against a real screenshot: "long" visually overlapping "+20097.2", "open" overlapping
+"5.38"). Fixed by splitting into two lines: the primary line keeps only symbol + side
+badge (left) and result + arrow (right) — both sides always short enough to fit — and
+date/status moved to their own second line below, which never competes with the result
+for the same horizontal space. This is now a fixed 2-line layout at every breakpoint, not
+just a mobile-only variant — it reads better on desktop too, not only avoids the bug.
+`components/sistema/` holds `ObjectivesSection`/`RulesSection`/
 `StrategiesSection` (see "Sistema" below); `components/traderQuiz/` holds `QuizStep`/
 `PlanReport` (see the `/ia-trader` route entry above). `BrokerPicker` filters its 37-broker list by
 both free-text search and a `category` field (`acciones`/`forex`/`cripto`/`futuros`/
@@ -254,11 +265,22 @@ background + `ink` icon instead of the flat `text-faint`/`text-signal` treatment
 links get — since creating a trade is this product's core action, the same "make the
 primary action visually distinct" idea as a mobile app's center FAB. The active route is
 highlighted (`text-signal bg-signal/10`) via `react-router-dom`'s `NavLink`, not plain
-`Link` — there was no active-state indicator at all before this pass. The right-side
-button is "Salir" (`LogOut` icon, `supabase.auth.signOut()` — no `navigate()` call, same
-race noted above), separated from the nav links by a `hairline` divider and colored
-`text-faint` → `hover:text-loss` (this app's existing destructive/error color, not a new
-one invented for this button).
+`Link` — there was no active-state indicator at all before this pass. The `Perfil` link's
+icon is the user's actual avatar photo (`avatarUrl` from `useAuth()`, falling back to
+initials via the same `getInitials()` used by `Avatar.tsx`), not a generic `User` icon —
+`NAV_ITEMS` moved from a module-level constant into `AppFloatingNav`'s function body for
+this reason, since it now needs data from a hook. An `<img>` doesn't respond to
+`text-signal` like an SVG `currentColor` icon does, so the active-route indicator for
+this one link is a `ring-2 ring-signal` instead of a color change — `FloatingNav`'s
+`isAvatar` flag on a nav item switches to that treatment; `floating-navbar.tsx`'s
+`NavLink` renders its icon via a children-function (not a plain node) specifically so it
+can read `isActive` for this ring.
+
+**2026-07-21: the "Salir" button was removed from the floating nav entirely** — it's not
+a navigation destination, so it didn't belong in a `NavLink`-based bar, and a destructive
+account action (sign out) sitting one tap away in the *global* nav (reachable from every
+screen) was a real misclick risk. Signing out now lives as an explicit, unmissable
+control at the bottom of `/perfil` — see "Perfil & avatar upload" below.
 
 Moving the pill off the header band means `AppHeader`'s wordmark no longer needs to hide
 below `lg:` (it used to disappear on mobile specifically because the top-anchored pill
@@ -827,7 +849,7 @@ surfaced to the user.
 
 **`/noticias/:id` (`NoticiaDetail.tsx`, added 2026-07-20)** — an in-app article reading
 view: full `summary` field (now capped at 800 chars server-side, up from 320 — see
-`fetch-news/index.ts`), full-size image, source/category/date, a "Leer la nota completa en
+`fetch-news/index.ts`), image, source/category/date, a "Leer la nota completa en
 {source}" external CTA, a share button (`navigator.share` with clipboard-copy fallback),
 and up to 4 related articles from the same category (`getRelatedArticles` in `lib/news.ts`,
 a direct `news_articles` select — the table's already `select`-authenticated by RLS, no
@@ -840,6 +862,31 @@ required part of the page, not an afterthought: it's the only legitimate way to 
 Noticias.tsx's cards link to this internal route now (`<Link to={`/noticias/${id}`}>`)
 instead of opening the source directly in a new tab — the direct-to-source link still
 exists, just one tap deeper, inside the detail page.
+
+**2026-07-21 rebalance, at explicit user request**: the hero image shrank from a
+full-width `aspect-[16/10]` (~200px tall) to `aspect-[21/9]` capped at `max-h-[160px]`
+(~140px) — it's context, not the point of the screen. "Puntos clave" (the
+`splitIntoKeyPoints` bullets, see the comment on that function in `lib/news.ts` — a
+client-side sentence-split of `summary`, not an AI synthesis) moved into its own
+`bg-panel-2/60` card with a `signal`-colored heading, so it's now the visually dominant
+section instead of bare text under the image. The "leer completa" CTA is now full-width
+and stands alone — the share button moved up into the masthead row (small icon-only
+button next to the source name) instead of sharing a flex row with the CTA, so the CTA
+reads as *the* action on the page, not one of two competing for space.
+
+**Prev/next navigation between articles** — `getAdjacentArticleIds(id)` in `lib/news.ts`
+finds the article's neighbors in the **same order `/noticias` showed them in** (the
+session cache, unfiltered by category — not `getRelatedArticles`, which is
+same-category-only and unordered relative to "what you were browsing"). Returns
+`{ prevId: null, nextId: null }` if the cache is empty (direct link to `/noticias/:id`
+without visiting the list first in this session) — there's no "order" to derive a
+neighbor from in that case, so the feature just doesn't appear rather than guessing one
+from a fresh single-row query. Two ways to move between articles: a horizontal touch
+swipe on the whole `<main>` (`onTouchStart`/`onTouchEnd`, `SWIPE_THRESHOLD_PX = 60`, no
+gesture library — this project doesn't add animation/gesture dependencies for a single
+two-state interaction, same reasoning as the floating nav's CSS-transition rewrite above)
+and small `‹`/`›` buttons next to the "← Noticias" breadcrumb for mouse/keyboard users,
+correctly `disabled` (not hidden) at either end of the list.
 
 `lib/news.ts`'s `fetchNews()` keeps a **5-minute module-level session cache**
 (`CLIENT_CACHE_MS`, volatile memory only — never localStorage, same rule as the service
@@ -907,6 +954,27 @@ to the role badge, but the email line below it had no such neighbor). Fixed 2026
 both now use `break-all` instead of `truncate`, so a long address wraps onto a second
 line instead of disappearing behind "...". The parent row still uses `flex-wrap`, so
 wrapping doesn't fight the role badge for space.
+
+**Same pass, taken further**: the h1 no longer falls back to the raw email at all — a
+20px display-font heading showing a full email address read oddly as a "name," and the
+fallback string (`profile?.display_name || user?.email`) meant the email appeared in one
+of two different places depending on whether `display_name` was set, never consistently
+the same spot. Now the heading always falls back to a generic `'Tu cuenta'`, and the
+email `<p>` below it **always** renders (the `profile?.display_name &&` guard was
+removed) — one canonical place for the email, every time, regardless of whether a
+display name exists. The avatar/text row's padding went from symmetric `px-6` to
+`pl-4 pr-6` (plus `gap-3` instead of `gap-4`) to pull the photo closer to the card's left
+edge, at explicit user request. The onboarding-derived facts (experience/account
+type/broker) were flat `flex-wrap` pills with no indication of what each one represented
+— now a `grid-cols-3` of labeled chips (small uppercase category label, e.g.
+`EXPERIENCIA`, above the value, each `truncate`d — this is genuinely disposable
+supplementary info, unlike the email bug above, so ellipsis-truncating a long broker name
+here is fine).
+
+**"Cerrar sesión" moved here from the floating nav** (see the navigation section above)
+and is now a full-width bordered button in `text-loss`/`border-loss` with a `LogOut`
+icon — deliberately the app's destructive-action color, not just a plain text link like
+before, so a sensitive action reads as sensitive.
 
 ### Closing a trade
 

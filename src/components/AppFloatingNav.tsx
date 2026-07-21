@@ -1,5 +1,6 @@
-import { History, Home, LogOut, Newspaper, Plus, User } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { History, Home, Newspaper, Plus } from 'lucide-react'
+import { getInitials } from './Avatar'
+import { useAuth } from '../lib/auth'
 import { FloatingNav } from './ui/floating-navbar'
 
 // Navegación primaria de la app: una barra flotante inferior estilo app
@@ -9,31 +10,46 @@ import { FloatingNav } from './ui/floating-navbar'
 // las pantallas (las palabras se retiraron a pedido del usuario — el nombre
 // de cada destino queda en aria-label/title dentro de floating-navbar.tsx).
 //
-// "Salir" no navega manualmente: signOut() voltea el user del AuthProvider y
-// <ProtectedRoute> redirige solo — ver la nota en CLAUDE.md sobre la race que
-// causaba el navigate('/') explícito.
+// El ícono de "Perfil" es la foto de avatar real del usuario (o sus
+// iniciales si no subió una), no un ícono genérico — es la forma más rápida
+// de reconocer "esta es mi cuenta" en una barra de solo-íconos. Por eso
+// NAV_ITEMS se arma DENTRO del componente (ya no es un array module-level
+// estático): necesita `avatarUrl`/`user` de useAuth().
+//
+// No hay botón de "Salir" acá — ver el punto 2 en floating-navbar.tsx: cerrar
+// sesión ahora es una acción explícita dentro de Perfil, no un ícono más en
+// la navegación global.
 const ICON_CLASS = 'h-[18px] w-[18px]'
-
-const NAV_ITEMS = [
-  { name: 'Dashboard', link: '/dashboard', icon: <Home className={ICON_CLASS} /> },
-  { name: 'Historial', link: '/historial', icon: <History className={ICON_CLASS} /> },
-  {
-    name: 'Nuevo trade',
-    link: '/nuevo-trade',
-    icon: <Plus className={ICON_CLASS} />,
-    emphasized: true,
-  },
-  { name: 'Noticias', link: '/noticias', icon: <Newspaper className={ICON_CLASS} /> },
-  { name: 'Perfil', link: '/perfil', icon: <User className={ICON_CLASS} /> },
-]
+const AVATAR_SIZE = 'w-[22px] h-[22px]'
 
 export function AppFloatingNav() {
-  return (
-    <FloatingNav
-      navItems={NAV_ITEMS}
-      buttonLabel="Salir"
-      buttonIcon={<LogOut className={ICON_CLASS} />}
-      onButtonClick={() => void supabase.auth.signOut()}
-    />
-  )
+  const { user, avatarUrl } = useAuth()
+
+  const navItems = [
+    { name: 'Dashboard', link: '/dashboard', icon: <Home className={ICON_CLASS} /> },
+    { name: 'Historial', link: '/historial', icon: <History className={ICON_CLASS} /> },
+    {
+      name: 'Nuevo trade',
+      link: '/nuevo-trade',
+      icon: <Plus className={ICON_CLASS} />,
+      emphasized: true,
+    },
+    { name: 'Noticias', link: '/noticias', icon: <Newspaper className={ICON_CLASS} /> },
+    {
+      name: 'Perfil',
+      link: '/perfil',
+      isAvatar: true,
+      icon: avatarUrl ? (
+        <img src={avatarUrl} alt="" className={`${AVATAR_SIZE} rounded-full object-cover`} />
+      ) : (
+        <span
+          className={`${AVATAR_SIZE} rounded-full bg-panel border border-hairline flex items-center justify-center font-mono text-[9px] text-signal`}
+        >
+          {getInitials(user?.email)}
+        </span>
+      ),
+    },
+  ]
+
+  return <FloatingNav navItems={navItems} />
 }

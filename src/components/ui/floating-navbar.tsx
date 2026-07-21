@@ -5,8 +5,11 @@
 //   1. `visible` arranca en true y se mantiene visible cerca del extremo — el
 //      original arranca oculto y solo aparece al scrollear hacia arriba, lo que
 //      dejaría páginas cortas (Perfil, Configuración) sin navegación alguna.
-//   2. El botón de la derecha ("Login" hardcodeado en el original) se
-//      parametriza vía props para poder usarlo como "Salir".
+//   2. El botón de la derecha ("Login" hardcodeado en el original) se eliminó
+//      del todo — "Salir" ahora vive como acción explícita dentro de Perfil
+//      (ver Perfil.tsx), no en la barra de navegación global. Menos un ícono
+//      compitiendo por espacio, y una acción destructiva (cerrar sesión) deja
+//      de estar a un toque accidental de distancia en la navegación principal.
 //   3. La visibilidad se calcula con un listener de `scroll` crudo sobre
 //      `window.scrollY` (comparado contra su última lectura), no con el
 //      `useScroll`/`scrollYProgress` de framer-motion del original —
@@ -51,20 +54,18 @@ interface FloatingNavItem {
   link: string
   icon?: ReactNode
   emphasized?: boolean
+  // Para el ícono de Perfil (foto de avatar): un <img>/círculo no responde a
+  // `text-signal` como un ícono SVG con `currentColor`, así que la ruta
+  // activa se marca con un anillo en vez de un cambio de color.
+  isAvatar?: boolean
 }
 
 export const FloatingNav = ({
   navItems,
   className,
-  buttonLabel = 'Login',
-  buttonIcon,
-  onButtonClick,
 }: {
   navItems: FloatingNavItem[]
   className?: string
-  buttonLabel?: string
-  buttonIcon?: ReactNode
-  onButtonClick?: () => void
 }) => {
   const [visible, setVisible] = useState(true)
   const lastScrollY = useRef(0)
@@ -111,19 +112,22 @@ export const FloatingNav = ({
           {/* Solo íconos en todas las pantallas — las palabras se retiraron
               a pedido; el nombre queda en aria-label/title para accesibilidad
               y tooltip nativo al hacer hover. */}
-          {navItem.icon}
+          {({ isActive }) =>
+            navItem.isAvatar ? (
+              <span
+                className={cn(
+                  'rounded-full transition-shadow duration-200',
+                  isActive && 'ring-2 ring-signal ring-offset-1 ring-offset-panel-2',
+                )}
+              >
+                {navItem.icon}
+              </span>
+            ) : (
+              navItem.icon
+            )
+          }
         </NavLink>
       ))}
-      <span className="w-px h-6 bg-hairline mx-1" aria-hidden="true" />
-      <button
-        type="button"
-        onClick={onButtonClick}
-        aria-label={buttonLabel}
-        title={buttonLabel}
-        className="flex items-center justify-center w-11 h-11 rounded-full text-text-faint transition-colors duration-200 hover:text-loss hover:bg-loss/10"
-      >
-        {buttonIcon}
-      </button>
     </div>
   )
 }

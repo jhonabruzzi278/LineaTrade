@@ -34,7 +34,7 @@ export function TradeListRow({ trade, index, showDate = false }: TradeListRowPro
   return (
     <Link
       to={`/trades/${trade.id}`}
-      className={`group relative flex items-center justify-between gap-3 pl-5 pr-5 py-4 transition-colors hover:bg-panel-2/70 ${
+      className={`group relative flex flex-col gap-1.5 pl-5 pr-5 py-4 transition-colors hover:bg-panel-2/70 ${
         isStaggered ? 'reveal-up' : ''
       }`}
       style={isStaggered ? { animationDelay: `${index * STAGGER_STEP_SECONDS}s` } : undefined}
@@ -43,32 +43,44 @@ export function TradeListRow({ trade, index, showDate = false }: TradeListRowPro
         className={`absolute left-0 top-0 bottom-0 w-[3px] transition-colors duration-200 ${RAIL_CLASS[trade.side]}`}
         aria-hidden="true"
       />
-      <div className="flex items-center gap-3 min-w-0">
+      {/* Fila principal: símbolo + side a la izquierda, resultado a la derecha.
+          Antes esta fila también cargaba fecha y estado inline — en mobile
+          angosto ese grupo izquierdo se quedaba sin espacio y sus hijos (sin
+          truncate ni wrap propios) se desbordaban encima del resultado a la
+          derecha, produciendo texto superpuesto e ilegible. Ahora la fila
+          principal solo tiene lo esencial (siempre cabe), y fecha/estado bajan
+          a una segunda línea propia que no compite por el mismo ancho. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-display text-[15px] text-text-primary tracking-tight truncate">
+            {trade.instruments?.symbol ?? '—'}
+          </span>
+          <span
+            className={`shrink-0 font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
+              trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
+            }`}
+          >
+            {trade.side}
+          </span>
+        </div>
+        <span className="flex items-center gap-2 shrink-0">
+          <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
+            {formatTradeResult(trade)}
+          </span>
+          <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
+            →
+          </span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
         {showDate && (
-          <span className="font-mono text-[12px] text-text-faint w-24 shrink-0">
+          <span className="font-mono text-[11px] text-text-faint">
             {new Date(trade.traded_at).toLocaleDateString('es', { dateStyle: 'medium' })}
           </span>
         )}
-        <span className="font-display text-[15px] text-text-primary tracking-tight">
-          {trade.instruments?.symbol ?? '—'}
-        </span>
-        <span
-          className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-            trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
-          }`}
-        >
-          {trade.side}
-        </span>
+        {showDate && <span className="w-1 h-1 rounded-full bg-hairline shrink-0" aria-hidden="true" />}
         <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
       </div>
-      <span className="flex items-center gap-2 shrink-0">
-        <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
-          {formatTradeResult(trade)}
-        </span>
-        <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
-          →
-        </span>
-      </span>
     </Link>
   )
 }
