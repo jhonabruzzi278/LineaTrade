@@ -103,7 +103,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: byokSettings } = await serviceClient
     .from('user_ai_settings')
-    .select('use_own_key, byok_provider, byok_secret_id')
+    .select('use_own_key, byok_provider, byok_model, byok_secret_id')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -125,10 +125,12 @@ Deno.serve(async (req: Request) => {
       return errorResponse(500, 'PROVIDER_UNAVAILABLE', 'No se pudo leer la key BYOK configurada.')
     }
     providerName = byokSettings.byok_provider ?? 'groq'
-    // No hay un modelo de extracción configurable por usuario BYOK todavía
-    // (user_ai_settings no tiene columna de modelo) — mismo alcance acotado
-    // que ya documenta analyze-trade para su propio modelo BYOK.
-    modelName = DEFAULT_BYOK_EXTRACTION_MODEL
+    // Antes esto era siempre el modelo de extracción de Groq (bug real:
+    // un usuario BYOK con key de OpenAI recibía "invalid model ID"). El
+    // usuario ahora elige su propio modelo en /configuracion/ia
+    // (migración 20260721160000); el fallback solo cubre BYOK guardado
+    // antes de esa migración.
+    modelName = byokSettings.byok_model ?? DEFAULT_BYOK_EXTRACTION_MODEL
     apiKey = decryptedSecret
   } else {
     const { data: providerConfig } = await serviceClient

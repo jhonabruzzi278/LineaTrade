@@ -6,14 +6,21 @@ import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
 
-// Proveedores cloud soportados por BYOK en Fase 3 — coincide con el check
-// constraint de user_ai_settings.byok_provider (self-hosted como Ollama/LM
-// Studio queda deliberadamente fuera de alcance, ver plan de Fase 3: un Edge
-// Function en la nube no puede alcanzar un servidor en localhost del usuario).
-const BYOK_PROVIDERS = ['groq', 'openai', 'anthropic', 'gemini', 'deepseek', 'openrouter'] as const
+// Proveedores con implementación real en el registry de ambos Edge
+// Functions (ver supabase/functions/_shared/providers/) — no hay check
+// constraint en user_ai_settings.byok_provider (columna text libre), así que
+// antes este selector ofrecía 4 proveedores más (anthropic/gemini/deepseek/
+// openrouter) que el PRD menciona pero nadie implementó nunca: elegirlos
+// guardaba la key igual, y recién al usarla en un análisis se veía un 501
+// "no implementado" — un half-finished selector, no un bug de guardado.
+// Recortado a los dos que realmente funcionan hoy. El self-hosted (Ollama/LM
+// Studio) queda fuera de alcance aparte: un Edge Function en la nube no
+// puede alcanzar un servidor en localhost del usuario.
+const BYOK_PROVIDERS = ['groq', 'openai'] as const
 
 type ByokStatus = {
   byok_provider: string
+  byok_model: string | null
   is_configured: boolean
   use_own_key: boolean
   updated_at: string
@@ -23,6 +30,7 @@ export default function ConfiguracionIA() {
   const { showToast } = useToast()
   const [status, setStatus] = useState<ByokStatus | null>(null)
   const [provider, setProvider] = useState<string>(BYOK_PROVIDERS[0])
+  const [model, setModel] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -33,7 +41,10 @@ export default function ConfiguracionIA() {
     if (statusError) {
       setError(getErrorMessage(statusError))
     } else {
-      setStatus(data?.[0] ?? null)
+      const row = data?.[0] ?? null
+      setStatus(row)
+      if (row?.byok_provider) setProvider(row.byok_provider)
+      if (row?.byok_model) setModel(row.byok_model)
     }
     setLoading(false)
   }
@@ -44,8 +55,8 @@ export default function ConfiguracionIA() {
 
   async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!apiKey.trim()) {
-      setError('Ingresa una API key.')
+    if (!apiKey.trim() || !model.trim()) {
+      setError('Ingresa el modelo y una API key.')
       return
     }
     setSaving(true)
@@ -53,6 +64,7 @@ export default function ConfiguracionIA() {
     const { error: saveError } = await supabase.rpc('set_byok_api_key', {
       p_provider: provider,
       p_api_key: apiKey.trim(),
+      p_model: model.trim(),
     })
     setSaving(false)
     if (saveError) {
@@ -97,7 +109,7 @@ export default function ConfiguracionIA() {
                 <p className="font-mono text-[11px] tracking-wide text-text-faint uppercase mb-2 px-1">Estado</p>
                 <SettingsGroup>
                   <SettingsRow
-                    title={`${status.use_own_key ? 'Usando tu key' : 'Key configurada, pero desactivada'} — ${status.byok_provider}`}
+                    title={`${status.use_own_key ? 'Usando tu key' : 'Key configurada, pero desactivada'} — ${status.byok_provider}${status.byok_model ? ` · ${status.byok_model}` : ''}`}
                     description={`Actualizada el ${new Date(status.updated_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}`}
                     right={
                       status.use_own_key ? (
@@ -135,6 +147,20 @@ export default function ConfiguracionIA() {
                         </option>
                       ))}
                     </select>
+                  }
+                />
+                <SettingsRow
+                  title="Modelo"
+                  description="Tiene que soportar tanto texto (análisis) como visión (lectura de fotos de trades) — se usa para ambas cosas."
+                  footer={
+                    <input
+                      id="model"
+                      type="text"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder="ej. gpt-4o-mini, openai/gpt-oss-20b"
+                      className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+                    />
                   }
                 />
                 <SettingsRow

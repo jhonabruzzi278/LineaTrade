@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
   // grant_service_role_ai_access).
   const { data: byokSettings } = await serviceClient
     .from('user_ai_settings')
-    .select('use_own_key, byok_provider, byok_secret_id')
+    .select('use_own_key, byok_provider, byok_model, byok_secret_id')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -114,7 +114,14 @@ Deno.serve(async (req: Request) => {
       return errorResponse(500, 'PROVIDER_UNAVAILABLE', 'No se pudo leer la key BYOK configurada.')
     }
     providerName = byokSettings.byok_provider ?? 'groq'
-    modelName = 'openai/gpt-oss-20b' // BYOK todavía usa el mismo modelo por defecto en Fase 3; el selector de modelo BYOK queda fuera de alcance.
+    // Antes esto era un modelo Groq-específico hardcodeado sin importar el
+    // proveedor BYOK real — bug real: un usuario con su propia key de OpenAI
+    // recibía "invalid model ID" porque 'openai/gpt-oss-20b' no existe en la
+    // API de OpenAI (es un modelo que Groq aloja, el prefijo "openai/" es
+    // solo el nombre del peso abierto). byok_model (migración
+    // 20260721160000) ahora guarda el modelo elegido por el usuario; el
+    // fallback solo cubre filas BYOK guardadas antes de esa migración.
+    modelName = byokSettings.byok_model ?? 'openai/gpt-oss-20b'
     apiKey = decryptedSecret
   } else {
     const { data: providerConfig } = await serviceClient

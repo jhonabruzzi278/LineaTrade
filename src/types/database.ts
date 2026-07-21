@@ -967,6 +967,7 @@ export type Database = {
       }
       user_ai_settings: {
         Row: {
+          byok_model: string | null
           byok_provider: string | null
           byok_secret_id: string | null
           updated_at: string
@@ -974,6 +975,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          byok_model?: string | null
           byok_provider?: string | null
           byok_secret_id?: string | null
           updated_at?: string
@@ -981,6 +983,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          byok_model?: string | null
           byok_provider?: string | null
           byok_secret_id?: string | null
           updated_at?: string
@@ -1088,6 +1091,7 @@ export type Database = {
       get_byok_status: {
         Args: never
         Returns: {
+          byok_model: string
           byok_provider: string
           is_configured: boolean
           updated_at: string
@@ -1118,7 +1122,7 @@ export type Database = {
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }
       set_byok_api_key: {
-        Args: { p_api_key: string; p_provider: string }
+        Args: { p_api_key: string; p_model: string; p_provider: string }
         Returns: undefined
       }
       set_provider_api_key: {
