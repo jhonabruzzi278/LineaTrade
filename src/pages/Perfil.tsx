@@ -211,6 +211,16 @@ export default function Perfil() {
           <LogOut className="w-4 h-4" />
           Cerrar sesión
         </button>
+
+        {/* Menos prominente que "Cerrar sesión" a propósito — eliminar la
+            cuenta es una acción mucho más severa e irreversible, y la
+            confirmación real (con el texto "ELIMINAR") vive en la propia
+            página de destino, no acá. */}
+        <p className="text-center mt-4">
+          <Link to="/eliminar-cuenta" className="font-body text-[13px] text-text-faint hover:text-loss transition-colors">
+            Eliminar mi cuenta
+          </Link>
+        </p>
       </main>
       <AppFloatingNav />
     </div>

@@ -20,7 +20,7 @@ const sections = [
   },
   {
     title: '5. Tus derechos',
-    body: 'Podés solicitar la exportación o eliminación completa de tu cuenta y todos los datos asociados en cualquier momento escribiendo a soporte. Eliminar tu cuenta borra tu perfil, tus trades, tus imágenes y tu historial de forma permanente.',
+    body: 'Podés eliminar tu cuenta y todos los datos asociados vos mismo, en cualquier momento, desde la página de eliminación de cuenta — borra tu perfil, tus trades, tus imágenes y tu historial de forma permanente. También podés solicitarlo escribiendo a soporte.',
   },
   {
     title: '6. Contacto',

@@ -17,6 +17,7 @@ import Perfil from './pages/Perfil'
 import Noticias from './pages/Noticias'
 import NoticiaDetail from './pages/NoticiaDetail'
 import IaTrader from './pages/IaTrader'
+import EliminarCuenta from './pages/EliminarCuenta'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/actualizar-password" element={<ActualizarPassword />} />
         <Route path="/privacidad" element={<Privacidad />} />
         <Route path="/ia-trader" element={<IaTrader />} />
+        <Route path="/eliminar-cuenta" element={<EliminarCuenta />} />
         <Route
           path="/onboarding"
           element={
