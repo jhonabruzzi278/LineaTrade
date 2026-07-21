@@ -137,12 +137,23 @@ async function prewarmBodies(serviceClient: ReturnType<typeof createServiceClien
   const cronSecret = Deno.env.get('NEWS_CRON_SECRET')
   if (!cronSecret) return // no podemos invocar fetch-article-body sin secret internamente
   const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/fetch-article-body`
+  // El gateway de Supabase valida verify_jwt ANTES de que el código de la
+  // función corra — sin un Authorization Bearer con un JWT válido, esta
+  // llamada nunca llega a fetch-article-body, sin importar X-Cron-Secret.
+  // Mismo patrón que invoke_news_cron_refresh() en la migración de cron:
+  // el anon key es un JWT válido a nivel gateway; X-Cron-Secret es lo que
+  // fetch-article-body usa para saltarse la validación de sesión de usuario.
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
   // No esperamos — lanzamos y seguimos. Edge Function timeout wall: 150s free.
   await Promise.allSettled(
     articleIds.map((id) =>
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Cron-Secret': cronSecret },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${anonKey}`,
+          'X-Cron-Secret': cronSecret,
+        },
         body: JSON.stringify({ article_id: id }),
       }).catch(() => {}),
     ),
