@@ -239,19 +239,46 @@ the failure.
 `AppHeader` into `<BottomNav/>` (an Instagram-style island bar). It has since been
 replaced by `<AppFloatingNav/>` (`components/AppFloatingNav.tsx`, built on
 `components/ui/floating-navbar.tsx` — an Aceternity-style floating pill ported to
-react-router + framer-motion, which is why `framer-motion` is a dependency). Current
-behavior: a fixed pill centered at `top-1` (inside the `AppHeader` band — the original
-`top-10` floated over page titles), which **hides when scrolling down and reappears
-when scrolling up** (`useScroll` from framer-motion, with a guard for pages too short
-to scroll). It links to `/dashboard`, `/historial`, `/nuevo-trade`, `/noticias`,
-`/perfil` (still no direct `/sistema` or `/ia-trader` links — reachable via `Perfil`),
-and shows **icons only on every breakpoint** (lucide-react icons; words were removed
-by user request — each link keeps its name in `aria-label`/`title`). The right-side
-button is "Salir" (`supabase.auth.signOut()` — no `navigate()` call, same race noted
-above). `AppHeader` remains wordmark-only and renders together with `AppFloatingNav`
-on the same pages. `components/BottomNav.tsx` was deleted; the hand-drawn
-`components/icons/NavIcons.tsx` died with it (kept only for other uses like
-`CameraIcon`).
+react-router). Current behavior: a fixed pill centered at `top-1` (inside the
+`AppHeader` band — the original `top-10` floated over page titles), which **hides when
+scrolling down and reappears when scrolling up**. It links to `/dashboard`,
+`/historial`, `/nuevo-trade`, `/noticias`, `/perfil` (still no direct `/sistema` or
+`/ia-trader` links — reachable via `Perfil`), and shows **icons only on every
+breakpoint** (lucide-react icons; words were removed by user request — each link keeps
+its name in `aria-label`/`title`). The right-side button is "Salir"
+(`supabase.auth.signOut()` — no `navigate()` call, same race noted above). `AppHeader`
+remains wordmark-only and renders together with `AppFloatingNav` on the same pages.
+`components/BottomNav.tsx` was deleted; the hand-drawn `components/icons/NavIcons.tsx`
+died with it (kept only for other uses like `CameraIcon`).
+
+**`floating-navbar.tsx` no longer uses `framer-motion` — it was ported off it, not onto
+it, after a real bug found and fixed 2026-07-20.** The original Aceternity port used
+`framer-motion`'s `useScroll`/`scrollYProgress` to decide hide/show, guarded against
+`scrollYProgress` being `NaN` on non-scrollable pages (division by a zero
+`scrollHeight - clientHeight`). That guard didn't actually save it: verified live
+against a real logged-in session (fresh signup → confirm via local Mailpit → onboarding
+→ Dashboard) that the pill rendered **permanently off-screen** (`top: -96px`, translated
+out of the viewport) on a normal empty Dashboard, without the user ever scrolling — a
+transient layout shift during data loading fired one bogus "scrolled down" `NaN` event,
+and because a non-scrollable page never fires another scroll event, nothing ever
+brought it back. Removing the `<AnimatePresence mode="wait">` wrapper (dead weight —
+this component never actually mounts/unmounts a keyed child, so there was never a real
+enter/exit for `AnimatePresence` to coordinate) didn't fix it either: React's own fiber
+tree showed `motion.div`'s `animate` prop correctly updating to `{ y: 0, opacity: 1 }`
+on every render, `visible` was confirmed `true` via render logging on **every single
+render**, yet the DOM stayed frozen at its `initial` transform with zero active
+animations (`element.getAnimations()` returned `[]`) and no thrown error — framer-motion
+just never ran the `initial → animate` transition in this app, full stop. Root cause
+never fully isolated (framer-motion 12.x + this Vite/React 19 setup); the fix was to
+stop depending on it. The component now drives visibility with a plain `window.scrollY`
+listener (compared against its previous reading — no division, so no `NaN` case is
+possible) and animates via Tailwind `transition-all` + conditional `translate-y`/
+`opacity` classes instead of `motion.div`/`AnimatePresence` — matching this project's
+existing no-animation-library convention (see "Motion" above: `TraceLine.tsx` and
+`TechnicalEntryPanel`'s hand-rolled CSS keyframes). `framer-motion` was removed from
+`package.json` since nothing else in the codebase imports it. If floating nav visibility
+ever looks wrong again, suspect the CSS class toggle in `floating-navbar.tsx` first —
+not a scroll-math edge case, and don't reach for `framer-motion` to "fix" it.
 
 Same 375px-first lesson caught a second time in `TechnicalEntryPanel`: the
 Cantidad/Precio/Comisiones row was a bare `grid-cols-3`, cramming three numeric inputs
