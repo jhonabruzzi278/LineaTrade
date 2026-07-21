@@ -35,6 +35,23 @@ export async function resolveInstrumentId(
     .insert({ symbol: normalizedSymbol, market, is_custom: true, created_by: userId })
     .select('id')
     .single()
-  if (error) throw error
+  if (error) {
+    // 23505 = unique_violation en (symbol, market, created_by) — otra
+    // request para el mismo símbolo nuevo ganó la carrera (ej. doble tap en
+    // "Guardar trade" antes de que el botón se deshabilite). El instrumento
+    // ya existe, así que lo resolvemos en vez de tirarle un error genérico
+    // al usuario y perderle el trade.
+    if (error.code === '23505') {
+      const { data: raceWinner } = await supabase
+        .from('instruments')
+        .select('id')
+        .eq('symbol', normalizedSymbol)
+        .eq('market', market)
+        .eq('created_by', userId)
+        .maybeSingle()
+      if (raceWinner) return raceWinner.id
+    }
+    throw error
+  }
   return created.id
 }
