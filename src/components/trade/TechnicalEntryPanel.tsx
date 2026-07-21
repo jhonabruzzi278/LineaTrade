@@ -61,6 +61,12 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
     if (!result.ok) {
       // Aun si la IA no pudo leer la imagen, la foto ya cuenta como adjunta —
       // el usuario completa los campos a mano, pero no vuelve al dropzone.
+      // El motivo real (result.message) se logueaba a state pero la UI
+      // mostraba un texto genérico fijo sin importar la causa — bug real que
+      // hacía imposible diagnosticar un fallo del proveedor de IA sin abrir
+      // la consola del navegador a mano. console.error acá + mostrar el
+      // mensaje real en el JSX de abajo, en vez de ocultarlo.
+      console.error('[extract-trade-image] falló la extracción:', result.message)
       setPhotoError(result.message)
       onChange({ ...data, photoAttached: true })
       return
@@ -144,7 +150,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
 
           {photoError && (
             <p className="font-body text-[13px] text-loss">
-              No pudimos leer la imagen automáticamente — completá los campos a mano.
+              No pudimos leer la imagen automáticamente — completá los campos a mano. ({photoError})
             </p>
           )}
 
