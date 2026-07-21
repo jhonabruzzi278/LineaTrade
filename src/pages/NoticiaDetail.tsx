@@ -70,7 +70,7 @@ export default function NoticiaDetail() {
     return (
       <div className="min-h-screen bg-ink">
         <AppHeader />
-        <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
+        <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
           <p className="font-body text-[14px] text-text-muted">Cargando...</p>
         </main>
         <AppFloatingNav />
@@ -82,7 +82,7 @@ export default function NoticiaDetail() {
     return (
       <div className="min-h-screen bg-ink">
         <AppHeader />
-        <main className="max-w-2xl mx-auto px-6 py-10 pb-16 text-center">
+        <main className="max-w-2xl mx-auto px-6 py-10 pb-28 text-center">
           <p className="font-body text-[15px] text-text-muted mb-4">No encontramos esta noticia.</p>
           <Link to="/noticias" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
             Volver a Noticias
@@ -96,7 +96,7 @@ export default function NoticiaDetail() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-2xl mx-auto px-6 py-8 pb-16">
+      <main className="max-w-2xl mx-auto px-6 py-8 pb-28">
         <Link
           to="/noticias"
           className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors mb-6"

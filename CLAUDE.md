@@ -235,19 +235,53 @@ mobile, `whitespace-nowrap` on the CTA. If you add a 5th nav item, re-check 375p
 calling it done — this product is mobile-first, and the desktop viewport won't show you
 the failure.
 
-**Navigation was redesigned twice**: commit `7f89396` first moved primary nav out of
-`AppHeader` into `<BottomNav/>` (an Instagram-style island bar). It has since been
-replaced by `<AppFloatingNav/>` (`components/AppFloatingNav.tsx`, built on
+**Navigation was redesigned three times**: commit `7f89396` first moved primary nav out
+of `AppHeader` into `<BottomNav/>` (an Instagram-style island bar), which was replaced by
+`<AppFloatingNav/>` (`components/AppFloatingNav.tsx`, built on
 `components/ui/floating-navbar.tsx` — an Aceternity-style floating pill ported to
-react-router). Current behavior: a fixed pill centered at `top-1` (inside the
-`AppHeader` band — the original `top-10` floated over page titles), which **hides when
-scrolling down and reappears when scrolling up**. It links to `/dashboard`,
-`/historial`, `/nuevo-trade`, `/noticias`, `/perfil` (still no direct `/sistema` or
-`/ia-trader` links — reachable via `Perfil`), and shows **icons only on every
-breakpoint** (lucide-react icons; words were removed by user request — each link keeps
-its name in `aria-label`/`title`). The right-side button is "Salir"
-(`supabase.auth.signOut()` — no `navigate()` call, same race noted above). `AppHeader`
-remains wordmark-only and renders together with `AppFloatingNav` on the same pages.
+react-router) as a **top**-anchored pill. **2026-07-21: moved back to the bottom** (a
+plain `fixed inset-x-0` pill anchored near the bottom edge, `style={{ bottom: 'max(1rem,
+calc(0.5rem + env(safe-area-inset-bottom)))' }}` so it clears the gesture bar on the
+installed PWA/TWA — see "PWA-to-APK" below) at explicit user request, restoring the
+original `<BottomNav/>` era's placement but keeping the pill visual language. It **hides
+when scrolling down and reappears when scrolling up** (see the `framer-motion` paragraph
+below for how that's implemented). It links to `/dashboard`, `/historial`,
+`/nuevo-trade`, `/noticias`, `/perfil` (still no direct `/sistema` or `/ia-trader` links
+— reachable via `Perfil`), and shows **icons only on every breakpoint** (lucide-react
+icons; words were removed by user request — each link keeps its name in
+`aria-label`/`title`). `/nuevo-trade` renders with `emphasized: true` — filled `signal`
+background + `ink` icon instead of the flat `text-faint`/`text-signal` treatment other
+links get — since creating a trade is this product's core action, the same "make the
+primary action visually distinct" idea as a mobile app's center FAB. The active route is
+highlighted (`text-signal bg-signal/10`) via `react-router-dom`'s `NavLink`, not plain
+`Link` — there was no active-state indicator at all before this pass. The right-side
+button is "Salir" (`LogOut` icon, `supabase.auth.signOut()` — no `navigate()` call, same
+race noted above), separated from the nav links by a `hairline` divider and colored
+`text-faint` → `hover:text-loss` (this app's existing destructive/error color, not a new
+one invented for this button).
+
+Moving the pill off the header band means `AppHeader`'s wordmark no longer needs to hide
+below `lg:` (it used to disappear on mobile specifically because the top-anchored pill
+would invade the text) — the `hidden lg:inline` restriction was removed, so the wordmark
+now shows at every breakpoint again.
+
+**Every page that renders `<AppFloatingNav/>` needs real bottom clearance on its
+`<main>`, not just token breathing room** — bumped from `pb-16` to `pb-28` across all 10
+call sites (`Dashboard`, `Historial`, `Sistema`, `Perfil`, `Noticias`, `NoticiaDetail`'s
+three return branches, `ConfiguracionIA`, `AdminPanel`, `IaTrader`, `TradeDetail`'s
+loaded-trade branch). Verified the actual failure mode before picking a number, not just
+guessed at one: trailing `padding-bottom` only helps a page the user actually scrolls to
+the end of — on a *short* page (all content fits within one viewport, nothing forces a
+scroll), the last element's on-screen position is fixed by everything **above** it, and
+no amount of padding **after** it moves it, so `pb-16` still let the "Cerrar sesión"
+button on `Perfil` sit directly under the fixed pill in an unscrolled 1280×720 view.
+`pb-28` was verified at a real mobile viewport (375×812, this product's actual primary
+target) across every affected page — clearance stayed positive (35–270px) between the
+lowest content and the pill even at max scroll. If you add a new page with
+`<AppFloatingNav/>`, give its `<main>` the same `pb-28` — anything less isn't proven safe
+and anything checked only at a wide/short desktop window can look fine while still
+failing on the phone sizes that matter.
+
 `components/BottomNav.tsx` was deleted; the hand-drawn `components/icons/NavIcons.tsx`
 died with it (kept only for other uses like `CameraIcon`).
 
@@ -863,6 +897,16 @@ every page, for data (a profile photo) that isn't sensitive the way trade screen
 are. **Don't copy this pattern onto `trade-images`** or any future genuinely private
 bucket — the public-bucket choice here is specific to "this data isn't sensitive," not a
 general precedent.
+
+**The email under the name (and the name heading itself, when no `display_name` is set
+and it falls back to the raw email) used `truncate` and rendered long addresses cut off
+with an ellipsis** — a real bug, not a style choice: this is the user's own account
+identity, and there's no adjacent element forcing a hard one-line constraint on the
+secondary email line (the heading's `truncate` was defensible since it sits inline next
+to the role badge, but the email line below it had no such neighbor). Fixed 2026-07-21:
+both now use `break-all` instead of `truncate`, so a long address wraps onto a second
+line instead of disappearing behind "...". The parent row still uses `flex-wrap`, so
+wrapping doesn't fight the role badge for space.
 
 ### Closing a trade
 

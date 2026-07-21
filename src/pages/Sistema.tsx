@@ -25,7 +25,7 @@ export default function Sistema() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-16">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
         <p className="font-mono text-[13px] text-signal mb-2">tu sistema</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Reglas, estrategias y objetivos</h1>
 

@@ -58,7 +58,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-16">
+      <main className="max-w-5xl mx-auto px-6 py-10 pb-28">
         <div className="mb-8">
           <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
           <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>

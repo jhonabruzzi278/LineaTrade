@@ -2,7 +2,7 @@
 // (<Link to>) en vez de next/link y sin "use client" (Vite no tiene RSC).
 // Adaptaciones deliberadas sobre el original, todas necesarias para usarlo
 // como navegación primaria de una app autenticada y no como adorno de landing:
-//   1. `visible` arranca en true y se mantiene visible cerca del tope — el
+//   1. `visible` arranca en true y se mantiene visible cerca del extremo — el
 //      original arranca oculto y solo aparece al scrollear hacia arriba, lo que
 //      dejaría páginas cortas (Perfil, Configuración) sin navegación alguna.
 //   2. El botón de la derecha ("Login" hardcodeado en el original) se
@@ -22,31 +22,48 @@
 //      Verificado en vivo (fiber de React + `getAnimations()`) que framer-motion
 //      nunca corría la transición `initial → animate` en esta app — el prop
 //      `animate` se actualizaba correctamente en cada render pero el DOM
-//      quedaba congelado para siempre en su `initial` (`translateY(-100px)`,
-//      la píldora entera renderizando fuera de pantalla), sin ninguna
-//      animación activa (`getAnimations()` devolvía `[]`) y sin excepción
-//      visible. framer-motion no se usa en ningún otro archivo del proyecto —
-//      una transición CSS simple de dos estados no necesita esa dependencia,
-//      y evita por completo esa clase de bug.
+//      quedaba congelado para siempre en su `initial`, sin ninguna animación
+//      activa y sin excepción visible. framer-motion no se usa en ningún otro
+//      archivo del proyecto — una transición CSS simple no necesita esa
+//      dependencia, y evita por completo esa clase de bug.
+//   5. Paleta y tipografía: reemplazadas las clases genéricas del template
+//      (`bg-white`/`dark:bg-black`, texto `neutral-*`, acento azul) por los
+//      tokens de marca de este proyecto (`panel-2`/`hairline`/`signal`/
+//      `text-*`, ver `docs/lineatrade-design-system.md` §3). El template
+//      original usaba el variant `dark:` de Tailwind (activo solo si el SO
+//      del visitante está en modo oscuro); esta app es siempre oscura, sin
+//      ningún toggle `dark` en el árbol, así que esas clases dejaban la
+//      píldora renderizando **blanca** para cualquier usuario con el SO en
+//      modo claro — un bloque genérico flotando sobre el fondo `ink` de la
+//      app, nada que ver con su identidad visual.
+//   6. Posición: `bottom` en vez de `top` — barra de navegación inferior
+//      estilo app móvil (Instagram/apps de trading), no una píldora flotante
+//      de landing. Desliza hacia ABAJO al ocultarse (coherente con estar
+//      anclada abajo), y respeta `env(safe-area-inset-bottom)` para no quedar
+//      debajo de la barra de gestos del sistema en la PWA instalada
+//      (ver "PWA-to-APK" en CLAUDE.md).
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 interface FloatingNavItem {
   name: string
   link: string
   icon?: ReactNode
+  emphasized?: boolean
 }
 
 export const FloatingNav = ({
   navItems,
   className,
   buttonLabel = 'Login',
+  buttonIcon,
   onButtonClick,
 }: {
   navItems: FloatingNavItem[]
   className?: string
   buttonLabel?: string
+  buttonIcon?: ReactNode
   onButtonClick?: () => void
 }) => {
   const [visible, setVisible] = useState(true)
@@ -55,8 +72,9 @@ export const FloatingNav = ({
   useEffect(() => {
     function handleScroll() {
       const currentY = window.scrollY
-      // Cerca del tope siempre visible (arranque/páginas cortas); más abajo,
-      // visible solo si el scroll fue hacia arriba respecto de la última lectura.
+      // Cerca del extremo siempre visible (arranque/páginas cortas); más
+      // lejos, visible solo si el scroll fue hacia arriba respecto de la
+      // última lectura.
       setVisible(currentY < 60 || currentY < lastScrollY.current)
       lastScrollY.current = currentY
     }
@@ -66,35 +84,45 @@ export const FloatingNav = ({
 
   return (
     <div
+      style={{ bottom: 'max(1rem, calc(0.5rem + env(safe-area-inset-bottom)))' }}
       className={cn(
-        'flex max-w-fit fixed top-10 inset-x-0 mx-auto border border-transparent dark:border-white/[0.2] rounded-full dark:bg-black bg-white shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] z-[5000] pr-2 pl-8 py-2 items-center justify-center space-x-4 transition-all duration-200 ease-out',
-        visible ? 'translate-y-0 opacity-100' : '-translate-y-24 opacity-0 pointer-events-none',
+        'flex max-w-fit fixed inset-x-0 mx-auto items-center gap-1 rounded-full border border-hairline bg-panel-2/95 backdrop-blur-md shadow-card z-[5000] px-2 py-2 transition-all duration-200 ease-out',
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none',
         className,
       )}
     >
       {navItems.map((navItem, idx) => (
-        <Link
+        <NavLink
           key={`link=${idx}`}
           to={navItem.link}
           aria-label={navItem.name}
           title={navItem.name}
-          className={cn(
-            'relative dark:text-neutral-50 items-center flex space-x-1 text-neutral-600 dark:hover:text-neutral-300 hover:text-neutral-500',
-          )}
+          className={({ isActive }) =>
+            cn(
+              'relative flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-200',
+              navItem.emphasized
+                ? 'bg-signal text-ink hover:bg-signal-dim'
+                : isActive
+                  ? 'text-signal bg-signal/10'
+                  : 'text-text-faint hover:text-text-primary hover:bg-panel/70',
+            )
+          }
         >
           {/* Solo íconos en todas las pantallas — las palabras se retiraron
               a pedido; el nombre queda en aria-label/title para accesibilidad
               y tooltip nativo al hacer hover. */}
-          <span className="block">{navItem.icon}</span>
-        </Link>
+          {navItem.icon}
+        </NavLink>
       ))}
+      <span className="w-px h-6 bg-hairline mx-1" aria-hidden="true" />
       <button
         type="button"
         onClick={onButtonClick}
-        className="border text-sm font-medium relative border-neutral-200 dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full"
+        aria-label={buttonLabel}
+        title={buttonLabel}
+        className="flex items-center justify-center w-11 h-11 rounded-full text-text-faint transition-colors duration-200 hover:text-loss hover:bg-loss/10"
       >
-        <span>{buttonLabel}</span>
-        <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" />
+        {buttonIcon}
       </button>
     </div>
   )

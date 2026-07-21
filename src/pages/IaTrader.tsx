@@ -196,7 +196,7 @@ export default function IaTrader() {
   return (
     <div className="min-h-screen bg-ink">
       {user && <AppHeader />}
-      <main className="max-w-xl mx-auto px-6 py-10 pb-16">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <p className="font-mono text-[13px] text-signal mb-2">tu plan de trading</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Convierte la IA en tu trader</h1>
         {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}

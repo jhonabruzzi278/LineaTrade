@@ -5,12 +5,10 @@ import { Link } from 'react-router-dom'
 // flujos de wizard (Onboarding, NuevoTrade) no usan este header — usan <WizardLayout/>,
 // que es intencionalmente sin navegación.
 //
-// Deliberadamente solo wordmark: toda la navegación vive en <AppFloatingNav/>, la
-// píldora flotante estilo Aceternity que se posiciona centrada DENTRO de esta misma
-// banda sticky (ver el top-1 en AppFloatingNav). Por eso el texto del wordmark solo
-// aparece en lg+: debajo de eso la píldora centrada (~490px con nombres en sm+,
-// ~260px solo íconos en mobile) invadiría el texto — queda el ícono solo, misma
-// lección 375px que ya obligó a esconder el wordmark en la versión anterior del header.
+// Solo wordmark: toda la navegación vive en <AppFloatingNav/>, la barra flotante
+// inferior (ver floating-navbar.tsx) — no comparte banda con este header, así que el
+// wordmark ya no necesita esconderse en mobile (a diferencia de una versión anterior,
+// cuando la píldora vivía centrada DENTRO de esta misma banda sticky).
 export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-ink/80 backdrop-blur-md">
@@ -26,7 +24,7 @@ export function AppHeader() {
               strokeLinejoin="round"
             />
           </svg>
-          <span className="hidden lg:inline font-display text-[15px] tracking-tight text-text-primary">
+          <span className="font-display text-[15px] tracking-tight text-text-primary">
             lineatrade
           </span>
         </Link>

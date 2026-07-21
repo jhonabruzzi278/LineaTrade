@@ -84,7 +84,7 @@ export default function Perfil() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-16">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
         {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie
             propia, como la tarjeta de cuenta de TradingView (avatar, usuario, plan). */}
         <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card px-6 py-6 mb-6">
@@ -119,7 +119,7 @@ export default function Perfil() {
             <div className="min-w-0">
               <p className="font-mono text-[13px] text-signal mb-1">tu perfil</p>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display text-[20px] text-text-primary truncate">
+                <h1 className="font-display text-[20px] text-text-primary break-all">
                   {profile?.display_name || user?.email}
                 </h1>
                 {role && (
@@ -129,7 +129,7 @@ export default function Perfil() {
                 )}
               </div>
               {profile?.display_name && (
-                <p className="font-body text-[13px] text-text-muted truncate">{user?.email}</p>
+                <p className="font-body text-[13px] text-text-muted break-all">{user?.email}</p>
               )}
             </div>
           </div>
