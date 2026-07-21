@@ -153,7 +153,8 @@ IA vision (`extract-trade-image`, ahora el único punto de entrada a Nuevo Trade
 Noticias (feed editorial en español, RSS, refresco on-demand), Sistema (objetivos/
 reglas/estrategias), Perfil + avatar (bucket público, a diferencia de `trade-images`),
 IA Trader (quiz público que genera un plan determinístico sin LLM), y el rediseño de
-navegación (`BottomNav`). Detalle técnico completo en `CLAUDE.md` → "Beyond Fase 4" y en
+navegación (`AppFloatingNav`, píldora flotante con solo íconos). Detalle técnico
+completo en `CLAUDE.md` → "Beyond Fase 4" y en
 `docs/lineatrade-plan-implementacion.md` → "Beyond Fase 4". Si vas a construir sobre
 alguno de estos módulos, empieza por ahí, no por este archivo.
 

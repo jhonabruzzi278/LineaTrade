@@ -2,6 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getErrorMessage } from '../../lib/errors'
 import { useToast } from '../../lib/toast'
+import { SettingsGroup, SettingsRow } from '../SettingsRow'
+import { Switch } from '../Switch'
+import { TrashIcon } from '../icons/NavIcons'
 import type { Database } from '../../types/database'
 
 type Strategy = Database['public']['Tables']['strategies']['Row']
@@ -93,39 +96,35 @@ export function StrategiesSection({ userId }: { userId: string }) {
         <p className="font-body text-[13px] text-text-faint mb-6">Sin estrategias todavía.</p>
       )}
       {strategies.length > 0 && (
-        <div className="space-y-3 mb-6">
-          {strategies.map((strategy) => (
-            <div
-              key={strategy.id}
-              className="border border-hairline rounded-sm bg-panel px-4 py-3 flex items-start justify-between gap-3"
-            >
-              <div className={strategy.is_active ? '' : 'opacity-40'}>
-                <p className="font-body text-[14px] text-text-primary">{strategy.name}</p>
-                {strategy.description && (
-                  <p className="font-body text-[13px] text-text-muted mt-1">{strategy.description}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => void toggleActive(strategy)}
-                  className={`font-mono text-[11px] px-2 py-1 rounded-sm border transition-colors ${
-                    strategy.is_active ? 'border-signal text-signal' : 'border-hairline text-text-faint'
-                  }`}
-                >
-                  {strategy.is_active ? 'activa' : 'inactiva'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(strategy)}
-                  aria-label="Eliminar estrategia"
-                  className="font-mono text-[13px] text-text-faint hover:text-loss transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="mb-6">
+          <SettingsGroup>
+            {strategies.map((strategy) => (
+              <SettingsRow
+                key={strategy.id}
+                title={strategy.name}
+                description={strategy.description}
+                muted={!strategy.is_active}
+                right={
+                  <>
+                    <Switch
+                      hideLabel
+                      checked={strategy.is_active}
+                      onChange={() => void toggleActive(strategy)}
+                      label={`Activar estrategia: ${strategy.name}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(strategy)}
+                      aria-label={`Eliminar estrategia: ${strategy.name}`}
+                      className="text-text-faint hover:text-loss transition-colors"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </>
+                }
+              />
+            ))}
+          </SettingsGroup>
         </div>
       )}
       <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">

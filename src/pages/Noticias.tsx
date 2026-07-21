@@ -1,17 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
-import { BottomNav } from '../components/BottomNav'
-import { fetchNews, timeAgo, NEWS_CATEGORY_LABELS, type NewsArticle, type NewsCategory } from '../lib/news'
+import { AppFloatingNav } from '../components/AppFloatingNav'
+import { SourceAvatar } from '../components/SourceAvatar'
+import {
+  fetchNews,
+  getCachedNews,
+  formatListTimestamp,
+  NEWS_CATEGORY_LABELS,
+  type NewsArticle,
+  type NewsCategory,
+} from '../lib/news'
 
 type CategoryFilter = 'all' | NewsCategory
 const CATEGORY_FILTERS: CategoryFilter[] = ['all', 'cripto', 'forex', 'acciones', 'tecnologia', 'futuros', 'general', 'otro']
 
 export default function Noticias() {
-  const [articles, setArticles] = useState<NewsArticle[]>([])
-  const [loading, setLoading] = useState(true)
+  // Se siembra desde el cache de sesión (lib/news.ts): al volver desde el
+  // detalle la lista aparece al instante — el skeleton solo existe en la
+  // primera visita de la sesión.
+  const [articles, setArticles] = useState<NewsArticle[]>(() => getCachedNews()?.articles ?? [])
+  const [loading, setLoading] = useState<boolean>(() => getCachedNews() === null)
+  const [partial, setPartial] = useState<boolean>(() => getCachedNews()?.partial ?? false)
   const [error, setError] = useState<string | null>(null)
-  const [partial, setPartial] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
 
   useEffect(() => {
@@ -27,6 +39,7 @@ export default function Noticias() {
       }
       setArticles(result.articles)
       setPartial(result.partial)
+      setError(null)
       setLoading(false)
     }
 
@@ -34,80 +47,90 @@ export default function Noticias() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
+
+  function handleRetry() {
+    setError(null)
+    setLoading(articles.length === 0)
+    setAttempt((n) => n + 1)
+  }
 
   const filtered = useMemo(() => {
     if (categoryFilter === 'all') return articles
     return articles.filter((article) => article.category === categoryFilter)
   }, [articles, categoryFilter])
 
-  const hero = filtered[0]
-  const rest = filtered.slice(1)
+  const hasArticles = articles.length > 0
 
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
 
-      <main className="max-w-5xl mx-auto px-6 pt-8 pb-32">
-        {/* Masthead */}
-        <div className="text-center mb-8">
-          <p className="font-mono text-[11px] tracking-[0.25em] text-signal uppercase mb-2">
-            Actualidad de mercado
-          </p>
-          <h1 className="font-serif text-[36px] md:text-[48px] font-black text-text-primary tracking-tight leading-[1.1]">
-            Noticias
-          </h1>
-          <p className="font-body text-[13px] text-text-faint mt-2 max-w-md mx-auto">
-            Selección de fuentes de trading y finanzas en español — no es asesoramiento, es contexto.
-          </p>
-        </div>
+      <main className="max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-16">
+        {/* Header — título compacto alineado a la izquierda, estilo feed de
+            noticias densa (no el masthead editorial centrado anterior). */}
+        <h1 className="font-body text-[28px] font-bold text-text-primary tracking-tight mb-4">Noticias</h1>
 
-        {/* Error / partial */}
-        {error && (
-          <div className="mb-6 border border-loss/30 bg-loss/10 rounded-sm px-4 py-3">
+        {/* Error bloqueante solo si no hay nada que mostrar; con artículos ya
+            cargados (cache), un refresh fallido degrada a una nota discreta. */}
+        {error && !hasArticles && (
+          <div className="mb-6 border border-loss/30 bg-loss/10 rounded-sm px-4 py-3 flex items-center justify-between gap-3">
             <p className="font-body text-[13px] text-loss">{error}</p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="shrink-0 font-mono text-[12px] px-3 py-1.5 rounded-sm border border-loss/40 text-loss hover:bg-loss/10 transition-colors"
+            >
+              Reintentar
+            </button>
           </div>
         )}
+        {error && hasArticles && (
+          <p className="font-body text-[12px] text-text-faint mb-4">
+            No se pudo actualizar — mostrando lo último disponible.{' '}
+            <button type="button" onClick={handleRetry} className="text-signal hover:text-signal-dim transition-colors">
+              Reintentar
+            </button>
+          </p>
+        )}
         {!error && partial && (
-          <p className="font-body text-[12px] text-text-faint mb-6 text-center">
+          <p className="font-body text-[12px] text-text-faint mb-4">
             Algunas fuentes no respondieron — se muestra lo disponible.
           </p>
         )}
 
-        {/* Category nav — fila scrolleable de una sola línea en mobile (7 chips
-            no entran en 375px; el wrap centrado dejaba una segunda línea coja),
-            centrada y sin scroll en desktop donde sí sobra espacio. */}
-        <div
-          className="flex items-center gap-2 overflow-x-auto md:flex-wrap md:justify-center md:overflow-visible pb-1 mb-8 -mx-6 px-6 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+        {/* Category pills — mismo diseño visual en todas las pantallas. El
+            único cambio es de layout: en mobile sigue siendo la fila
+            scrolleable original; en desktop se envuelven y centran para que
+            todas sean visibles y clicables con mouse (el scroll oculto las
+            dejaba inalcanzables). Sin bordes ni estilos nuevos. */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 mb-5 -mx-5 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0 lg:overflow-visible lg:flex-wrap lg:justify-center lg:mb-8">
           {CATEGORY_FILTERS.map((cat) => (
             <button
               key={cat}
               type="button"
+              aria-pressed={categoryFilter === cat}
               onClick={() => setCategoryFilter(cat)}
-              className={`shrink-0 font-mono text-[11px] md:text-[12px] px-3 py-2 md:py-1.5 rounded-sm border transition-colors ${
+              className={`shrink-0 font-body text-[13px] px-3.5 py-2 rounded-full transition-colors ${
                 categoryFilter === cat
-                  ? 'border-signal/40 bg-signal/15 text-signal'
-                  : 'border-hairline text-text-muted hover:text-text-primary hover:border-text-faint'
+                  ? 'bg-panel-2 text-text-primary font-semibold'
+                  : 'text-text-faint hover:text-text-muted'
               }`}
             >
-              {cat === 'all' ? 'Todas' : NEWS_CATEGORY_LABELS[cat]}
+              {cat === 'all' ? 'Todo' : NEWS_CATEGORY_LABELS[cat]}
             </button>
           ))}
         </div>
 
-        {/* Editorial hairline */}
-        <div className="border-t border-hairline mb-8" />
-
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
-            <div className="md:col-span-2 lg:col-span-3 h-[300px] rounded-sm bg-panel-2" />
-            <div className="h-40 rounded-sm bg-panel-2" />
-            <div className="h-40 rounded-sm bg-panel-2" />
-            <div className="h-40 rounded-sm bg-panel-2" />
-            <div className="h-40 rounded-sm bg-panel-2 hidden lg:block" />
-            <div className="h-40 rounded-sm bg-panel-2 hidden lg:block" />
-            <div className="h-40 rounded-sm bg-panel-2 hidden lg:block" />
+          <div className="divide-y divide-hairline animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="py-5 space-y-2.5">
+                <div className="h-3 w-32 rounded-sm bg-panel-2" />
+                <div className="h-4 w-full rounded-sm bg-panel-2" />
+                <div className="h-4 w-2/3 rounded-sm bg-panel-2" />
+              </div>
+            ))}
           </div>
         )}
 
@@ -117,78 +140,88 @@ export default function Noticias() {
           </div>
         )}
 
+        {/* Lista densa, tipo wire de noticias — sin imágenes, una fila por
+            artículo: timestamp + fuente, luego titular en negrita.
+            SOLO MOBILE (el diseño desktop vive en el bloque de abajo). */}
         {!loading && filtered.length > 0 && (
-          <>
-            {/* Hero article */}
-            {hero && (
-              <Link to={`/noticias/${hero.id}`} className="group block mb-10">
-                <article className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-hairline rounded-sm overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card hover:shadow-elevated transition-shadow duration-300">
-                  {/* Image */}
-                  <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[340px] bg-panel-2 overflow-hidden">
-                    {hero.image_url ? (
-                      <img
-                        src={hero.image_url}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                        loading="eager"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-panel-2">
-                        <span className="font-mono text-[12px] text-text-faint">{hero.source_name}</span>
-                      </div>
-                    )}
-                    <span className="absolute top-3 left-3 font-mono text-[11px] px-2 py-1 rounded-sm bg-ink/80 text-signal backdrop-blur-sm border border-hairline">
-                      {NEWS_CATEGORY_LABELS[hero.category]}
-                    </span>
+          <div className="divide-y divide-hairline lg:hidden">
+            {filtered.map((article) => (
+              <Link key={article.id} to={`/noticias/${article.id}`} className="group flex items-start gap-3 py-5">
+                {article.image_url ? (
+                  <div className="shrink-0 w-16 h-16 rounded-sm overflow-hidden border border-hairline bg-panel-2">
+                    <img
+                      src={article.image_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
-
-                  {/* Text */}
-                  <div className="flex flex-col justify-center px-6 py-6 md:px-8 md:py-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="font-mono text-[11px] text-signal">{hero.source_name}</span>
-                      <span className="w-1 h-1 rounded-full bg-hairline" />
-                      <span className="font-mono text-[11px] text-text-faint">{timeAgo(hero.published_at)}</span>
-                    </div>
-                    <h2 className="font-serif text-[22px] md:text-[26px] font-bold text-text-primary leading-[1.25] group-hover:text-signal transition-colors duration-300 mb-3">
-                      {hero.title}
-                    </h2>
-                    {hero.summary && (
-                      <p className="font-body text-[14px] text-text-muted leading-relaxed line-clamp-3">
-                        {hero.summary}
-                      </p>
-                    )}
-                    <div className="mt-5 flex items-center gap-1.5 text-signal">
-                      <span className="font-mono text-[11px] uppercase tracking-wider">Leer noticia</span>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="mt-[1px]">
-                        <path d="M1 7h12M7 1l6 6-6 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
+                ) : (
+                  <div className="shrink-0 pt-0.5">
+                    <SourceAvatar name={article.source_name} size="md" />
                   </div>
-                </article>
+                )}
+                <div className="min-w-0">
+                  <p className="font-mono text-[11px] text-text-faint mb-1.5">
+                    {formatListTimestamp(article.published_at)} · {article.source_name}
+                  </p>
+                  <h2 className="font-body text-[15px] font-semibold text-text-primary leading-[1.35] group-hover:text-signal transition-colors duration-200">
+                    {article.title}
+                  </h2>
+                </div>
               </Link>
-            )}
+            ))}
+          </div>
+        )}
 
-            {/* Divider entre hero y grid */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="flex-1 border-t border-hairline" />
-              <span className="font-mono text-[11px] text-text-faint uppercase tracking-wider shrink-0">
-                Más noticias
-              </span>
-              <div className="flex-1 border-t border-hairline" />
-            </div>
+        {/* SOLO DESKTOP — plataforma de noticias: primer artículo destacado
+            (imagen + titular grande) y el resto en grid de tarjetas. Llena el
+            ancho del monitor en vez de dejar todo apretado en una columna. */}
+        {!loading && filtered.length > 0 && (
+          <div className="hidden lg:block">
+            {/* Hero — primer artículo del filtro activo */}
+            <Link
+              to={`/noticias/${filtered[0].id}`}
+              className="group grid grid-cols-5 gap-8 items-stretch border border-hairline rounded-sm overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card hover:shadow-elevated transition-shadow duration-300 mb-10"
+            >
+              <div className="col-span-3 relative aspect-[16/9] bg-panel-2 overflow-hidden">
+                {filtered[0].image_url ? (
+                  <img
+                    src={filtered[0].image_url}
+                    alt=""
+                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <SourceAvatar name={filtered[0].source_name} size="lg" />
+                  </div>
+                )}
+                <span className="absolute top-3 left-3 font-mono text-[11px] px-2 py-1 rounded-sm bg-ink/80 text-signal backdrop-blur-sm border border-hairline">
+                  {NEWS_CATEGORY_LABELS[filtered[0].category]}
+                </span>
+              </div>
+              <div className="col-span-2 flex flex-col justify-center py-8 pr-8">
+                <p className="font-mono text-[11px] text-text-faint mb-3">
+                  {formatListTimestamp(filtered[0].published_at)} · {filtered[0].source_name}
+                </p>
+                <h2 className="font-body text-[24px] font-bold text-text-primary leading-[1.25] group-hover:text-signal transition-colors duration-200 mb-3">
+                  {filtered[0].title}
+                </h2>
+                {filtered[0].summary && (
+                  <p className="font-body text-[14px] text-text-muted leading-relaxed line-clamp-3">
+                    {filtered[0].summary}
+                  </p>
+                )}
+              </div>
+            </Link>
 
-            {/* Grid editorial — 1 col en mobile, 2 en tablet, 3 en desktop ancho
-                (aprovecha el max-w-5xl del contenedor en vez de estirar la
-                misma columna que en mobile). */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 lg:gap-x-8 gap-y-10">
-              {rest.map((article, i) => (
-                <Link
-                  key={article.id}
-                  to={`/noticias/${article.id}`}
-                  className="group flex flex-col gap-3"
-                  style={{ animationDelay: `${i * 60}ms` }}
-                >
-                  {/* Image thumbnail */}
+            {/* Grid de tarjetas — resto de artículos */}
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-9">
+              {filtered.slice(1).map((article) => (
+                <Link key={article.id} to={`/noticias/${article.id}`} className="group flex flex-col gap-3">
                   <div className="relative aspect-[16/9] rounded-sm overflow-hidden border border-hairline bg-panel-2">
                     {article.image_url ? (
                       <img
@@ -196,31 +229,24 @@ export default function Noticias() {
                         alt=""
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-panel-2">
-                        <span className="font-mono text-[11px] text-text-faint">{article.source_name}</span>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <SourceAvatar name={article.source_name} size="md" />
                       </div>
                     )}
                   </div>
-
-                  {/* Meta */}
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-sm border border-hairline text-signal">
-                      {NEWS_CATEGORY_LABELS[article.category]}
-                    </span>
-                    <span className="font-mono text-[11px] text-text-faint">{article.source_name}</span>
-                    <span className="font-mono text-[11px] text-text-faint ml-auto shrink-0">
-                      {timeAgo(article.published_at)}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="font-serif text-[17px] md:text-[18px] font-bold text-text-primary leading-[1.3] group-hover:text-signal transition-colors duration-300">
+                  <p className="font-mono text-[11px] text-text-faint">
+                    <span className="text-signal">{NEWS_CATEGORY_LABELS[article.category]}</span>
+                    {' · '}
+                    {formatListTimestamp(article.published_at)}
+                    {' · '}
+                    {article.source_name}
+                  </p>
+                  <h3 className="font-body text-[16px] font-semibold text-text-primary leading-[1.35] group-hover:text-signal transition-colors duration-200">
                     {article.title}
                   </h3>
-
-                  {/* Summary */}
                   {article.summary && (
                     <p className="font-body text-[13px] text-text-muted leading-relaxed line-clamp-2">
                       {article.summary}
@@ -229,11 +255,11 @@ export default function Noticias() {
                 </Link>
               ))}
             </div>
-          </>
+          </div>
         )}
       </main>
 
-      <BottomNav />
+      <AppFloatingNav />
     </div>
   )
 }

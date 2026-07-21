@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
-import { BottomNav } from '../components/BottomNav'
+import { AppFloatingNav } from '../components/AppFloatingNav'
+import { SourceAvatar } from '../components/SourceAvatar'
 import { useToast } from '../lib/toast'
 import {
   getNewsArticleById,
   getRelatedArticles,
   timeAgo,
   formatPublished,
+  formatListTimestamp,
+  splitIntoKeyPoints,
   NEWS_CATEGORY_LABELS,
   type NewsArticle,
 } from '../lib/news'
@@ -67,10 +70,10 @@ export default function NoticiaDetail() {
     return (
       <div className="min-h-screen bg-ink">
         <AppHeader />
-        <main className="max-w-2xl mx-auto px-6 py-10 pb-32">
+        <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
           <p className="font-body text-[14px] text-text-muted">Cargando...</p>
         </main>
-        <BottomNav />
+        <AppFloatingNav />
       </div>
     )
   }
@@ -79,13 +82,13 @@ export default function NoticiaDetail() {
     return (
       <div className="min-h-screen bg-ink">
         <AppHeader />
-        <main className="max-w-2xl mx-auto px-6 py-10 pb-32 text-center">
+        <main className="max-w-2xl mx-auto px-6 py-10 pb-16 text-center">
           <p className="font-body text-[15px] text-text-muted mb-4">No encontramos esta noticia.</p>
           <Link to="/noticias" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
             Volver a Noticias
           </Link>
         </main>
-        <BottomNav />
+        <AppFloatingNav />
       </div>
     )
   }
@@ -93,7 +96,7 @@ export default function NoticiaDetail() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-2xl mx-auto px-6 py-8 pb-32">
+      <main className="max-w-2xl mx-auto px-6 py-8 pb-16">
         <Link
           to="/noticias"
           className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors mb-6"
@@ -104,31 +107,58 @@ export default function NoticiaDetail() {
           Noticias
         </Link>
 
-        {article.image_url && (
-          <div className="relative aspect-[16/10] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-6">
-            <img src={article.image_url} alt="" className="w-full h-full object-cover" loading="eager" />
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <span className="font-mono text-[11px] px-2 py-1 rounded-sm border border-signal/40 text-signal">
-            {NEWS_CATEGORY_LABELS[article.category]}
-          </span>
-          <span className="font-mono text-[12px] text-text-muted">{article.source_name}</span>
-          <span className="w-1 h-1 rounded-full bg-hairline" />
-          <span className="font-mono text-[12px] text-text-faint" title={formatPublished(article.published_at)}>
-            {timeAgo(article.published_at)}
+        {/* Masthead de fuente — logo + nombre, como el crédito de agencia
+            (Reuters, etc.) en la parte superior de una nota. */}
+        <div className="flex items-center gap-2 mb-5">
+          <SourceAvatar name={article.source_name} size="md" />
+          <span className="font-mono text-[13px] font-bold text-text-primary uppercase tracking-wide">
+            {article.source_name}
           </span>
         </div>
 
-        <h1 className="font-serif text-[26px] md:text-[32px] font-black text-text-primary leading-[1.2] mb-6">
+        <h1 className="font-body text-[26px] md:text-[30px] font-bold text-text-primary leading-[1.25] mb-3">
           {article.title}
         </h1>
 
+        <div className="flex flex-wrap items-center gap-2 mb-7">
+          <span className="font-mono text-[12px] text-text-faint" title={formatPublished(article.published_at)}>
+            {formatListTimestamp(article.published_at)} · {timeAgo(article.published_at)}
+          </span>
+          <span className="w-1 h-1 rounded-full bg-hairline" />
+          <span className="font-mono text-[11px] px-2 py-0.5 rounded-sm border border-hairline text-text-muted">
+            {NEWS_CATEGORY_LABELS[article.category]}
+          </span>
+        </div>
+
+        {article.image_url && (
+          <div className="relative aspect-[16/10] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-7">
+            <img
+              src={article.image_url}
+              alt=""
+              className="w-full h-full object-cover"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+            />
+          </div>
+        )}
+
+        {/* Puntos clave — el resumen del feed partido en oraciones, no una
+            síntesis por IA (ver comentario de splitIntoKeyPoints en lib/news.ts). */}
         {article.summary && (
-          <p className="font-body text-[16px] text-text-muted leading-[1.7] whitespace-pre-line mb-8">
-            {article.summary}
-          </p>
+          <div className="mb-8">
+            <p className="font-body text-[13px] font-semibold text-text-primary mb-3">Puntos clave</p>
+            <ul className="space-y-3">
+              {splitIntoKeyPoints(article.summary).map((point, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 mt-[3px] text-signal">
+                    <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+                  </svg>
+                  <span className="font-body text-[15px] text-text-primary leading-[1.6]">{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         <div className="flex items-center gap-3 mb-10">
@@ -180,7 +210,13 @@ export default function NoticiaDetail() {
                 >
                   <div className="relative w-20 h-20 shrink-0 rounded-sm overflow-hidden border border-hairline bg-panel-2">
                     {item.image_url ? (
-                      <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img
+                        src={item.image_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="font-mono text-[9px] text-text-faint">{item.source_name}</span>
@@ -188,7 +224,8 @@ export default function NoticiaDetail() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-mono text-[11px] text-text-faint mb-1">
+                    <p className="flex items-center gap-1.5 font-mono text-[11px] text-text-faint mb-1">
+                      <SourceAvatar name={item.source_name} />
                       {item.source_name} · {timeAgo(item.published_at)}
                     </p>
                     <h3 className="font-serif text-[15px] font-bold text-text-primary leading-[1.3] line-clamp-2 group-hover:text-signal transition-colors">
@@ -201,7 +238,7 @@ export default function NoticiaDetail() {
           </>
         )}
       </main>
-      <BottomNav />
+      <AppFloatingNav />
     </div>
   )
 }

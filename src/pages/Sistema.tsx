@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AppHeader } from '../components/AppHeader'
-import { BottomNav } from '../components/BottomNav'
+import { AppFloatingNav } from '../components/AppFloatingNav'
 import { RulesSection } from '../components/sistema/RulesSection'
 import { StrategiesSection } from '../components/sistema/StrategiesSection'
 import { ObjectivesSection } from '../components/sistema/ObjectivesSection'
@@ -25,7 +25,7 @@ export default function Sistema() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-32">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-16">
         <p className="font-mono text-[13px] text-signal mb-2">tu sistema</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Reglas, estrategias y objetivos</h1>
 
@@ -50,7 +50,7 @@ export default function Sistema() {
         {tab === 'estrategias' && <StrategiesSection userId={user.id} />}
         {tab === 'objetivos' && <ObjectivesSection userId={user.id} />}
       </main>
-      <BottomNav />
+      <AppFloatingNav />
     </div>
   )
 }

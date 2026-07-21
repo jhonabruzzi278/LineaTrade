@@ -80,7 +80,7 @@ cada uno vive en `CLAUDE.md` (sección "Beyond Fase 4"), no en este archivo.
 | Sistema | Objetivos/reglas/estrategias del trader, CRUD con soft-delete | ✅ Construido — `v_rule_violations` existe pero no se consume desde esta pantalla, solo desde el motor de IA |
 | Perfil + avatar | Página de perfil, subida de avatar a bucket público `avatars` | ✅ Construido |
 | IA Trader / motor de plan | Quiz público (`/ia-trader`, sin `<ProtectedRoute>`) que genera un `TraderPlan` determinístico (sin LLM) y lo persiste en `trader_plans` para usuarios logueados | ✅ Construido |
-| Rediseño de navegación | `BottomNav` (estilo isla) reemplazó la navegación principal de `AppHeader` | ✅ Construido |
+| Rediseño de navegación | `AppFloatingNav` (píldora flotante estilo Aceternity, solo íconos, se oculta al scrollear) reemplazó la navegación principal de `AppHeader`; el `BottomNav` intermedio (commit `7f89396`) fue eliminado | ✅ Construido |
 | Migraciones 27-33 | Backend de todo lo anterior | ✅ Aplicadas — ver `CLAUDE.md` → "Backend" para el detalle migración por migración |
 
 **Nota de proceso:** este plan se escribió antes de construir nada (ver la nota al inicio

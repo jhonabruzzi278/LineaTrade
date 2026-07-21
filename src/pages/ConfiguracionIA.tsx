@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AppHeader } from '../components/AppHeader'
-import { BottomNav } from '../components/BottomNav'
+import { AppFloatingNav } from '../components/AppFloatingNav'
+import { SettingsGroup, SettingsRow } from '../components/SettingsRow'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
@@ -79,7 +80,7 @@ export default function ConfiguracionIA() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-32">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-16">
         <p className="font-mono text-[12px] text-signal tracking-wide mb-2">configuración</p>
         <h1 className="font-display text-[26px] text-text-primary mb-1">Tu propia API key (BYOK)</h1>
         <p className="font-body text-[14px] text-text-muted mb-8">
@@ -92,66 +93,71 @@ export default function ConfiguracionIA() {
         ) : (
           <>
             {status?.is_configured && (
-              <div className="border border-hairline rounded-sm bg-panel px-5 py-4 mb-6">
-                <p className="font-body text-[14px] text-text-primary mb-1">
-                  {status.use_own_key ? 'Usando tu key' : 'Key configurada, pero desactivada'} — {status.byok_provider}
-                </p>
-                <p className="font-mono text-[11px] text-text-faint mb-3">
-                  Actualizada el {new Date(status.updated_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
-                {status.use_own_key && (
-                  <button
-                    type="button"
-                    onClick={() => void handleDisable()}
-                    disabled={saving}
-                    className="font-body text-[13px] text-text-faint hover:text-text-muted transition-colors"
-                  >
-                    Volver al tier gratuito
-                  </button>
-                )}
+              <div className="mb-6">
+                <p className="font-mono text-[11px] tracking-wide text-text-faint uppercase mb-2 px-1">Estado</p>
+                <SettingsGroup>
+                  <SettingsRow
+                    title={`${status.use_own_key ? 'Usando tu key' : 'Key configurada, pero desactivada'} — ${status.byok_provider}`}
+                    description={`Actualizada el ${new Date(status.updated_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}`}
+                    right={
+                      status.use_own_key ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleDisable()}
+                          disabled={saving}
+                          className="font-body text-[12.5px] text-text-faint hover:text-text-muted transition-colors whitespace-nowrap"
+                        >
+                          Volver al gratuito
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                </SettingsGroup>
               </div>
             )}
 
-            <form onSubmit={(e) => void handleSave(e)} className="space-y-5">
-              <div>
-                <label htmlFor="provider" className="font-body text-[13px] text-text-muted block mb-2">
-                  Proveedor
-                </label>
-                <select
-                  id="provider"
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
-                  className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-                >
-                  {BYOK_PROVIDERS.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="api-key" className="font-body text-[13px] text-text-muted block mb-2">
-                  API key
-                </label>
-                <input
-                  id="api-key"
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-..."
-                  autoComplete="off"
-                  className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+            <form onSubmit={(e) => void handleSave(e)}>
+              <p className="font-mono text-[11px] tracking-wide text-text-faint uppercase mb-2 px-1">Nueva key</p>
+              <SettingsGroup>
+                <SettingsRow
+                  title="Proveedor"
+                  description="Elegí a quién pertenece la API key que vas a guardar."
+                  right={
+                    <select
+                      id="provider"
+                      value={provider}
+                      onChange={(e) => setProvider(e.target.value)}
+                      className="bg-ink border border-hairline rounded-sm pl-3 pr-8 py-2 font-body text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
+                    >
+                      {BYOK_PROVIDERS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  }
                 />
-                <p className="font-mono text-[11px] text-text-faint mt-2">
-                  Nunca se muestra de nuevo una vez guardada — solo se cifra y se guarda.
-                </p>
-              </div>
-              {error && <p className="font-body text-[13px] text-loss">{error}</p>}
+                <SettingsRow
+                  title="API key"
+                  description="Nunca se muestra de nuevo una vez guardada — solo se cifra y se guarda."
+                  footer={
+                    <input
+                      id="api-key"
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="sk-..."
+                      autoComplete="off"
+                      className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+                    />
+                  }
+                />
+              </SettingsGroup>
+              {error && <p className="font-body text-[13px] text-loss mt-4">{error}</p>}
               <button
                 type="submit"
                 disabled={saving}
-                className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+                className="mt-5 font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
               >
                 {saving ? 'Guardando...' : 'Guardar key'}
               </button>
@@ -159,7 +165,7 @@ export default function ConfiguracionIA() {
           </>
         )}
       </main>
-      <BottomNav />
+      <AppFloatingNav />
     </div>
   )
 }

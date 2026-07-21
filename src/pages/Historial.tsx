@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
-import { BottomNav } from '../components/BottomNav'
+import { AppFloatingNav } from '../components/AppFloatingNav'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
@@ -76,7 +76,7 @@ export default function Historial() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-32">
+      <main className="max-w-5xl mx-auto px-6 py-10 pb-16">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div>
             <p className="font-mono text-[13px] text-signal mb-2">registro completo</p>
@@ -157,7 +157,7 @@ export default function Historial() {
           </div>
         )}
       </main>
-      <BottomNav />
+      <AppFloatingNav />
     </div>
   )
 }

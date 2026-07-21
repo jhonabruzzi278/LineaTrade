@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
-import { BottomNav } from '../components/BottomNav'
+import { AppFloatingNav } from '../components/AppFloatingNav'
 import { getInitials } from '../components/Avatar'
 import { MetricCard } from '../components/MetricCard'
 import { onboardingSteps } from '../data/onboarding'
@@ -84,60 +84,78 @@ export default function Perfil() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-32">
-        <div className="flex items-center gap-4 mb-2">
-          <label
-            htmlFor="avatar-upload"
-            className={`group relative shrink-0 cursor-pointer ${photoUploading ? 'opacity-60 pointer-events-none' : ''}`}
-          >
-            <span className="block w-16 h-16 rounded-full bg-panel-2 border border-hairline overflow-hidden flex items-center justify-center font-mono text-[18px] text-signal transition-all duration-200 group-hover:border-signal/60 group-hover:shadow-glow">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                getInitials(user?.email)
-              )}
-            </span>
-            <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-signal border-2 border-ink flex items-center justify-center text-ink">
-              {photoUploading ? (
-                <span className="w-3 h-3 border-2 border-ink/40 border-t-ink rounded-full animate-spin" aria-hidden="true" />
-              ) : (
-                <CameraIcon className="w-3 h-3" />
-              )}
-            </span>
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={photoUploading}
-              onChange={(e) => void handleAvatarSelected(e.target.files?.[0])}
-            />
-          </label>
-          <div className="min-w-0">
-            <p className="font-mono text-[13px] text-signal mb-1">tu perfil</p>
-            <h1 className="font-display text-[22px] text-text-primary truncate">
-              {profile?.display_name || user?.email}
-            </h1>
-            {profile?.display_name && (
-              <p className="font-body text-[13px] text-text-muted truncate">{user?.email}</p>
-            )}
-          </div>
-        </div>
-        {photoError && <p className="font-body text-[12px] text-loss mb-4">{photoError}</p>}
-        <div className="mb-8" />
-
-        {!loading && facts.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-10">
-            {facts.map((fact) => (
-              <span
-                key={fact}
-                className="font-mono text-[11px] tracking-wide px-3 py-1.5 rounded-sm border border-hairline bg-panel text-text-muted"
-              >
-                {fact}
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-16">
+        {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie
+            propia, como la tarjeta de cuenta de TradingView (avatar, usuario, plan). */}
+        <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card px-6 py-6 mb-6">
+          <div className="flex items-center gap-4">
+            <label
+              htmlFor="avatar-upload"
+              className={`group relative shrink-0 cursor-pointer ${photoUploading ? 'opacity-60 pointer-events-none' : ''}`}
+            >
+              <span className="block w-16 h-16 rounded-full bg-panel-2 border border-hairline overflow-hidden flex items-center justify-center font-mono text-[18px] text-signal transition-all duration-200 group-hover:border-signal/60 group-hover:shadow-glow">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  getInitials(user?.email)
+                )}
               </span>
-            ))}
+              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-signal border-2 border-ink flex items-center justify-center text-ink">
+                {photoUploading ? (
+                  <span className="w-3 h-3 border-2 border-ink/40 border-t-ink rounded-full animate-spin" aria-hidden="true" />
+                ) : (
+                  <CameraIcon className="w-3 h-3" />
+                )}
+              </span>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={photoUploading}
+                onChange={(e) => void handleAvatarSelected(e.target.files?.[0])}
+              />
+            </label>
+            <div className="min-w-0">
+              <p className="font-mono text-[13px] text-signal mb-1">tu perfil</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-display text-[20px] text-text-primary truncate">
+                  {profile?.display_name || user?.email}
+                </h1>
+                {role && (
+                  <span className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-sm border border-dashed border-text-faint text-text-faint shrink-0">
+                    {role}
+                  </span>
+                )}
+              </div>
+              {profile?.display_name && (
+                <p className="font-body text-[13px] text-text-muted truncate">{user?.email}</p>
+              )}
+            </div>
           </div>
-        )}
+          {photoError && <p className="font-body text-[12px] text-loss mt-4">{photoError}</p>}
+
+          {!loading && facts.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-hairline">
+              {facts.map((fact) => (
+                <span
+                  key={fact}
+                  className="font-mono text-[11px] tracking-wide px-3 py-1.5 rounded-sm border border-hairline bg-panel text-text-muted"
+                >
+                  {fact}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tiles de acceso rápido — mismo espíritu que las dos tarjetas
+            "Suscripción" / "Recomendar a un amigo" de TradingView, apuntando a lo
+            que este producto sí tiene: el sistema propio y la config de IA. */}
+        <div className="grid grid-cols-2 gap-3 mb-10">
+          <QuickActionTile to="/sistema" label="Mi sistema" hint="Reglas, estrategias, objetivos" />
+          <QuickActionTile to="/configuracion/ia" label="Config. de IA" hint="Tu propia API key (BYOK)" />
+        </div>
 
         <h2 className="font-display text-[16px] text-text-primary mb-4">Tus números</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
@@ -172,8 +190,6 @@ export default function Perfil() {
         <h2 className="font-display text-[16px] text-text-primary mb-4">Más</h2>
         <nav className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card mb-10">
           <ProfileLink to="/historial" label="Historial completo" />
-          <ProfileLink to="/sistema" label="Mi sistema" hint="Reglas, estrategias, objetivos" />
-          <ProfileLink to="/configuracion/ia" label="Configuración de IA" />
           {role === 'superadmin' && <ProfileLink to="/admin" label="Admin" />}
         </nav>
 
@@ -185,7 +201,7 @@ export default function Perfil() {
           Cerrar sesión
         </button>
       </main>
-      <BottomNav />
+      <AppFloatingNav />
     </div>
   )
 }
@@ -200,6 +216,23 @@ function ProfileLink({ to, label, hint }: { to: string; label: string; hint?: st
       <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
         →
       </span>
+    </Link>
+  )
+}
+
+function QuickActionTile({ to, label, hint }: { to: string; label: string; hint: string }) {
+  return (
+    <Link
+      to={to}
+      className="group rounded-sm border border-hairline bg-panel-2 px-4 py-4 flex flex-col gap-2 transition-colors hover:border-signal/40 hover:bg-panel-2/70"
+    >
+      <span className="font-mono text-[13px] text-text-faint opacity-70 transition-all duration-200 group-hover:opacity-100 group-hover:text-signal group-hover:translate-x-0.5">
+        →
+      </span>
+      <div>
+        <p className="font-body text-[14px] text-text-primary">{label}</p>
+        <p className="font-mono text-[11px] text-text-faint mt-0.5">{hint}</p>
+      </div>
     </Link>
   )
 }

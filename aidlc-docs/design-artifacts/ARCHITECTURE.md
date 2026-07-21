@@ -9,7 +9,9 @@ src/
 ├── index.css                 # Sistema de diseño: tokens @theme de Tailwind v4
 ├── pages/                    # 17 páginas, export default, una por ruta
 ├── components/               # Compartidos (Nav, AppHeader, WizardLayout, ProtectedRoute,
-│                                SuperAdminRoute, BottomNav, Avatar, Switch, PwaUpdatePrompt)
+│                                SuperAdminRoute, AppFloatingNav, Avatar, Switch,
+│                                PwaUpdatePrompt, SourceAvatar, SettingsRow)
+│   ├── ui/                    # Primitivas shadcn/Radix + floating-navbar.tsx (píldora de nav)
 │   ├── trade/                # BrokerPicker, TechnicalEntryPanel, PsychologySection,
 │   │                            OrderTicketFields
 │   ├── sistema/               # ObjectivesSection, RulesSection, StrategiesSection

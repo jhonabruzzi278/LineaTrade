@@ -2,6 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getErrorMessage } from '../../lib/errors'
 import { useToast } from '../../lib/toast'
+import { SettingsGroup, SettingsRow } from '../SettingsRow'
+import { Switch } from '../Switch'
+import { TrashIcon } from '../icons/NavIcons'
 import type { Database } from '../../types/database'
 
 type Rule = Database['public']['Tables']['trader_rules']['Row']
@@ -90,39 +93,35 @@ export function RulesSection({ userId }: { userId: string }) {
         <p className="font-body text-[13px] text-text-faint mb-6">Sin reglas todavía.</p>
       )}
       {rules.length > 0 && (
-        <div className="space-y-3 mb-6">
-          {rules.map((rule) => (
-            <div
-              key={rule.id}
-              className="border border-hairline rounded-sm bg-panel px-4 py-3 flex items-start justify-between gap-3"
-            >
-              <div className={rule.is_active ? '' : 'opacity-40'}>
-                <p className="font-body text-[14px] text-text-primary">{rule.title}</p>
-                {rule.description && (
-                  <p className="font-body text-[13px] text-text-muted mt-1">{rule.description}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => void toggleActive(rule)}
-                  className={`font-mono text-[11px] px-2 py-1 rounded-sm border transition-colors ${
-                    rule.is_active ? 'border-signal text-signal' : 'border-hairline text-text-faint'
-                  }`}
-                >
-                  {rule.is_active ? 'activa' : 'inactiva'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(rule)}
-                  aria-label="Eliminar regla"
-                  className="font-mono text-[13px] text-text-faint hover:text-loss transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="mb-6">
+          <SettingsGroup>
+            {rules.map((rule) => (
+              <SettingsRow
+                key={rule.id}
+                title={rule.title}
+                description={rule.description}
+                muted={!rule.is_active}
+                right={
+                  <>
+                    <Switch
+                      hideLabel
+                      checked={rule.is_active}
+                      onChange={() => void toggleActive(rule)}
+                      label={`Activar regla: ${rule.title}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(rule)}
+                      aria-label={`Eliminar regla: ${rule.title}`}
+                      className="text-text-faint hover:text-loss transition-colors"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </>
+                }
+              />
+            ))}
+          </SettingsGroup>
         </div>
       )}
       <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">

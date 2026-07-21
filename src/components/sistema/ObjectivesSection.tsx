@@ -2,6 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getErrorMessage } from '../../lib/errors'
 import { useToast } from '../../lib/toast'
+import { SettingsGroup, SettingsRow } from '../SettingsRow'
+import { Switch } from '../Switch'
+import { TrashIcon } from '../icons/NavIcons'
 import type { Database } from '../../types/database'
 
 type Objective = Database['public']['Tables']['objectives']['Row']
@@ -131,50 +134,50 @@ export function ObjectivesSection({ userId }: { userId: string }) {
         <p className="font-body text-[13px] text-text-faint mb-6">Sin objetivos todavía.</p>
       )}
       {objectives.length > 0 && (
-        <div className="space-y-3 mb-6">
-          {objectives.map((objective) => (
-            <div key={objective.id} className="border border-hairline rounded-sm bg-panel px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-body text-[14px] text-text-primary">{objective.title}</p>
-                  <p className="font-mono text-[11px] text-text-faint mt-1">
-                    {METRIC_LABELS[objective.metric_type] ?? objective.metric_type}
-                    {(objective.period_start || objective.period_end) &&
-                      ` · ${objective.period_start ?? '...'} → ${objective.period_end ?? '...'}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => void toggleAchieved(objective)}
-                    className={`font-mono text-[11px] px-2 py-1 rounded-sm border transition-colors ${
-                      objective.achieved ? 'border-signal text-signal' : 'border-hairline text-text-faint'
-                    }`}
-                  >
-                    {objective.achieved ? 'logrado' : 'en curso'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(objective)}
-                    aria-label="Eliminar objetivo"
-                    className="font-mono text-[13px] text-text-faint hover:text-loss transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-3">
-                <input
-                  type="number"
-                  step="0.01"
-                  defaultValue={objective.current_value ?? 0}
-                  onBlur={(e) => void updateProgress(objective, e.target.value)}
-                  className="w-24 bg-ink border border-hairline rounded-sm px-3 py-1.5 font-mono text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-                />
-                <span className="font-mono text-[12px] text-text-faint">/ {objective.target_value}</span>
-              </div>
-            </div>
-          ))}
+        <div className="mb-6">
+          <SettingsGroup>
+            {objectives.map((objective) => (
+              <SettingsRow
+                key={objective.id}
+                title={objective.title}
+                description={`${METRIC_LABELS[objective.metric_type] ?? objective.metric_type}${
+                  objective.period_start || objective.period_end
+                    ? ` · ${objective.period_start ?? '...'} → ${objective.period_end ?? '...'}`
+                    : ''
+                }`}
+                right={
+                  <>
+                    <Switch
+                      hideLabel
+                      checked={objective.achieved}
+                      onChange={() => void toggleAchieved(objective)}
+                      label={`Marcar como logrado: ${objective.title}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(objective)}
+                      aria-label={`Eliminar objetivo: ${objective.title}`}
+                      className="text-text-faint hover:text-loss transition-colors"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </>
+                }
+                footer={
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      defaultValue={objective.current_value ?? 0}
+                      onBlur={(e) => void updateProgress(objective, e.target.value)}
+                      className="w-24 bg-ink border border-hairline rounded-sm px-3 py-1.5 font-mono text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
+                    />
+                    <span className="font-mono text-[12px] text-text-faint">/ {objective.target_value}</span>
+                  </div>
+                }
+              />
+            ))}
+          </SettingsGroup>
         </div>
       )}
       <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">

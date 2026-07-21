@@ -203,7 +203,10 @@ user to `null`, and `<ProtectedRoute>` reacts to that itself — an earlier vers
 
 Structure: `pages/` are route-level default exports; `components/` are named exports
 shared across pages (`Nav`, `AppHeader`, `TraceLine`, `WizardLayout`, `ProtectedRoute`,
-`SuperAdminRoute`, `BottomNav`, `Avatar`, `Switch`, `PwaUpdatePrompt`).
+`SuperAdminRoute`, `AppFloatingNav`, `Avatar`, `Switch`, `PwaUpdatePrompt`,
+`SourceAvatar`, `SettingsRow`). `components/ui/` holds shadcn/Radix primitives plus
+`floating-navbar.tsx` (the Aceternity-style pill the app's primary nav is built on —
+see the navigation note below).
 `components/trade/` holds pieces specific to the trade-entry flow (`BrokerPicker`,
 `TechnicalEntryPanel`, `PsychologySection`, `OrderTicketFields` — see "Options trading &
 order tickets" below) plus `TradeListRow` (added commit `7030d01`), extracted from
@@ -232,15 +235,23 @@ mobile, `whitespace-nowrap` on the CTA. If you add a 5th nav item, re-check 375p
 calling it done — this product is mobile-first, and the desktop viewport won't show you
 the failure.
 
-**Navigation was redesigned in commit `7f89396`**: primary nav moved out of `AppHeader`
-entirely and into `<BottomNav/>` ("estilo isla, como Instagram" per its own code comment)
-— `AppHeader` is now wordmark-only. `BottomNav` links to `/dashboard`, `/historial`,
-`/nuevo-trade`, `/noticias`, plus an `<Avatar/>` linking to `/perfil`; it does **not**
-link to `/sistema` or `/ia-trader` directly (reachable via the links list on `Perfil`
-instead). It has no `md:`/`sm:` responsive-hiding classes — it renders at every
-breakpoint, "mobile-first pero también cómoda en desktop," not a mobile-only affordance.
-`AppHeader` and `BottomNav` are rendered together on the same page (e.g. `Sistema.tsx`,
-`Perfil.tsx`) — they're complementary, not alternatives to swap based on viewport.
+**Navigation was redesigned twice**: commit `7f89396` first moved primary nav out of
+`AppHeader` into `<BottomNav/>` (an Instagram-style island bar). It has since been
+replaced by `<AppFloatingNav/>` (`components/AppFloatingNav.tsx`, built on
+`components/ui/floating-navbar.tsx` — an Aceternity-style floating pill ported to
+react-router + framer-motion, which is why `framer-motion` is a dependency). Current
+behavior: a fixed pill centered at `top-1` (inside the `AppHeader` band — the original
+`top-10` floated over page titles), which **hides when scrolling down and reappears
+when scrolling up** (`useScroll` from framer-motion, with a guard for pages too short
+to scroll). It links to `/dashboard`, `/historial`, `/nuevo-trade`, `/noticias`,
+`/perfil` (still no direct `/sistema` or `/ia-trader` links — reachable via `Perfil`),
+and shows **icons only on every breakpoint** (lucide-react icons; words were removed
+by user request — each link keeps its name in `aria-label`/`title`). The right-side
+button is "Salir" (`supabase.auth.signOut()` — no `navigate()` call, same race noted
+above). `AppHeader` remains wordmark-only and renders together with `AppFloatingNav`
+on the same pages. `components/BottomNav.tsx` was deleted; the hand-drawn
+`components/icons/NavIcons.tsx` died with it (kept only for other uses like
+`CameraIcon`).
 
 Same 375px-first lesson caught a second time in `TechnicalEntryPanel`: the
 Cantidad/Precio/Comisiones row was a bare `grid-cols-3`, cramming three numeric inputs
@@ -685,8 +696,9 @@ not the phase table, as the current edge of the product:
   avatar upload" below.
 - **IA Trader / trader plan engine** (`/ia-trader`) — see the route entry near the top
   of "Architecture / conventions" above; it's the one route without `<ProtectedRoute>`.
-- **Navigation redesign** — `BottomNav` took over primary nav from `AppHeader`. See the
-  note under "Architecture / conventions" above.
+- **Navigation redesign** — `AppFloatingNav` (Aceternity-style floating pill, icons
+  only, hides on scroll) took over primary nav from `AppHeader`, replacing the
+  interim `BottomNav`. See the note under "Architecture / conventions" above.
 
 ### Options trading & order tickets
 
@@ -730,11 +742,16 @@ failed extraction still lets the user proceed manually.
 
 ### Noticias (news feed)
 
-`Noticias.tsx` renders an editorial layout (serif masthead, a hero article, then a
-`grid-cols-1 md:grid-cols-2 lg:grid-cols-3` grid for the rest) with category chips that
-are horizontally scrollable on mobile and wrapped/centered on desktop (`overflow-x-auto`
-vs `md:flex-wrap md:justify-center md:overflow-visible` — now **8** chips, still fits the
-375px scroll row, per the code's own comment). "Fuerza fuentes en español" (the original
+`Noticias.tsx` renders **two layouts from the same filtered list** (deliberate, by user
+request — the dense feed is mobile-only): on mobile, a wire-style dense list (one row
+per article — timestamp + source line, then the headline, small thumbnail or
+`SourceAvatar`), and on desktop (`lg:`) a news-platform layout with the first article
+as a hero card (16/9 image + large headline + summary) and the rest in a
+`grid-cols-2 xl:grid-cols-3` card grid. Category pills keep the **same visual design
+on every breakpoint** — the only difference is layout: a horizontally scrollable row
+on mobile (`overflow-x-auto`, scrollbar hidden) vs wrapped/centered on desktop
+(`lg:flex-wrap lg:justify-center lg:overflow-visible` — desktop must never use the
+hidden-scrollbar scroll row, those pills are unreachable with a mouse). "Fuerza fuentes en español" (the original
 design intent, still true for most sources) is **not** a runtime filter — it's the hardcoded
 list of feeds in `supabase/functions/_shared/newsTypes.ts`'s `NEWS_FEEDS`. **As of
 2026-07-20 this list has a deliberate exception**: Yahoo Finance and MarketWatch (English)
@@ -763,8 +780,13 @@ Noticias.tsx's cards link to this internal route now (`<Link to={`/noticias/${id
 instead of opening the source directly in a new tab — the direct-to-source link still
 exists, just one tap deeper, inside the detail page.
 
-`lib/news.ts`'s `fetchNews()` doesn't query `news_articles` or cache anything client-side
-— it always calls `supabase.functions.invoke('fetch-news')`, delegating freshness logic
+`lib/news.ts`'s `fetchNews()` keeps a **5-minute module-level session cache**
+(`CLIENT_CACHE_MS`, volatile memory only — never localStorage, same rule as the service
+worker which never caches Supabase responses) so navigating list → detail → back doesn't
+re-invoke the Edge Function or flash the skeleton; `getNewsArticleById`/
+`getRelatedArticles` also read from that cache first, falling back to a direct
+`news_articles` select (allowed by RLS). Past the cache, it calls
+`supabase.functions.invoke('fetch-news')`, delegating freshness logic
 entirely to the Edge Function. `fetch-news` has **no cron/pg_cron** — refresh happens
 on-demand: if the newest cached row is older than `STALE_MS` (25 minutes), the *next*
 page load triggers a re-fetch of all RSS feeds (`Promise.allSettled`) and an `upsert`
