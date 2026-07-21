@@ -5,11 +5,11 @@
 // en trades. Reusa el mismo contador de uso diario (ai_usage_daily) que
 // analyze-trade: es el mismo presupuesto de "llamadas a IA", no uno aparte.
 //
-// Solo Groq (qwen/qwen3.6-27b, el único modelo con visión que expone Groq hoy
-// — ver console.groq.com/docs/vision) tiene implementación real, igual que
-// analyze-trade. El modelo queda hardcodeado en extractionPrompt.ts en vez de
-// leerse de ai_provider_config: la key de Groq no es por modelo, así que no
-// hace falta una fila de config nueva para esto.
+// Proveedor y modelo salen de ai_provider_config (o de user_ai_settings para
+// BYOK), resueltos dinámicamente vía el registry de abajo — Groq y OpenAI
+// tienen implementación real hoy. El modelo elegido tiene que soportar
+// visión (para Groq eso es qwen/qwen3.6-27b, ver console.groq.com/docs/
+// vision) además de texto, porque analyze-trade usa la misma fila de config.
 import { corsHeaders } from '../_shared/cors.ts'
 import { createServiceClient, createUserClient, readVaultSecret } from '../_shared/supabaseClients.ts'
 import { checkAndIncrementUsage } from '../_shared/rateLimiter.ts'
