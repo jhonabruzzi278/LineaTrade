@@ -4,6 +4,7 @@ import { CameraIcon } from '../icons/NavIcons'
 import { OrderTicketFields, type OrderTicketData } from './OrderTicketFields'
 import { extractTradeFromImage } from '../../lib/tradeImageExtraction'
 import { useToast } from '../../lib/toast'
+import { isValidDateString, isValidTimeString } from '../../lib/tradeDisplay'
 
 export interface TechnicalEntryData {
   photoAttached: boolean
@@ -80,9 +81,16 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
       action: extracted.action ?? data.action,
       optionType: extracted.option_type ?? data.optionType,
       strikePrice: extracted.strike_price != null ? String(extracted.strike_price) : data.strikePrice,
-      expirationDate: extracted.expiration_date ?? data.expirationDate,
-      date: extracted.date ?? data.date,
-      time: extracted.time ?? data.time,
+      // Validamos forma antes de pisar el default — un valor de IA que no
+      // matchea YYYY-MM-DD/HH:MM (el prompt lo pide pero no está forzado por
+      // schema) rendería vacío en el <input type="date/time"> nativo sin
+      // avisar, y recién explotaba al guardar el trade.
+      expirationDate:
+        extracted.expiration_date && isValidDateString(extracted.expiration_date)
+          ? extracted.expiration_date
+          : data.expirationDate,
+      date: extracted.date && isValidDateString(extracted.date) ? extracted.date : data.date,
+      time: extracted.time && isValidTimeString(extracted.time) ? extracted.time : data.time,
       quantity: extracted.quantity != null ? String(extracted.quantity) : data.quantity,
       price: extracted.price != null ? String(extracted.price) : data.price,
       commission: extracted.commission != null ? String(extracted.commission) : data.commission,

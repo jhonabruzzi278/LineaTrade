@@ -30,6 +30,41 @@ export function formatDateOnly(dateOnly: string): string {
   return new Date(year, month - 1, day).toLocaleDateString('es', { dateStyle: 'medium' })
 }
 
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
+const TIME_ONLY_RE = /^\d{2}:\d{2}$/
+
+// La extracción por foto (extract-trade-image) le pide al modelo de IA
+// "fechas en YYYY-MM-DD, horas en HH:MM" en el prompt, pero eso es una
+// instrucción, no algo forzado por schema — un modelo (sobre todo al cambiar
+// de proveedor, ej. Groq a OpenAI) puede devolver un formato distinto sin que
+// la validación de extractionValidator.ts lo rechace (son campos string
+// libres). Antes, ese valor se pisaba directo en el <input type="date/time">
+// del formulario: el input nativo simplemente lo renderiza vacío si no
+// matchea el formato exacto (sin avisar), y "Guardar trade" recién explotaba
+// con "Invalid time value" al armar el ISO — un error real, reproducido
+// siguiendo el flujo normal de extracción con OpenAI. Estas dos funciones
+// evitan que un valor con forma incorrecta llegue a pisar el default.
+export function isValidDateString(value: string): boolean {
+  return DATE_ONLY_RE.test(value)
+}
+
+export function isValidTimeString(value: string): boolean {
+  return TIME_ONLY_RE.test(value)
+}
+
+// Combina fecha/hora locales (ya validadas por forma) en un ISO string,
+// verificando que el resultado sea una fecha real (ej. "2026-13-45" matchea
+// el regex pero sigue siendo inválida) — tira un mensaje en español legible
+// en vez de dejar que new Date(...).toISOString() explote con "Invalid time
+// value", que es lo que veía el usuario antes de este fix.
+export function combineDateTimeToIso(date: string, time: string): string {
+  const parsed = new Date(`${date}T${time}:00`)
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('Fecha u hora inválida — revisá esos campos antes de guardar.')
+  }
+  return parsed.toISOString()
+}
+
 // Formateadores compartidos por los paneles de métricas (Dashboard, Perfil) que leen de
 // v_user_trade_stats — todos sus campos son null hasta que el usuario tiene trades
 // cerrados, y el "—" es deliberado: no fabricar un 0% o un 0.0 donde no hay dato real.

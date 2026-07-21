@@ -9,6 +9,7 @@ import { popularBrokers } from '../data/brokers'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { resolveInstrumentId } from '../lib/instruments'
+import { combineDateTimeToIso } from '../lib/tradeDisplay'
 import { getErrorMessage } from '../lib/errors'
 import type { Database } from '../types/database'
 
@@ -138,7 +139,7 @@ export default function NuevoTrade() {
     if (!user || !hasOrderTicketData(draft.technical.orderTicket)) return
     const ticket = draft.technical.orderTicket
     const orderPlacedAt = ticket.orderPlacedTime
-      ? new Date(`${draft.technical.date}T${ticket.orderPlacedTime}:00`).toISOString()
+      ? combineDateTimeToIso(draft.technical.date, ticket.orderPlacedTime)
       : null
     await supabase.from('trade_orders').insert({
       trade_id: tradeId,
@@ -165,7 +166,7 @@ export default function NuevoTrade() {
         draft.technical.market as InstrumentMarket,
         user.id,
       )
-      const tradedAt = new Date(`${draft.technical.date}T${draft.technical.time}:00`).toISOString()
+      const tradedAt = combineDateTimeToIso(draft.technical.date, draft.technical.time)
       const isOptions = draft.technical.market === 'options'
 
       const { data, error } = await supabase
