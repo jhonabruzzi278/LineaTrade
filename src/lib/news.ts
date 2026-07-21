@@ -23,6 +23,44 @@ interface FetchNewsResponse {
   partial: boolean
 }
 
+/**
+ * Tier de licencia del cuerpo scrapeado (espejo de LicenseTier del Edge
+ * Function fetch-article-body). Sólo dos tiers, deliberadamente — este
+ * producto nunca republica el artículo completo, ver el comentario de
+ * LicenseTier en supabase/functions/_shared/newsTypes.ts. `null` significa
+ * "no se ha fetcheado todavía body de este artículo" — distinto de
+ * `rss-snippet-only` que es un marker persistente de "se intentó y esta
+ * fuente no permite body". El frontend usa este valor para decidir cómo
+ * renderizar el cuerpo + si el CTA externo sigue siendo obligatorio (siempre
+ * lo es, pero el chip de atribución varia).
+ */
+export type BodyLicense = 'fair-use-reprint' | 'rss-snippet-only'
+
+export interface ArticleBody {
+  article_id: string
+  body_text: string | null
+  word_count: number | null
+  content_license: BodyLicense
+  source_url: string
+  fetched_at: string
+}
+
+interface FetchArticleBodyResponse {
+  body: ArticleBody | null
+  cached: boolean
+  reason: string | null
+}
+
+export type FetchArticleBodyResult =
+  | { ok: true; body: ArticleBody | null; reason: string | null; cached: boolean }
+  | { ok: false; message: string }
+
+/** Etiqueta legible en español para el chip de atribución del cuerpo. */
+export const BODY_LICENSE_LABELS: Record<BodyLicense, string> = {
+  'fair-use-reprint': 'Extracto bajo uso justo',
+  'rss-snippet-only': 'Solo resumen del feed',
+}
+
 export type FetchNewsResult =
   | { ok: true; articles: NewsArticle[]; partial: boolean }
   | { ok: false; message: string }
@@ -174,4 +212,55 @@ export function timeAgo(dateIso: string): string {
   const days = Math.floor(hours / 24)
   if (days < 7) return `Hace ${days} d`
   return formatPublished(dateIso)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Cuerpo de artículo (fetch-article-body). Cache en memoria por
+// session — segundo fetch del mismo artículo es sin red. Si el body viene
+// null con reason 'snippet-only', guardamos ese marker también para no
+// re-invocar el Edge Function cada vez que el usuario vuelve a la misma
+// nota (mismo patrón que el cache server-side en news_article_body).
+//
+// Lazy load: nunca se invoca desde /noticias (lista), solo desde
+// /noticias/:id (detalle). El Edge Function scrapea y cachea server-side,
+// así que en cron jobs los top 20 artículos llegan pre-calentados.
+// ─────────────────────────────────────────────────────────────────
+
+const bodyCache = new Map<string, { body: ArticleBody | null; reason: string | null; fetchedAt: number }>()
+const BODY_CLIENT_CACHE_MS = 30 * 60_000 // 30 min — menos que server (24h) por si re-intentamos scrap
+
+export function getCachedArticleBody(id: string): { body: ArticleBody | null; reason: string | null } | null {
+  const cached = bodyCache.get(id)
+  if (!cached) return null
+  if (Date.now() - cached.fetchedAt >= BODY_CLIENT_CACHE_MS) {
+    bodyCache.delete(id)
+    return null
+  }
+  return { body: cached.body, reason: cached.reason }
+}
+
+/** Invoca fetch-article-body — scrapea el cuerpo si la fuente lo permite. */
+export async function getArticleBody(articleId: string): Promise<FetchArticleBodyResult> {
+  const cached = getCachedArticleBody(articleId)
+  if (cached) {
+    return { ok: true, body: cached.body, reason: cached.reason, cached: true }
+  }
+
+  const { data, error } = await supabase.functions.invoke<FetchArticleBodyResponse>('fetch-article-body', {
+    body: { article_id: articleId },
+  })
+
+  if (error) {
+    return { ok: false, message: await getFunctionErrorMessage(error) }
+  }
+  if (!data) {
+    return { ok: false, message: 'No se pudo obtener el cuerpo del artículo.' }
+  }
+
+  bodyCache.set(articleId, {
+    body: data.body,
+    reason: data.reason,
+    fetchedAt: Date.now(),
+  })
+  return { ok: true, body: data.body, reason: data.reason, cached: data.cached }
 }

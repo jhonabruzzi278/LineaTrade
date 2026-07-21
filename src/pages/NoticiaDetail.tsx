@@ -6,12 +6,16 @@ import {
   getNewsArticleById,
   getAdjacentArticleIds,
   getRelatedArticles,
+  getArticleBody,
+  getCachedArticleBody,
   timeAgo,
   formatPublished,
   formatListTimestamp,
   splitIntoParagraphs,
   NEWS_CATEGORY_LABELS,
+  BODY_LICENSE_LABELS,
   type NewsArticle,
+  type ArticleBody,
 } from '../lib/news'
 
 // Umbral en px para que un touchmove horizontal cuente como swipe de
@@ -26,12 +30,15 @@ const SWIPE_THRESHOLD_PX = 60
 // CLAUDE.md) — la navegación global no tiene sentido acá, la salida es el
 // breadcrumb "Noticias" propio de esta pantalla.
 //
-// El contenido sigue siendo solo lo que el feed RSS realmente licencia:
-// título + `summary` (la <description> que la fuente publica para
-// sindicación, acá renderizada como párrafos corridos vía
-// splitIntoParagraphs en vez de bullets — ver ese comentario en lib/news.ts)
-// + imagen. NO es el cuerpo completo del artículo: ningún feed RSS licencia
-// eso, así que el CTA hacia la fuente sigue siendo obligatorio, no un adorno.
+// 2026-07-21 — el contenido ahora va más allá del summary del feed: para
+// fuentes `fair-use-reprint` (ver supabase/functions/_shared/newsTypes.ts),
+// fetch-article-body scrapea sólo h1 + primer párrafo (texto plano) del
+// sitio propio de la fuente. Para `rss-snippet-only` (paywalls, ToS
+// restrictivos, o agregadores que no controlan el dominio destino) sigue
+// solo con el summary del feed. Deliberadamente NO hay un tier de "cuerpo
+// completo" — este producto nunca republica el artículo entero. El CTA
+// externo "Leer la nota completa en {fuente}" permanece SIEMPRE — es el
+// salvavidas legal para ambos tiers.
 export default function NoticiaDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -44,6 +51,10 @@ export default function NoticiaDetail() {
   })
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [body, setBody] = useState<ArticleBody | null>(null)
+  const [bodyLoading, setBodyLoading] = useState(false)
+  const [bodyReason, setBodyReason] = useState<string | null>(null)
+  const [bodyError, setBodyError] = useState<string | null>(null)
   const touchStartX = useRef<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -64,6 +75,26 @@ export default function NoticiaDetail() {
       setLoading(false)
       const relatedArticles = await getRelatedArticles(found.category, found.id)
       if (!cancelled) setRelated(relatedArticles)
+
+      // Lazy load del cuerpo — nunca bloquea el render principal (título,
+      // imagen, summary siempre están primero). Si ya hay body cacheado
+      // en memoria lo usamos al instante, si no invocamos fetch-article-body.
+      const cachedBody = getCachedArticleBody(found.id)
+      if (cachedBody) {
+        setBody(cachedBody.body)
+        setBodyReason(cachedBody.reason)
+        return
+      }
+      setBodyLoading(true)
+      const bodyResult = await getArticleBody(found.id)
+      if (cancelled) return
+      if (bodyResult.ok) {
+        setBody(bodyResult.body)
+        setBodyReason(bodyResult.reason)
+      } else {
+        setBodyError(bodyResult.message)
+      }
+      setBodyLoading(false)
     }
 
     void load()
@@ -233,20 +264,72 @@ export default function NoticiaDetail() {
           </div>
         )}
 
-        {/* Cuerpo de lectura — el resumen del feed como párrafos corridos
-            (splitIntoParagraphs, ver lib/news.ts), no bullets de "puntos
-            clave": para un lector full-screen tipo artículo, texto corrido
-            se siente más a "estoy leyendo la nota" que una lista de
-            highlights. Sigue siendo el mismo `summary` licenciado — de ahí
-            el CTA de abajo, no un cambio de qué datos se muestran. */}
-        {article.summary && (
-          <div className="space-y-4 mb-8">
-            {splitIntoParagraphs(article.summary).map((paragraph, i) => (
-              <p key={i} className="font-body text-[16px] text-text-muted leading-[1.7]">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+        {/* Cuerpo de lectura — 2 modes según tier de licencia del body
+            (deliberadamente sólo 2, nunca cuerpo completo — ver el
+            comentario de LicenseTier en supabase/functions/_shared/newsTypes.ts):
+            1. fair-use-reprint: renderizamos body_text como párrafos (sólo
+               h1 + primer párrafo del original, texto plano, defendible fair
+               use). Atribución + CTA externo obligatorio. El frontend NUNCA
+               decide qué tier toca — lo dicta el Edge Function según
+               NEWS_FEEDS. body_text es siempre texto plano, nunca HTML del
+               sitio scrapeado — no hay dangerouslySetInnerHTML en esta
+               página ni en ninguna otra: contenido de terceros no confiable
+               nunca se inyecta como HTML crudo.
+            2. rss-snippet-only o body null todavía no scrapeado: cae al
+               `summary` del feed (mismo render de antes, splitIntoParagraphs).
+               Pre-fetch on-demand si fetch-article-body todavía no hizo
+               pre-warm del top (raro: el detalle abre desde /noticias donde
+               fetch-news ya corrió).
+            Si bodyLoading está activo (primer detalle sin cache), mostramos
+            el summary sin esperar — el cuerpo scrapeado se "swap-in" cuando
+            llega, sin saltos visuales porque el bloque ocupa similar height. */}
+        {body && body.body_text && body.content_license === 'fair-use-reprint' && (
+          <>
+            <div className="flex items-center gap-2 mb-4 font-mono text-[10px] uppercase tracking-wider text-text-faint">
+              <span className="px-2 py-1 rounded-sm border border-hairline">{BODY_LICENSE_LABELS[body.content_license]}</span>
+              <span>vía {article.source_name}</span>
+            </div>
+            <div className="space-y-4 mb-4">
+              {splitIntoParagraphs(body.body_text).map((paragraph, i) => (
+                <p key={i} className="font-body text-[16px] text-text-muted leading-[1.7]">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            <p className="font-mono text-[11px] text-text-faint mb-8 italic">
+              Extracto atribuido a {article.source_name}. Nota completa debajo.
+            </p>
+          </>
+        )}
+
+        {(!body || (body.content_license === 'rss-snippet-only')) && article.summary && (
+          <>
+            {bodyReason === 'snippet-only' && (
+              <div className="flex items-center gap-2 mb-3 font-mono text-[10px] uppercase tracking-wider text-text-faint">
+                <span className="px-2 py-1 rounded-sm border border-hairline">Solo resumen del feed</span>
+                <span>vía {article.source_name}</span>
+              </div>
+            )}
+            <div className="space-y-4 mb-8">
+              {splitIntoParagraphs(article.summary).map((paragraph, i) => (
+                <p key={i} className="font-body text-[16px] text-text-muted leading-[1.7]">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </>
+        )}
+
+        {bodyLoading && !body && article.summary && (
+          <p className="font-mono text-[11px] text-text-faint mb-4 animate-pulse">
+            Cargando cuerpo…
+          </p>
+        )}
+
+        {bodyError && (
+          <p className="font-mono text-[11px] text-loss/70 mb-6">
+            No se pudo cargar el cuerpo completo — mostrando el resumen.
+          </p>
         )}
 
         <a

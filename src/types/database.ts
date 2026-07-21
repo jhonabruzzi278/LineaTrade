@@ -307,6 +307,41 @@ export type Database = {
           },
         ]
       }
+      news_article_body: {
+        Row: {
+          article_id: string
+          body_text: string | null
+          content_license: string
+          fetched_at: string
+          source_url: string
+          word_count: number | null
+        }
+        Insert: {
+          article_id: string
+          body_text?: string | null
+          content_license: string
+          fetched_at?: string
+          source_url: string
+          word_count?: number | null
+        }
+        Update: {
+          article_id?: string
+          body_text?: string | null
+          content_license?: string
+          fetched_at?: string
+          source_url?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_article_body_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: true
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_articles: {
         Row: {
           category: string
@@ -1074,6 +1109,7 @@ export type Database = {
           users_hit_daily_limit_today: number
         }[]
       }
+      invoke_news_cron_refresh: { Args: never; Returns: undefined }
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }
       set_byok_api_key: {
