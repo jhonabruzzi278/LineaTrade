@@ -143,17 +143,25 @@ export function formatListTimestamp(dateIso: string): string {
   return `${time} · ${day}`
 }
 
+const PARAGRAPH_SENTENCE_COUNT = 2
+
 /**
- * Deriva "puntos clave" a partir del resumen del feed RSS partiéndolo en
- * oraciones — no hay un campo de bullets separado en `news_articles`, así que
- * esto es una aproximación client-side, no una síntesis por IA.
+ * Agrupa el resumen del feed en párrafos cortos (a diferencia de
+ * splitIntoKeyPoints, que recorta a 5 oraciones sueltas como bullets) para el
+ * lector full-screen de NoticiaDetail — conserva el resumen completo como
+ * texto corrido, más parecido a leer el cuerpo de una nota. Sigue siendo el
+ * mismo `summary` licenciado por el feed, no el artículo completo.
  */
-export function splitIntoKeyPoints(summary: string): string[] {
-  return summary
+export function splitIntoParagraphs(summary: string): string[] {
+  const sentences = summary
     .split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ0-9])/)
     .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 12)
-    .slice(0, 5)
+    .filter((sentence) => sentence.length > 0)
+  const paragraphs: string[] = []
+  for (let i = 0; i < sentences.length; i += PARAGRAPH_SENTENCE_COUNT) {
+    paragraphs.push(sentences.slice(i, i + PARAGRAPH_SENTENCE_COUNT).join(' '))
+  }
+  return paragraphs
 }
 
 export function timeAgo(dateIso: string): string {

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { SourceAvatar } from '../components/SourceAvatar'
 import { useToast } from '../lib/toast'
 import {
@@ -11,7 +9,7 @@ import {
   timeAgo,
   formatPublished,
   formatListTimestamp,
-  splitIntoKeyPoints,
+  splitIntoParagraphs,
   NEWS_CATEGORY_LABELS,
   type NewsArticle,
 } from '../lib/news'
@@ -20,11 +18,20 @@ import {
 // navegación en vez de un scroll/tap accidental.
 const SWIPE_THRESHOLD_PX = 60
 
-// Vista de lectura en la app — pero solo hasta donde el feed RSS realmente licencia:
-// título + resumen (`summary`, el <description> que la fuente ya publica para
-// sindicación) + imagen provista por la fuente. El cuerpo completo del artículo vive en
-// el sitio original — reproducirlo acá no está autorizado por ningún feed RSS, así que el
-// CTA hacia la fuente es una pieza necesaria de esta pantalla, no un adorno.
+// Lector full-screen, estilo "una noticia a la vez" (swipe horizontal entre
+// notas, scroll vertical dentro de cada una) — a pedido explícito del
+// usuario, inspirado en apps de noticias tipo TikTok/Apple News. Por eso NO
+// renderiza <AppHeader/>/<AppFloatingNav/>: es una toma de pantalla completa,
+// modo foco, mismo criterio que <WizardLayout/> en Onboarding/NuevoTrade (ver
+// CLAUDE.md) — la navegación global no tiene sentido acá, la salida es el
+// breadcrumb "Noticias" propio de esta pantalla.
+//
+// El contenido sigue siendo solo lo que el feed RSS realmente licencia:
+// título + `summary` (la <description> que la fuente publica para
+// sindicación, acá renderizada como párrafos corridos vía
+// splitIntoParagraphs en vez de bullets — ver ese comentario en lib/news.ts)
+// + imagen. NO es el cuerpo completo del artículo: ningún feed RSS licencia
+// eso, así que el CTA hacia la fuente sigue siendo obligatorio, no un adorno.
 export default function NoticiaDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -38,6 +45,7 @@ export default function NoticiaDetail() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const touchStartX = useRef<number | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!id) return
@@ -62,6 +70,13 @@ export default function NoticiaDetail() {
     return () => {
       cancelled = true
     }
+  }, [id])
+
+  // Volver arriba al cambiar de nota (swipe o flechas) — sin esto, pasar de
+  // una noticia larga (scrolleada hasta el final) a la siguiente la abre a
+  // mitad de página en vez de por el título.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 })
   }, [id])
 
   async function handleShare() {
@@ -96,43 +111,35 @@ export default function NoticiaDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-ink">
-        <AppHeader />
-        <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
-          <p className="font-body text-[14px] text-text-muted">Cargando...</p>
-        </main>
-        <AppFloatingNav />
+      <div className="fixed inset-0 h-[100dvh] w-full bg-ink flex items-center justify-center">
+        <p className="font-body text-[14px] text-text-muted">Cargando...</p>
       </div>
     )
   }
 
   if (notFound || !article) {
     return (
-      <div className="min-h-screen bg-ink">
-        <AppHeader />
-        <main className="max-w-2xl mx-auto px-6 py-10 pb-28 text-center">
-          <p className="font-body text-[15px] text-text-muted mb-4">No encontramos esta noticia.</p>
-          <Link to="/noticias" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
-            Volver a Noticias
-          </Link>
-        </main>
-        <AppFloatingNav />
+      <div className="fixed inset-0 h-[100dvh] w-full bg-ink flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="font-body text-[15px] text-text-muted">No encontramos esta noticia.</p>
+        <Link to="/noticias" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
+          Volver a Noticias
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-ink">
-      <AppHeader />
-      <main
-        className="max-w-2xl mx-auto px-6 py-8 pb-28"
+    <div className="fixed inset-0 h-[100dvh] w-full bg-ink flex flex-col overflow-hidden">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto overscroll-contain px-6 pt-7 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {/* "‹ ›" navegan a la nota anterior/siguiente en el mismo orden del
             listado (ver getAdjacentArticleIds) — el gesto principal es el
             swipe horizontal sobre todo el contenido (handleTouchStart/End
-            en <main>), esto es el equivalente clicable/con teclado para
+            acá arriba), esto es el equivalente clicable/con teclado para
             quien no está en touch. Deshabilitado (no placeholder vacío)
             cuando no hay vecino de ese lado. */}
         <div className="flex items-center justify-between mb-6">
@@ -213,12 +220,8 @@ export default function NoticiaDetail() {
           </span>
         </div>
 
-        {/* Imagen deliberadamente chica (antes: hero a todo ancho en 16:10) —
-            acá es solo contexto visual, no el punto de la pantalla. El valor
-            real es la extracción de "Puntos clave" de abajo, que ahora es lo
-            que domina el espacio. */}
         {article.image_url && (
-          <div className="relative w-full aspect-[21/9] max-h-[160px] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-6">
+          <div className="relative w-full aspect-[16/9] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-7">
             <img
               src={article.image_url}
               alt=""
@@ -230,35 +233,22 @@ export default function NoticiaDetail() {
           </div>
         )}
 
-        {/* Puntos clave — el resumen del feed partido en oraciones, no una
-            síntesis por IA (ver comentario de splitIntoKeyPoints en lib/news.ts).
-            Envuelto en su propia tarjeta (antes: texto suelto sin fondo) para que
-            sea lo primero que destaque en la pantalla, no la imagen. */}
+        {/* Cuerpo de lectura — el resumen del feed como párrafos corridos
+            (splitIntoParagraphs, ver lib/news.ts), no bullets de "puntos
+            clave": para un lector full-screen tipo artículo, texto corrido
+            se siente más a "estoy leyendo la nota" que una lista de
+            highlights. Sigue siendo el mismo `summary` licenciado — de ahí
+            el CTA de abajo, no un cambio de qué datos se muestran. */}
         {article.summary && (
-          <div className="rounded-sm border border-hairline bg-panel-2/60 px-5 py-5 mb-6">
-            <p className="flex items-center gap-1.5 font-mono text-[12px] font-bold uppercase tracking-wider text-signal mb-4">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
-              </svg>
-              Puntos clave
-            </p>
-            <ul className="space-y-3.5">
-              {splitIntoKeyPoints(article.summary).map((point, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 mt-[3px] text-signal">
-                    <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
-                  </svg>
-                  <span className="font-body text-[15px] text-text-primary leading-[1.6]">{point}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-4 mb-8">
+            {splitIntoParagraphs(article.summary).map((paragraph, i) => (
+              <p key={i} className="font-body text-[16px] text-text-muted leading-[1.7]">
+                {paragraph}
+              </p>
+            ))}
           </div>
         )}
 
-        {/* CTA principal a todo ancho — antes competía por espacio con el botón
-            de compartir en la misma fila; compartir ya se movió al masthead de
-            arriba, así que esta es la única acción acá, la más prominente de
-            la pantalla después de los puntos clave. */}
         <a
           href={article.url}
           target="_blank"
@@ -320,8 +310,55 @@ export default function NoticiaDetail() {
             </div>
           </>
         )}
-      </main>
-      <AppFloatingNav />
+
+        <div className="h-6" />
+      </div>
+
+      {/* Barra inferior fija — controles siempre accesibles aunque el
+          contenido de arriba (largo, en artículos con mucho `summary`) esté
+          scrolleado lejos del breadcrumb. `env(safe-area-inset-bottom)`
+          mismo criterio que <AppFloatingNav/> para no quedar debajo de la
+          gesture bar en la PWA/TWA instalada. */}
+      <div
+        className="shrink-0 flex items-center justify-between border-t border-hairline bg-panel/95 backdrop-blur-md px-5 py-3"
+        style={{ paddingBottom: 'max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom)))' }}
+      >
+        <Link
+          to="/noticias"
+          className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors"
+        >
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+            <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Noticias
+        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={!adjacent.prevId}
+            onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)}
+            aria-label="Noticia anterior"
+            title="Noticia anterior"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <path d="M9 1 3 7l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            disabled={!adjacent.nextId}
+            onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)}
+            aria-label="Siguiente noticia"
+            title="Siguiente noticia"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <path d="M5 1 11 7l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
