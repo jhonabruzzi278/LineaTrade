@@ -27,6 +27,11 @@ export default defineConfig({
       // financieros/de sesión que tienen que ser siempre en vivo.
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // Sin esto, el service worker intercepta la navegación a /downloads/lineatrade.apk
+        // (no está en el precache a propósito, ver comentario de globPatterns arriba) y
+        // sirve el fallback de SPA (index.html) en su lugar — el usuario "descarga" un
+        // .apk que en realidad es HTML, y Android lo rechaza como paquete inválido.
+        navigateFallbackDenylist: [/^\/downloads\//],
       },
       manifest: {
         id: '/',
