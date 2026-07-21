@@ -167,6 +167,14 @@ export default function NoticiaDetail() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {/* max-w-2xl — sin esto, en desktop el título/párrafos/imagen se
+            estiran al ancho completo del viewport (líneas de +150 caracteres,
+            imagen desproporcionada). Este ancho es el de lectura editorial
+            estándar (~65-75 caracteres por línea a este tamaño de fuente),
+            deliberadamente más angosto que el max-w-5xl que usan las páginas
+            con grillas/cards del resto de la app — acá es una sola columna
+            de texto corrido, no un layout multi-columna. */}
+        <div className="max-w-2xl mx-auto">
         {/* "‹ ›" navegan a la nota anterior/siguiente en el mismo orden del
             listado (ver getAdjacentArticleIds) — el gesto principal es el
             swipe horizontal sobre todo el contenido (handleTouchStart/End
@@ -395,6 +403,7 @@ export default function NoticiaDetail() {
         )}
 
         <div className="h-6" />
+        </div>
       </div>
 
       {/* Barra inferior fija — controles siempre accesibles aunque el
@@ -403,43 +412,45 @@ export default function NoticiaDetail() {
           mismo criterio que <AppFloatingNav/> para no quedar debajo de la
           gesture bar en la PWA/TWA instalada. */}
       <div
-        className="shrink-0 flex items-center justify-between border-t border-hairline bg-panel/95 backdrop-blur-md px-5 py-3"
+        className="shrink-0 border-t border-hairline bg-panel/95 backdrop-blur-md px-5 py-3"
         style={{ paddingBottom: 'max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom)))' }}
       >
-        <Link
-          to="/noticias"
-          className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors"
-        >
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-            <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Noticias
-        </Link>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={!adjacent.prevId}
-            onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)}
-            aria-label="Noticia anterior"
-            title="Noticia anterior"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <Link
+            to="/noticias"
+            className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors"
           >
-            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-              <path d="M9 1 3 7l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
-          <button
-            type="button"
-            disabled={!adjacent.nextId}
-            onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)}
-            aria-label="Siguiente noticia"
-            title="Siguiente noticia"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
-          >
-            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-              <path d="M5 1 11 7l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+            Noticias
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!adjacent.prevId}
+              onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)}
+              aria-label="Noticia anterior"
+              title="Noticia anterior"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                <path d="M9 1 3 7l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              disabled={!adjacent.nextId}
+              onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)}
+              aria-label="Siguiente noticia"
+              title="Siguiente noticia"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                <path d="M5 1 11 7l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
