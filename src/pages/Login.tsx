@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
-import { hasPendingQuizAnswers } from '../lib/traderQuizStorage'
+import { resolvePostAuthPath } from '../lib/postAuthRedirect'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -24,23 +24,13 @@ export default function Login() {
       return
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('onboarding_done')
-      .eq('id', data.user.id)
-      .single()
-    setLoading(false)
-
-    if (profileError) {
-      setError(getErrorMessage(profileError))
-      return
+    try {
+      navigate(await resolvePostAuthPath(data.user.id))
+    } catch (resolveError: unknown) {
+      setError(getErrorMessage(resolveError))
+    } finally {
+      setLoading(false)
     }
-
-    if (hasPendingQuizAnswers()) {
-      navigate('/ia-trader')
-      return
-    }
-    navigate(profile.onboarding_done ? '/dashboard' : '/onboarding')
   }
 
   return (
@@ -63,6 +53,8 @@ export default function Login() {
             <input
               id="email"
               type="email"
+              name="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -86,6 +78,8 @@ export default function Login() {
             <input
               id="password"
               type="password"
+              name="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

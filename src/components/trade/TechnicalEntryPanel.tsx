@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
+import { ImagePlus } from 'lucide-react'
 import { BuyIcon, SellIcon } from '../icons/TradeIcons'
-import { CameraIcon } from '../icons/NavIcons'
 import { OrderTicketFields, type OrderTicketData } from './OrderTicketFields'
 import { extractTradeFromImage } from '../../lib/tradeImageExtraction'
 import { useToast } from '../../lib/toast'
@@ -120,10 +120,10 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
           >
             <div className="hero-aura left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[220px] h-[160px]" aria-hidden="true" />
             <span className="relative w-12 h-12 rounded-full bg-signal/10 border border-signal/30 flex items-center justify-center text-signal">
-              <CameraIcon className="w-5 h-5" />
+              <ImagePlus className="w-5 h-5" />
             </span>
             <span className="relative font-body text-[14px] text-text-primary">
-              {photoLoading ? 'Leyendo la imagen con IA...' : 'Sacá una foto o subí la captura de tu bróker'}
+              {photoLoading ? 'Leyendo la imagen con IA...' : 'Subí la captura de tu bróker desde tu galería'}
             </span>
             <span className="relative font-mono text-[11px] text-text-faint">
               La IA pre-llena el formulario — vos lo revisás antes de guardar
@@ -132,7 +132,6 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
               id="trade-photo"
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               disabled={photoLoading}
               onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
@@ -147,7 +146,7 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
               <img src={photoPreview} alt="" className="w-10 h-10 rounded-sm object-cover border border-hairline shrink-0" />
             ) : (
               <span className="w-10 h-10 rounded-sm bg-signal/10 border border-signal/30 flex items-center justify-center text-signal shrink-0">
-                <CameraIcon className="w-4 h-4" />
+                <ImagePlus className="w-4 h-4" />
               </span>
             )}
             <div className="min-w-0 flex-1">

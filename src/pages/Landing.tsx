@@ -1,8 +1,12 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { TraceLine } from '../components/TraceLine'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
+import { useAuth } from '../lib/auth'
+import { resolvePostAuthPath } from '../lib/postAuthRedirect'
+import { isStandaloneDisplay } from '../lib/standalone'
 import { useToast } from '../lib/toast'
 
 // Actualizar esta ruta cuando el APK real esté generado y subido (ver guía de
@@ -67,8 +71,50 @@ const entries = [
 ]
 
 export default function Landing() {
+  const { user, loading } = useAuth()
   const { canInstall, promptInstall } = useInstallPrompt()
   const { showToast } = useToast()
+  const [authedPath, setAuthedPath] = useState<string | null>(null)
+
+  // Un usuario que ya tiene sesión activa (p. ej. volviendo del enlace de
+  // confirmación de email — Supabase detecta el token en la URL y abre sesión
+  // antes de que este componente renderice) nunca debería ver la landing de
+  // marketing con un botón "Ingresar": antes obligaba a tocar Ingresar y
+  // volver a escribir usuario/contraseña con una sesión ya válida. Se manda
+  // directo a la app, igual que ProtectedRoute hace lo inverso.
+  useEffect(() => {
+    if (!user) {
+      setAuthedPath(null)
+      return
+    }
+    let cancelled = false
+    resolvePostAuthPath(user.id)
+      .then((path) => {
+        if (!cancelled) setAuthedPath(path)
+      })
+      .catch(() => {
+        if (!cancelled) setAuthedPath('/dashboard')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  if (loading || (user && !authedPath)) {
+    return <div className="min-h-screen bg-ink" />
+  }
+  if (authedPath) {
+    return <Navigate to={authedPath} replace />
+  }
+  // La app instalada (PWA agregada a inicio / TWA del APK) tampoco debería
+  // mostrar nunca la landing de marketing: si no hay sesión, va directo a
+  // /login (que linkea a /registro para altas nuevas). vite.config.ts ya evita
+  // esto en el arranque normal desde el ícono (start_url: /dashboard); esto
+  // cubre cualquier otro link a "/" navegado sin sesión — el caso real es el
+  // enlace de confirmación de email cuando por algún motivo no trae sesión.
+  if (isStandaloneDisplay()) {
+    return <Navigate to="/login" replace />
+  }
 
   const handleInstallClick = async () => {
     if (canInstall) {

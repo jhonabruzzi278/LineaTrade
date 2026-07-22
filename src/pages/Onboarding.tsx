@@ -235,13 +235,13 @@ function OnboardingComplete() {
         <p className="font-mono text-[13px] text-signal mb-4">todo listo</p>
         <h1 className="font-display text-[26px] text-text-primary mb-3">Tu bitácora está lista</h1>
         <p className="font-body text-[15px] text-text-muted leading-relaxed">
-          Ya puedes registrar tu primer trade.
+          Explora tu dashboard y registra tu primer trade cuando quieras.
         </p>
         <Link
-          to="/nuevo-trade"
+          to="/dashboard"
           className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mt-8"
         >
-          Registrar mi primer trade
+          Ir a mi Dashboard
         </Link>
       </main>
     </div>
