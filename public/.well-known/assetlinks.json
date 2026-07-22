@@ -4,7 +4,10 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.lineartrade.app",
-      "sha256_cert_fingerprints": ["E0:95:B6:05:EE:AC:E3:E6:91:99:AF:E9:B6:81:37:07:72:42:63:57:CE:6D:00:D2:D7:FF:CA:16:21:E8:59:EF"]
+      "sha256_cert_fingerprints": [
+        "90:15:CD:AC:C2:4B:17:C3:BC:E4:79:10:05:00:C9:B5:44:A0:78:CF:BF:5D:85:56:23:F0:13:BA:77:17:DE:E2",
+        "E0:95:B6:05:EE:AC:E3:E6:91:99:AF:E9:B6:81:37:07:72:42:63:57:CE:6D:00:D2:D7:FF:CA:16:21:E8:59:EF"
+      ]
     }
   }
 ]
