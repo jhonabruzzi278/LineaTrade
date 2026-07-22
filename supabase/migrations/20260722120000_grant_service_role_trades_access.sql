@@ -1,0 +1,11 @@
+-- send-trade-reminders corre con service_role y necesita leer trades de
+-- TODOS los usuarios (para saber quién ya registró un trade hoy y no
+-- mandarle el recordatorio) — la tabla trades solo tenía grant a
+-- "authenticated" (20260701223500_grant_authenticated_privileges.sql), nunca
+-- a service_role, porque hasta ahora ningún Edge Function necesitaba leerla
+-- cross-user. Mismo bug class ya documentado en CLAUDE.md (grants faltantes
+-- para service_role) — capturado localmente al probar la función antes de
+-- deployar: "permission denied for table trades".
+--
+-- Solo select: send-trade-reminders nunca escribe trades, solo lee.
+grant select on public.trades to service_role;

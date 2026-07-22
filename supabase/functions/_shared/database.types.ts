@@ -488,6 +488,41 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategies: {
         Row: {
           created_at: string
@@ -962,6 +997,7 @@ export type Database = {
       }
       user_ai_settings: {
         Row: {
+          byok_model: string | null
           byok_provider: string | null
           byok_secret_id: string | null
           updated_at: string
@@ -969,6 +1005,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          byok_model?: string | null
           byok_provider?: string | null
           byok_secret_id?: string | null
           updated_at?: string
@@ -976,6 +1013,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          byok_model?: string | null
           byok_provider?: string | null
           byok_secret_id?: string | null
           updated_at?: string
@@ -1083,6 +1121,7 @@ export type Database = {
       get_byok_status: {
         Args: never
         Returns: {
+          byok_model: string
           byok_provider: string
           is_configured: boolean
           updated_at: string
@@ -1110,14 +1149,23 @@ export type Database = {
         }[]
       }
       invoke_news_cron_refresh: { Args: never; Returns: undefined }
+      invoke_trade_reminder_cron: { Args: never; Returns: undefined }
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }
       set_byok_api_key: {
-        Args: { p_api_key: string; p_provider: string }
+        Args: { p_api_key: string; p_model: string; p_provider: string }
         Returns: undefined
       }
       set_provider_api_key: {
         Args: { p_api_key: string; p_provider_config_id: string }
+        Returns: undefined
+      }
+      set_provider_model: {
+        Args: {
+          p_model_name: string
+          p_provider_config_id: string
+          p_provider_name: string
+        }
         Returns: undefined
       }
     }

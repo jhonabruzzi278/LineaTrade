@@ -21,11 +21,13 @@ import EliminarCuenta from './pages/EliminarCuenta'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
+import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt'
 
 export default function App() {
   return (
     <BrowserRouter>
       <PwaUpdatePrompt />
+      <NotificationPermissionPrompt />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/registro" element={<Signup />} />

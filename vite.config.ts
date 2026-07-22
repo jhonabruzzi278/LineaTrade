@@ -32,6 +32,11 @@ export default defineConfig({
         // sirve el fallback de SPA (index.html) en su lugar — el usuario "descarga" un
         // .apk que en realidad es HTML, y Android lo rechaza como paquete inválido.
         navigateFallbackDenylist: [/^\/downloads\//],
+        // Inyecta los listeners de push/notificationclick (public/sw-push.js)
+        // en el SW generado por workbox — ver el comentario de ese archivo
+        // para por qué esto y no la estrategia injectManifest. ?v=1: bump si
+        // se edita sw-push.js, para que los clientes lo vuelvan a pedir.
+        importScripts: ['/sw-push.js?v=1'],
       },
       manifest: {
         id: '/',
