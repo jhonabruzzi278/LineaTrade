@@ -440,10 +440,11 @@ editorial choice and wasn't touched.
 
 The database is real and the frontend is wired to it. Setup:
 
-- **Migrations**: `supabase/migrations/*.sql`, **43 files** (recounted 2026-07-22 while
-  wiring push notifications — the "34 files" figure from the 2026-07-20 resync was
-  *already* stale before this session even started; recount with
-  `ls supabase/migrations/ | wc -l` before trusting this number next time too). The
+- **Migrations**: `supabase/migrations/*.sql`, **44 files** (43 as of the 2026-07-22
+  push-notifications recount, +1 for the 2026-07-27 admin-panel-metrics migration below —
+  recount with `ls supabase/migrations/ | wc -l` before trusting this number next time
+  too, same lesson as the "34 files" figure that was already stale before the 2026-07-22
+  session even started). The
   first 26 are as previously documented: 10 one-per-schema-doc-section migrations
   (extensions + profiles, instruments, strategies/rules, trades, trade_history audit
   trigger, trade_images + storage bucket, trade_threads, objectives, AI tables,
@@ -516,8 +517,23 @@ The database is real and the frontend is wired to it. Setup:
      the exact bug class in "Three real RLS/security bugs" below, recurring again (it
      already hit `news_articles` and the AI tables the same way).
 
+  **44 (2026-07-27) extends `/admin`'s metrics** — see "Fase 4 (SuperAdmin)" under
+  "Roadmap phases" below for the full story; migration-level summary:
+  1. `20260727100000_admin_panel_extra_metrics.sql` — drops and recreates
+     `get_system_metrics()` (Postgres won't `CREATE OR REPLACE` a `RETURNS TABLE` whose
+     column list changed) adding 10 aggregate columns covering every "Beyond Fase 4"
+     feature that had no metric at all until now: noticias, IA Trader, push, Sistema,
+     opciones, BYOK adoption. Also adds `get_cron_job_health()` (reads
+     `cron.job`/`cron.job_run_details` directly — the same tables Supabase Studio's own
+     "Cron Jobs" UI reads) and `get_cron_secrets_status()` (checks only the *existence*,
+     never the value, of the 4 Vault secrets `invoke_news_cron_refresh()`/
+     `invoke_trade_reminder_cron()` need to actually fire). Both new RPCs follow the
+     exact `security definer` + `is_superadmin()` + `audit_log`-insert contract the
+     original `get_system_metrics()` (20260704090000) already established — no new
+     security model introduced.
+
   The schema doc (`docs/trade-journal-os-schema.md`) is the source of truth for the
-  original 26; it predates migrations 27-43 and hasn't been updated for them — treat the
+  original 26; it predates migrations 27-44 and hasn't been updated for them — treat the
   migrations themselves as the source of truth for anything the doc doesn't cover. If
   you need a schema change, add a **new** migration (never edit an already-applied one,
   per the doc's own §11).
@@ -856,6 +872,31 @@ all users deliberately, unlike the per-user `v_user_trade_stats` view). Sentry/P
 observability from the PRD's "Intended full stack" is **not** wired up yet — treat that
 as still open if someone asks about error tracking or product analytics.
 
+**2026-07-27: `get_system_metrics()` extended, plus two new RPCs, to cover the "Beyond
+Fase 4" blind spot** — every feature listed below (noticias, IA Trader, push, Sistema,
+opciones, BYOK) had shipped with zero visibility in `/admin`; the panel still only
+reflected the original users/trades/AI-usage shape from this function's first version.
+`get_system_metrics()` (migration `20260727100000`, dropped and recreated since
+Postgres won't `CREATE OR REPLACE` a changed `RETURNS TABLE` column list) now also
+returns totals for `news_articles`, `trader_plans` (total + distinct users), 
+`push_subscriptions`, `objectives`/`trader_rules`/`strategies`, options-market trades,
+and BYOK adoption (`user_ai_settings.use_own_key`). Two new RPCs cover infra health that
+had no metric of any kind before: `get_cron_job_health()` (last run + status of the 6
+pg_cron jobs backing noticias/recordatorios, reading `cron.job`/`cron.job_run_details`
+directly) and `get_cron_secrets_status()` (whether the 4 Vault secrets those cron jobs
+need are actually configured — checks existence only, never the value). The secrets
+check exists because `invoke_news_cron_refresh()`/`invoke_trade_reminder_cron()` (see
+migrations `20260721130000`/`20260722110000`) swallow a missing-secret condition with
+`raise warning` instead of an exception, so `cron.job_run_details.status` reads
+`'succeeded'` even on a run that never actually dispatched the HTTP call — exactly what
+happened for real in production before this (see "Push notification deployment" below,
+"Real discovery made while doing this"). Both new RPCs follow the original function's
+security contract exactly: `security definer` + `is_superadmin()` gate + an `audit_log`
+insert before returning anything, verified locally end-to-end (promoted a real test user
+to `superadmin`, called all three RPCs through PostgREST with its token, confirmed a
+non-superadmin gets `insufficient_privilege` on all three, and confirmed each call wrote
+its `audit_log` row) rather than just checked for a clean `tsc`/build.
+
 ### Beyond Fase 4
 
 None of this has a formal phase number — it shipped after the roadmap's 5 phases were
@@ -885,6 +926,11 @@ not the phase table, as the current edge of the product:
   pre-prompt screen) plus a Web Push reminder 2x/day asking "¿ya registraste tu trade de
   hoy?", skipped for anyone who already logged one. See "Notificaciones push
   (recordatorio diario)" below.
+- **Panel de admin — métricas extendidas y salud de cron** — `/admin` gained
+  feature-adoption counts for every bullet in this list plus a cron-job health/secrets
+  section, closing the gap where everything shipped after Fase 4 had zero visibility in
+  the SuperAdmin panel. See "Fase 4 (SuperAdmin)" above (the 2026-07-27 addendum) for
+  the full story.
 
 ### Options trading & order tickets
 
