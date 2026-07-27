@@ -1128,22 +1128,50 @@ export type Database = {
           use_own_key: boolean
         }[]
       }
+      get_cron_job_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          job_name: string
+          last_run_at: string
+          last_run_message: string
+          last_run_status: string
+          schedule: string
+        }[]
+      }
+      get_cron_secrets_status: {
+        Args: never
+        Returns: {
+          is_configured: boolean
+          secret_name: string
+        }[]
+      }
       get_system_metrics: {
         Args: never
         Returns: {
+          active_strategies: number
+          active_trader_rules: number
           active_users_30d: number
           active_users_7d: number
           ai_analyses_7d: number
           ai_tokens_used_7d: number
+          byok_users: number
           closed_trades: number
           default_ai_model: string
           default_ai_provider: string
           generated_at: string
           new_users_7d: number
+          news_latest_fetched_at: string
           open_trades: number
+          options_trades_total: number
+          push_subscriptions_total: number
           total_ai_analyses: number
+          total_news_articles: number
+          total_objectives: number
           total_trades: number
           total_users: number
+          trader_plans_total: number
+          trader_plans_unique_users: number
           trades_7d: number
           users_hit_daily_limit_today: number
         }[]

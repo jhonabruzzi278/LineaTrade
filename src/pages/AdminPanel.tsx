@@ -9,6 +9,8 @@ import type { Database } from '../types/database'
 
 type SystemMetrics = Database['public']['Functions']['get_system_metrics']['Returns'][number]
 type ProviderConfig = Database['public']['Tables']['ai_provider_config']['Row']
+type CronJobHealth = Database['public']['Functions']['get_cron_job_health']['Returns'][number]
+type CronSecretStatus = Database['public']['Functions']['get_cron_secrets_status']['Returns'][number]
 
 export default function AdminPanel() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null)
@@ -60,6 +62,7 @@ export default function AdminPanel() {
               <MetricCard label="Abiertos" value={String(metrics.open_trades)} />
               <MetricCard label="Cerrados" value={String(metrics.closed_trades)} />
               <MetricCard label="Últimos 7 días" value={String(metrics.trades_7d)} />
+              <MetricCard label="Opciones" value={String(metrics.options_trades_total)} />
             </Section>
 
             <Section title="Motor de IA">
@@ -68,12 +71,28 @@ export default function AdminPanel() {
               <MetricCard label="Tokens usados (7d)" value={String(metrics.ai_tokens_used_7d)} />
               <MetricCard label="Usuarios en límite hoy" value={String(metrics.users_hit_daily_limit_today)} />
               <MetricCard label="Proveedor activo" value={formatProvider(metrics)} />
+              <MetricCard label="Usuarios con BYOK" value={String(metrics.byok_users)} />
+            </Section>
+
+            <Section title="Noticias & IA Trader">
+              <MetricCard label="Artículos totales" value={String(metrics.total_news_articles)} />
+              <MetricCard label="Última actualización" value={formatDate(metrics.news_latest_fetched_at)} />
+              <MetricCard label="Planes generados" value={String(metrics.trader_plans_total)} />
+              <MetricCard label="Usuarios únicos" value={String(metrics.trader_plans_unique_users)} />
+            </Section>
+
+            <Section title="Notificaciones y Sistema">
+              <MetricCard label="Suscripciones push" value={String(metrics.push_subscriptions_total)} />
+              <MetricCard label="Objetivos" value={String(metrics.total_objectives)} />
+              <MetricCard label="Reglas activas" value={String(metrics.active_trader_rules)} />
+              <MetricCard label="Estrategias activas" value={String(metrics.active_strategies)} />
             </Section>
 
             <p className="font-mono text-[11px] text-text-faint mb-10">
               Actualizado: {new Date(metrics.generated_at).toLocaleString('es-AR')}
             </p>
 
+            <CronHealthSection />
             <ProviderConfigSection />
           </>
         )}
@@ -273,6 +292,125 @@ function ProviderConfigSection() {
 function formatProvider(metrics: SystemMetrics): string {
   if (!metrics.default_ai_provider) return '—'
   return `${metrics.default_ai_provider} · ${metrics.default_ai_model ?? '—'}`
+}
+
+function formatDate(value: string | null | undefined): string {
+  return value ? new Date(value).toLocaleString('es-AR') : '—'
+}
+
+// Nombres de job crudos (cron.job.jobname, ver 20260721130000_news_cron_jobs.sql
+// y 20260722110000_trade_reminder_cron_jobs.sql) traducidos a algo legible. Si
+// se agrega un job nuevo y no está acá, se muestra el nombre crudo como
+// fallback en vez de romper.
+const CRON_JOB_LABELS: Record<string, string> = {
+  'news-premarket': 'Noticias · pre-market',
+  'market-open': 'Noticias · apertura',
+  'market-close': 'Noticias · cierre',
+  'post-close': 'Noticias · post-cierre',
+  'trade-reminder-afternoon': 'Recordatorio · tarde',
+  'trade-reminder-evening': 'Recordatorio · noche',
+}
+
+const CRON_SECRET_LABELS: Record<string, string> = {
+  project_url: 'URL del proyecto',
+  publishable_key: 'Publishable key',
+  news_cron_secret: 'Secret de noticias',
+  trade_reminder_cron_secret: 'Secret de recordatorios',
+}
+
+// invoke_news_cron_refresh()/invoke_trade_reminder_cron() solo hacen `raise
+// warning` y `return` si faltan secrets en Vault — no lanzan excepción, así
+// que cron.job_run_details muestra 'succeeded' igual aunque el POST real
+// nunca haya salido (así pasó dos veces en producción, ver CLAUDE.md). Por
+// eso esta sección muestra el checklist de secrets Y el último run de cada
+// job: ninguno de los dos solo alcanza para confirmar que el cron funciona
+// de verdad.
+function CronHealthSection() {
+  const [jobs, setJobs] = useState<CronJobHealth[]>([])
+  const [secrets, setSecrets] = useState<CronSecretStatus[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      const [jobsResult, secretsResult] = await Promise.all([
+        supabase.rpc('get_cron_job_health'),
+        supabase.rpc('get_cron_secrets_status'),
+      ])
+      if (cancelled) return
+      if (jobsResult.error) {
+        setError(getErrorMessage(jobsResult.error))
+      } else if (secretsResult.error) {
+        setError(getErrorMessage(secretsResult.error))
+      } else {
+        setJobs(jobsResult.data ?? [])
+        setSecrets(secretsResult.data ?? [])
+      }
+      setLoading(false)
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (loading) return null
+
+  return (
+    <Section title="Cron jobs (noticias y recordatorios)">
+      <div className="col-span-2 md:col-span-4 border border-hairline rounded-sm bg-panel px-5 py-4">
+        {error && <p className="font-body text-[13px] text-loss mb-4">{error}</p>}
+
+        <div className="flex flex-wrap gap-2 mb-5">
+          {secrets.map((s) => (
+            <span
+              key={s.secret_name}
+              className={`font-mono text-[11px] px-2 py-1 rounded-sm border ${
+                s.is_configured ? 'text-gain border-gain/30' : 'text-loss border-loss/30'
+              }`}
+            >
+              {s.is_configured ? '✓' : '✗'} {CRON_SECRET_LABELS[s.secret_name] ?? s.secret_name}
+            </span>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {jobs.map((job) => (
+            <div
+              key={job.job_name}
+              className="flex items-center justify-between gap-3 border-t border-hairline pt-2 first:border-t-0 first:pt-0"
+            >
+              <div>
+                <p className="font-body text-[14px] text-text-primary">
+                  {CRON_JOB_LABELS[job.job_name] ?? job.job_name}
+                </p>
+                <p className="font-mono text-[11px] text-text-faint">
+                  {job.schedule} UTC · {job.active ? 'activo' : 'pausado'}
+                </p>
+              </div>
+              <div className="text-right">
+                <p
+                  className={`font-mono text-[12px] ${
+                    job.last_run_status === 'succeeded'
+                      ? 'text-gain'
+                      : job.last_run_status
+                        ? 'text-loss'
+                        : 'text-text-faint'
+                  }`}
+                >
+                  {job.last_run_status ?? 'sin registros'}
+                </p>
+                <p className="font-mono text-[11px] text-text-faint">{formatDate(job.last_run_at)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  )
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
