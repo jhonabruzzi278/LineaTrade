@@ -62,6 +62,11 @@ export function TradeListRow({ trade, index, showDate = false }: TradeListRowPro
           >
             {trade.side}
           </span>
+          {trade.is_backtest && (
+            <span className="shrink-0 font-mono text-[11px] px-2 py-0.5 rounded-sm border border-signal/30 text-signal">
+              práctica
+            </span>
+          )}
         </div>
         <span className="flex items-center gap-2 shrink-0">
           <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>

@@ -254,6 +254,56 @@ export type Database = {
           },
         ]
       }
+      backtest_sessions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          initial_balance: number
+          provider: string
+          replay_from: string
+          replay_to: string
+          started_at: string
+          symbol: string
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          initial_balance?: number
+          provider?: string
+          replay_from: string
+          replay_to: string
+          started_at?: string
+          symbol: string
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          initial_balance?: number
+          provider?: string
+          replay_from?: string
+          replay_to?: string
+          started_at?: string
+          symbol?: string
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backtest_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instruments: {
         Row: {
           contract_size: number | null
@@ -837,6 +887,7 @@ export type Database = {
       }
       trades: {
         Row: {
+          backtest_session_id: string | null
           commission: number | null
           confidence_level: number | null
           confirmations: string | null
@@ -855,6 +906,7 @@ export type Database = {
           had_fomo: boolean | null
           id: string
           instrument_id: string
+          is_backtest: boolean
           lesson_learned: string | null
           main_mistake: string | null
           management_notes: string | null
@@ -882,6 +934,7 @@ export type Database = {
           what_to_repeat: string | null
         }
         Insert: {
+          backtest_session_id?: string | null
           commission?: number | null
           confidence_level?: number | null
           confirmations?: string | null
@@ -900,6 +953,7 @@ export type Database = {
           had_fomo?: boolean | null
           id?: string
           instrument_id: string
+          is_backtest?: boolean
           lesson_learned?: string | null
           main_mistake?: string | null
           management_notes?: string | null
@@ -927,6 +981,7 @@ export type Database = {
           what_to_repeat?: string | null
         }
         Update: {
+          backtest_session_id?: string | null
           commission?: number | null
           confidence_level?: number | null
           confirmations?: string | null
@@ -945,6 +1000,7 @@ export type Database = {
           had_fomo?: boolean | null
           id?: string
           instrument_id?: string
+          is_backtest?: boolean
           lesson_learned?: string | null
           main_mistake?: string | null
           management_notes?: string | null
@@ -972,6 +1028,13 @@ export type Database = {
           what_to_repeat?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "trades_backtest_session_id_fkey"
+            columns: ["backtest_session_id"]
+            isOneToOne: false
+            referencedRelation: "backtest_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trades_instrument_id_fkey"
             columns: ["instrument_id"]

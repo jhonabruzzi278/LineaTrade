@@ -34,6 +34,7 @@ export default function Dashboard() {
         supabase
           .from('trades')
           .select('*, instruments(symbol, market)')
+          .eq('is_backtest', false)
           .order('traded_at', { ascending: false })
           .limit(RECENT_TRADES_LIMIT),
         supabase.from('v_user_trade_stats').select('*').eq('user_id', user!.id).maybeSingle(),

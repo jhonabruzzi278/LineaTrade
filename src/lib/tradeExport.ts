@@ -6,6 +6,7 @@ type TradeRow = Database['public']['Tables']['trades']['Row'] & {
 
 const CSV_COLUMNS = [
   'fecha',
+  'tipo',
   'simbolo',
   'mercado',
   'lado',
@@ -38,6 +39,7 @@ function escapeCsvField(value: string | number | null | undefined): string {
 function tradeToRow(trade: TradeRow): string {
   const fields: (string | number | null)[] = [
     trade.traded_at,
+    trade.is_backtest ? 'practica' : 'real',
     trade.instruments?.symbol ?? '',
     trade.instruments?.market ?? '',
     trade.side,

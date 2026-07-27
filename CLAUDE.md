@@ -440,11 +440,11 @@ editorial choice and wasn't touched.
 
 The database is real and the frontend is wired to it. Setup:
 
-- **Migrations**: `supabase/migrations/*.sql`, **44 files** (43 as of the 2026-07-22
-  push-notifications recount, +1 for the 2026-07-27 admin-panel-metrics migration below —
-  recount with `ls supabase/migrations/ | wc -l` before trusting this number next time
-  too, same lesson as the "34 files" figure that was already stale before the 2026-07-22
-  session even started). The
+- **Migrations**: `supabase/migrations/*.sql`, **45 files** (43 as of the 2026-07-22
+  push-notifications recount, +2 for the two 2026-07-27 migrations below — admin-panel
+  metrics and the backtesting MVP — recount with `ls supabase/migrations/ | wc -l`
+  before trusting this number next time too, same lesson as the "34 files" figure that
+  was already stale before the 2026-07-22 session even started). The
   first 26 are as previously documented: 10 one-per-schema-doc-section migrations
   (extensions + profiles, instruments, strategies/rules, trades, trade_history audit
   trigger, trade_images + storage bucket, trade_threads, objectives, AI tables,
@@ -532,8 +532,19 @@ The database is real and the frontend is wired to it. Setup:
      original `get_system_metrics()` (20260704090000) already established — no new
      security model introduced.
 
+  **45 (2026-07-27) is the backtesting MVP** — see "Backtesting (Market Replay)" under
+  "Beyond Fase 4" below for the full story; migration-level summary:
+  1. `20260727110000_backtesting_mvp.sql` — adds `backtest_sessions` (one row per
+     Market Replay run) and `trades.is_backtest`/`trades.backtest_session_id`, then
+     `CREATE OR REPLACE VIEW`s all 4 existing aggregate views that read `trades`
+     (`v_user_trade_stats`, `v_user_stats_by_strategy`, `v_user_stats_by_emotion`,
+     `v_rule_violations`) to add `is_backtest = false` to their `WHERE` — a practice
+     trade must never inflate a real Profit Factor. Only the two tables this MVP
+     actually needs shipped — `confluence_types`/`chart_annotations`/`trade_confluences`
+     from the original plan doc do not exist yet, see "Backtesting" below for why.
+
   The schema doc (`docs/trade-journal-os-schema.md`) is the source of truth for the
-  original 26; it predates migrations 27-44 and hasn't been updated for them — treat the
+  original 26; it predates migrations 27-45 and hasn't been updated for them — treat the
   migrations themselves as the source of truth for anything the doc doesn't cover. If
   you need a schema change, add a **new** migration (never edit an already-applied one,
   per the doc's own §11).
@@ -931,6 +942,13 @@ not the phase table, as the current edge of the product:
   section, closing the gap where everything shipped after Fase 4 had zero visibility in
   the SuperAdmin panel. See "Fase 4 (SuperAdmin)" above (the 2026-07-27 addendum) for
   the full story.
+- **Backtesting (Market Replay)** (`/backtesting`, linked from a CTA on `/ia-trader`) —
+  pick a symbol/temporalidad, replay real historical Binance candles without seeing the
+  future, and execute simulated trades that land as real `trades` rows (flagged
+  `is_backtest`, excluded from every aggregate stat). Core replay-and-execute slice
+  only, from a much larger pre-written plan — the semantic drawing/confluence system,
+  extended dashboard, and pattern engine are explicitly deferred. See "Backtesting
+  (Market Replay)" below.
 
 ### Options trading & order tickets
 
@@ -1226,6 +1244,172 @@ the home screen (it doesn't work in a plain Safari tab). `isPushSupported()` in
 never asks for permission where it isn't supported — no fallback prompt. Since this
 product's install path is primarily Android/TWA (see "PWA-to-APK" above), this isn't the
 main path, but it does mean iOS users don't get this feature yet.
+
+### Backtesting (Market Replay)
+
+Added 2026-07-27, from a pre-written implementation plan
+(`docs/lineatrade-backtesting-plan.md`) specifying 9 modules: chart replay, semantic
+drawing of "confluences" (FVG, liquidity, order blocks, CHoCH, BOS, supply/demand
+zones) via a custom chart plugin, automatic confluence-tracking per trade, an extended
+dashboard, a confluence-type manager in `/sistema`, and a pattern-recognition engine
+(deterministic + optional AI narrative). Built at explicit request as "the most
+accessible" slice — this pass shipped only the core replay-and-execute loop (the plan's
+own Fases A/B/C/E); the drawing/confluence subsystem, extended dashboard, and pattern
+engine are **not built**. See the plan doc's own Section 10 checklist (updated the same
+day) for exactly what shipped vs. what's deferred and why — it flags the drawing system
+itself as "la parte técnicamente más difícil... vale la pena un spike de un día antes de
+comprometerse," which is the actual reason it wasn't rushed into the same pass.
+
+**What exists**: `/backtesting` (protected route, linked from a CTA on `/ia-trader` —
+"Analiza tus estrategias con backtesting," placed there per explicit request rather than
+the plan doc's own suggestion of `Perfil.tsx`). Pick a symbol (free text + quick-picks
+for BTCUSDT/ETHUSDT/SOLUSDT/BNBUSDT) and a temporalidad (`lib/marketData/types.ts`'s
+`MarketInterval`, 1m through 1d), defaulting to 15m — ~1 month of lookback, chosen to
+stay "accessible" (a handful of paginated Binance requests, not hundreds).
+`lib/marketData/binanceProvider.ts` implements a `MarketDataProvider` interface against
+Binance's public, keyless, CORS-enabled `/api/v3/klines` endpoint (hard limit: 1000
+candles/request); `lib/marketData/klineCache.ts` paginates backward with `endTime`
+until it hits the temporalidad's `MAX_LOOKBACK_BY_INTERVAL`, then caches the result in
+memory per `provider:symbol:interval` — no TTL, since closed historical candles never
+change (unlike `lib/news.ts`'s cache, which exists specifically because its content
+*can* go stale). `useMarketReplay.ts` exposes a `currentIndex` into that array plus
+step/play/speed controls; the chart (`ChartEngine.tsx`, `lightweight-charts` 5.2.0,
+this project's first charting dependency) only ever receives
+`klines.slice(0, currentIndex + 1)` — "hiding the future" is a real slice boundary, not
+a visual trick, so there's no way to see a future candle by inspecting state or the DOM.
+Opening/closing a simulated position (`BacktestOrderPanel.tsx` →
+`lib/backtestTrades.ts`) inserts/updates a **real** row in `trades` — `is_backtest =
+true`, `backtest_session_id` pointing at a `backtest_sessions` row
+(`lib/backtestSessions.ts`) — using the current replay candle's `close` as the
+execution price (the same simplification the plan doc itself proposed as the default:
+"más simple, determinístico"). Closing reuses the exact `update({ exit_price, status:
+'closed' })` pattern `TradeDetail.tsx` already uses for real trades, so
+`trg_calculate_trade_pnl` computes `pnl_amount`/`pnl_r` with zero new trigger code — a
+backtest trade is a completely normal `trades` row apart from one flag.
+
+**A practice trade must never be mistaken for, or pollute, a real one — but Historial
+is deliberately the one place it should still be *visible*.** Same principle as the
+`is_backtest` column comment, enforced in four places, three of which the plan doc
+didn't specify and were only caught by testing the actual browser flow end-to-end, not
+just SQL:
+1. The 4 existing aggregate stat views (migration `20260727110000`) now exclude
+   `is_backtest = true` — resolves the plan's own "decisión abierta #1".
+2. **Real bug, caught live**: `Dashboard.tsx`'s "Últimos trades" list is a direct query
+   against `trades`, not one of the 4 views — it kept showing a backtest trade
+   indistinguishably from a real one until this was caught by actually opening and
+   closing a practice trade in the browser and checking `/dashboard` afterward. Fixed
+   with `.eq('is_backtest', false)` on that query.
+3. **Real bug, same pass**: `TradeListRow.tsx` (shared by Dashboard and Historial) had
+   no visual indicator at all — in Historial, where a backtest trade *should* appear
+   (it's genuinely part of what the user did), there was no way to tell it apart from a
+   real one. Fixed with a conditional "práctica" badge next to the side badge.
+4. **Historial itself needed the opposite fix from Dashboard, not the same one** — an
+   external code-review pass flagged that `Historial.tsx`'s win rate/count read every
+   trade unfiltered and its CSV export made a practice trade byte-for-byte
+   indistinguishable from a real one, and the first fix applied (copying Dashboard's
+   `.eq('is_backtest', false)`) was wrong for this specific screen: it silently hid
+   backtest trades from Historial entirely, making the "práctica" badge from point 3
+   unreachable dead code and contradicting the whole reason that badge exists.
+   Corrected to: fetch every trade (backtest included) so Historial still shows
+   everything the user did, but compute `winRate` from a real-only subset
+   (`!t.is_backtest`), and add a `tipo` (`real`/`practica`) column to
+   `lib/tradeExport.ts`'s CSV so an exported row is never ambiguous either.
+
+**Verified for real, not mocked**: created a throwaway local user, logged in through
+the actual browser, picked BTCUSDT/15m, and confirmed via the running app that Binance
+returned exactly 2880 candles (30 days × 24h × 4 fifteen-minute candles — the
+pagination math in `klineCache.ts` lining up exactly against real data, not an
+assumption). Stepped the replay forward, opened a long at a real fetched price
+(60640.01), closed it three candles later at another real fetched price (60811.67), and
+confirmed by direct SQL that the resulting `trades` row had `pnl_amount = 171.66` —
+computed by the pre-existing trigger, matching the UI's "+171.66" exactly. Confirmed
+`/dashboard`'s stat cards and recent-trades list both correctly ignored that trade while
+`/historial` correctly showed it with the new badge. Confirmed the explicit "Finalizar
+sesión" button sets `backtest_sessions.ended_at`; also confirmed — and accepted as a
+documented limitation, same "no reliable way to wait for a request in `beforeunload`"
+reasoning already established for `NotificationPermissionPrompt` — that a **hard**
+navigation away (closing the tab, typing a new URL, this session's own browser-
+automation tooling navigating) does *not* reliably set `ended_at`, since the JS context
+can be torn down before the unmount cleanup's fetch completes; a normal in-app
+`<Link>`/SPA transition does not have this problem. `ended_at` is bookkeeping only —
+nothing else reads it yet — so this was accepted rather than solved with something
+heavier like `navigator.sendBeacon`.
+
+**One real, disclosed verification gap**: the automated browser used to build this
+could not visually confirm the candles actually paint on screen. Diagnosed, not
+assumed: `document.querySelectorAll('canvas')` showed every canvas element correctly
+sized via CSS (matching the container's real layout) but stuck at the browser default
+300×150 *bitmap* dimensions with zero non-transparent pixels — and a direct test proved
+`requestAnimationFrame` never fires at all in that pane (a 2-second timeout, zero
+callbacks), lining up exactly with the "the Browser pane is not displayed, so the page
+is not compositing frames" error this same tooling gives for screenshots. Any canvas
+library that paints via `requestAnimationFrame` — the standard, correct way to do it,
+not a mistake — looks blank under this specific constraint regardless of whether the
+code is right. Same category as the native push-permission dialog two sections up:
+something only a real, visible browser can confirm. Indirect evidence the pipeline
+itself is correct: zero console errors through the whole flow, the exact expected
+candle count from a real fetch, and a real trade with a correctly-computed PnL landing
+in the database — but nobody has actually looked at the rendered chart yet. Worth a
+real-device check before relying on this feature.
+
+**`lightweight-charts`' `autoSize: true` silently ignores manual `chart.resize()`
+calls** whenever a `ResizeObserver` is available (documented in the library's own
+`.d.ts`) — `ChartEngine.tsx` uses its own `ResizeObserver` instead, calling
+`chart.resize(width, height, true)` directly, for real control over when a resize
+happens rather than trusting the library's internal timing.
+
+**Crypto only — forex/stocks explicitly pending, not forgotten.** `binanceProvider.ts`
+is the only `MarketDataProvider` implementation that exists. The plan doc's own MVP
+scope already called this out ("Forex/acciones quedan para después, detrás de la misma
+interfaz `MarketDataProvider`"), and it's confirmed here as the deliberate current
+state, at explicit user request, rather than something to infer from the code alone.
+Binance's public klines endpoint is free and keyless; every forex data provider worth
+using requires an API key (and usually a paid tier), which is real added scope — a
+Vault-backed key, a provider-selection UI, rate limiting — not just a new file
+implementing the existing interface. Whoever picks this up next should start by
+confirming a forex provider's actual free-tier limits before assuming the same
+"most accessible" MVP treatment applies.
+
+**2026-07-27, same day: a real mobile-overflow bug and a real desktop over-stretch bug,
+both found by measuring, not eyeballing.** At explicit request ("tiene que sentirse
+como usar TradingView," both mobile and desktop, accesibilidad incluida), audited
+`/backtesting`'s active-replay screen at 375px and 1440px with
+`getBoundingClientRect()` on every button/input rather than just looking at
+screenshots (this session's browser pane can't screenshot — see the caveat above —
+so exact-coordinate measurement was the only reliable verification method available,
+and it turned out to catch real bugs a screenshot might have too):
+- **Mobile (375px), real bug**: `ReplayControls.tsx`'s single `flex justify-between`
+  row packed 4 icon buttons + a counter + 4 speed-select buttons into one line.
+  Measured directly: the last speed button (`6.7x`) rendered at `right: 404px` against
+  a 375px viewport — 29px off-screen, unreachable, not scrollable (the page root has
+  `overflow-hidden`, so it wasn't even a scrollbar-away problem, it was fully
+  inaccessible). Fixed with a two-row mobile layout (`flex-col`, playback+counter on
+  row 1, speed buttons centered with `flex-wrap` as a fallback on row 2) that
+  collapses back into one row at `sm:` (640px+). Re-measured after the fix: max button
+  right edge 282px, comfortably inside the viewport.
+- **Mobile, same pass**: `BacktestOrderPanel.tsx`'s stop-loss/take-profit/cantidad row
+  used a bare `grid-cols-3` — the exact anti-pattern already documented above under
+  "Same 375px-first lesson caught a second time" for `TechnicalEntryPanel.tsx`, just
+  not caught here the first time. Fixed with the same `grid-cols-2 md:grid-cols-3`
+  this codebase already established as the house pattern for a 3-numeric-input row.
+- **Desktop (1440px), real bug in the opposite direction**: neither control bar had a
+  max-width, so at 1440px the Comprar/Vender buttons measured 698px wide *each*, and
+  the stop-loss/take-profit/cantidad inputs 464px wide each — technically not broken
+  (nothing overlapped), but nowhere near "feels like TradingView": a real trading
+  platform's toolbars stay compact and centered even on an ultrawide monitor, only the
+  chart itself fills the space. Fixed by wrapping each bar's actual controls in
+  `max-w-2xl mx-auto` while leaving the bar's background and the progress scrubber
+  full-bleed (same visual language as a video player's control bar) and leaving
+  `ChartEngine`'s container untouched — confirmed after the fix the chart is still a
+  full 1440px wide while the buttons dropped to 330px and the inputs to 219px.
+- **Accessibility**: `ReplayControls.tsx`'s four icon-only buttons (reset/back/play/
+  forward) had `title` attributes but no `aria-label` — a tooltip is not the same as
+  what a screen reader announces for an unlabeled icon button. Added matching
+  `aria-label`s, `aria-pressed` on the speed buttons, and `role="group"` +
+  `aria-label` on the speed-button container. No new `focus:outline-none` was added
+  anywhere in this feature, so every new interactive element still gets the browser's
+  native focus ring for keyboard users — same policy as the rest of this codebase's
+  form inputs already follow.
 
 ### Closing a trade
 

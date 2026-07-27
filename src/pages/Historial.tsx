@@ -30,6 +30,11 @@ export default function Historial() {
     let cancelled = false
 
     async function load() {
+      // A diferencia de Dashboard, acá SÍ se traen las operaciones de práctica —
+      // Historial es el registro completo de lo que hiciste, backtesting incluido
+      // (TradeListRow ya las marca con el badge "práctica"). Lo que sí queda
+      // protegido es el win rate de abajo, calculado aparte solo sobre trades
+      // reales — nunca debe inflarse/desinflarse con operaciones ficticias.
       const { data, error: fetchError } = await supabase
         .from('trades')
         .select('*, instruments(symbol, market)')
@@ -60,7 +65,7 @@ export default function Historial() {
   }, [trades, search, statusFilter])
 
   const winRate = useMemo(() => {
-    const closed = trades.filter((t) => t.status === 'closed')
+    const closed = trades.filter((t) => t.status === 'closed' && !t.is_backtest)
     if (closed.length === 0) return null
     const wins = closed.filter((t) => (t.pnl_amount ?? 0) > 0).length
     return Math.round((wins / closed.length) * 100)

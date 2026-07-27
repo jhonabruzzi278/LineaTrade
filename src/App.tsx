@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Signup from './pages/Signup'
@@ -22,6 +23,19 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt'
+
+// lightweight-charts (~solo esta ruta la usa) es la dependencia más pesada del
+// bundle — code-split para no cargarla en las otras ~20 rutas que nunca la tocan.
+// Ver CLAUDE.md "Backtesting (Market Replay)".
+const Backtesting = lazy(() => import('./pages/Backtesting'))
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-ink flex items-center justify-center">
+      <p className="font-body text-[14px] text-text-muted">Cargando...</p>
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -114,6 +128,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <NoticiaDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/backtesting"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<RouteFallback />}>
+                <Backtesting />
+              </Suspense>
             </ProtectedRoute>
           }
         />

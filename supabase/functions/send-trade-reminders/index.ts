@@ -81,6 +81,7 @@ Deno.serve(async (req: Request) => {
     .select('user_id')
     .in('user_id', userIds)
     .is('deleted_at', null)
+    .eq('is_backtest', false)
     .gte('traded_at', utcDayStartIso())
 
   if (tradesError) {

@@ -52,6 +52,7 @@ export async function buildAIContext(
         .eq('user_id', trade.user_id)
         .eq('status', 'closed')
         .is('deleted_at', null)
+        .eq('is_backtest', false)
         .order('traded_at', { ascending: false })
         .limit(RECENT_TRADES_LIMIT),
     ])
