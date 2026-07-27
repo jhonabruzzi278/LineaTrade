@@ -238,21 +238,6 @@ export default function IaTrader() {
             </Link>
           </div>
         )}
-
-        <div className="mt-10 pt-8 border-t border-hairline">
-          <p className="font-mono text-[11px] text-signal mb-2">nuevo</p>
-          <h2 className="font-display text-[20px] text-text-primary mb-2">Practica antes de operar en serio</h2>
-          <p className="font-body text-[14px] text-text-muted mb-5">
-            Repasá velas históricas reales, vela por vela, y ejecutá operaciones simuladas sin ver el futuro.
-            Quedan guardadas en tu historial marcadas como práctica — nunca afectan tus estadísticas reales.
-          </p>
-          <Link
-            to="/backtesting"
-            className="inline-block font-body text-[14px] px-5 py-3 rounded-sm border border-signal/40 text-signal hover:bg-signal/10 transition-colors"
-          >
-            Analiza tus estrategias con backtesting
-          </Link>
-        </div>
       </main>
       {user && <AppFloatingNav />}
     </div>

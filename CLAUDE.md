@@ -942,7 +942,8 @@ not the phase table, as the current edge of the product:
   section, closing the gap where everything shipped after Fase 4 had zero visibility in
   the SuperAdmin panel. See "Fase 4 (SuperAdmin)" above (the 2026-07-27 addendum) for
   the full story.
-- **Backtesting (Market Replay)** (`/backtesting`, linked from a CTA on `/ia-trader`) —
+- **Backtesting (Market Replay)** (`/backtesting`, linked from a CTA card on
+  `/dashboard`, directly below the `/ia-trader` card) —
   pick a symbol/temporalidad, replay real historical Binance candles without seeing the
   future, and execute simulated trades that land as real `trades` rows (flagged
   `is_backtest`, excluded from every aggregate stat). Core replay-and-execute slice
@@ -1260,9 +1261,15 @@ day) for exactly what shipped vs. what's deferred and why — it flags the drawi
 itself as "la parte técnicamente más difícil... vale la pena un spike de un día antes de
 comprometerse," which is the actual reason it wasn't rushed into the same pass.
 
-**What exists**: `/backtesting` (protected route, linked from a CTA on `/ia-trader` —
-"Analiza tus estrategias con backtesting," placed there per explicit request rather than
-the plan doc's own suggestion of `Perfil.tsx`). Pick a symbol (free text + quick-picks
+**What exists**: `/backtesting` (protected route). The entry-point CTA moved twice
+before landing where it is now: first added to `/ia-trader` (as a bordered section
+below the plan report) at explicit request, neither that nor the plan doc's own
+suggestion of `Perfil.tsx`; then moved again, same day, to `Dashboard.tsx` — a second
+`<Link>` card ("market replay · Analiza tus estrategias con backtesting →") directly
+below the existing `/ia-trader` card ("test de perfil · Convierte la IA en tu trader
+→"), reusing that exact card's markup/classes for visual consistency rather than
+inventing a new promo-card style, and removed entirely from `IaTrader.tsx`. Pick a
+symbol (free text + quick-picks
 for BTCUSDT/ETHUSDT/SOLUSDT/BNBUSDT) and a temporalidad (`lib/marketData/types.ts`'s
 `MarketInterval`, 1m through 1d), defaulting to 15m — ~1 month of lookback, chosen to
 stay "accessible" (a handful of paginated Binance requests, not hundreds).

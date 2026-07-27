@@ -113,6 +113,19 @@ export default function Dashboard() {
           </span>
         </Link>
 
+        <Link
+          to="/backtesting"
+          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
+        >
+          <div>
+            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">market replay</p>
+            <p className="font-body text-[14px] text-text-primary">Analiza tus estrategias con backtesting</p>
+          </div>
+          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
+            →
+          </span>
+        </Link>
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-[18px] text-text-primary">Últimos trades</h2>
           <Link to="/historial" className="font-body text-[13px] text-signal hover:text-signal-dim transition-colors">
