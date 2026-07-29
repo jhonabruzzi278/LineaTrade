@@ -10,12 +10,15 @@ export interface TechnicalEntryData {
   photoAttached: boolean
   market: string
   symbol: string
+  timeframe: string
   action: 'long' | 'short'
   date: string
   time: string
   quantity: string
   price: string
   stopLoss: string
+  takeProfit: string
+  riskPercent: string
   commission: string
   optionType: 'call' | 'put'
   strikePrice: string
@@ -37,6 +40,8 @@ const marketOptions = [
   { value: 'index', label: 'Índices' },
   { value: 'cfd', label: 'CFD' },
 ]
+
+const timeframeOptions = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1']
 
 const inputClasses =
   'w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors'
@@ -251,6 +256,17 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
             </Field>
           </div>
 
+          <Field label="Temporalidad (opcional)">
+            <select value={data.timeframe} onChange={(e) => set('timeframe', e.target.value)} className={inputClasses}>
+              <option value="">Sin especificar</option>
+              {timeframeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Field label={isOptions ? 'Contratos' : 'Cantidad'}>
               <input
@@ -289,19 +305,41 @@ export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps
             </Field>
           </div>
 
-          <Field label="Stop loss (opcional)">
-            <input
-              type="number"
-              step="0.001"
-              value={data.stopLoss}
-              onChange={(e) => set('stopLoss', e.target.value)}
-              placeholder="0.000"
-              className={inputClasses}
-            />
-            <p className="font-mono text-[11px] text-text-faint mt-1.5">
-              Define tu R — sin esto no podemos calcular el rendimiento en R al cerrar el trade.
-            </p>
-          </Field>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Field label="Stop loss (opcional)">
+              <input
+                type="number"
+                step="0.001"
+                value={data.stopLoss}
+                onChange={(e) => set('stopLoss', e.target.value)}
+                placeholder="0.000"
+                className={inputClasses}
+              />
+              <p className="font-mono text-[11px] text-text-faint mt-1.5">
+                Sin esto no podemos calcular el rendimiento en R al cerrar el trade.
+              </p>
+            </Field>
+            <Field label="Take profit (opcional)">
+              <input
+                type="number"
+                step="0.001"
+                value={data.takeProfit}
+                onChange={(e) => set('takeProfit', e.target.value)}
+                placeholder="0.000"
+                className={inputClasses}
+              />
+            </Field>
+            <Field label="Riesgo % (opcional)">
+              <input
+                type="number"
+                step="0.01"
+                value={data.riskPercent}
+                onChange={(e) => set('riskPercent', e.target.value)}
+                placeholder="1.00"
+                className={inputClasses}
+              />
+            </Field>
+          </div>
 
           <OrderTicketFields data={data.orderTicket} onChange={(orderTicket) => set('orderTicket', orderTicket)} />
         </div>

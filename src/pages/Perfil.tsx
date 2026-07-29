@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
+import type { Area } from 'react-easy-crop'
 import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
+import { AvatarCropModal } from '../components/AvatarCropModal'
 import { getInitials } from '../components/Avatar'
 import { MetricCard } from '../components/MetricCard'
 import { onboardingSteps } from '../data/onboarding'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { uploadAvatar } from '../lib/avatarUpload'
+import { getCroppedImageFile } from '../lib/cropImage'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
@@ -25,6 +28,32 @@ function optionLabel(stepId: string, value: string | null): string | null {
   return step?.options.find((o) => o.value === value)?.label ?? value
 }
 
+// Solo el rango en número (a pedido) — no el texto descriptivo completo del
+// onboarding ("Menos de 1 año" → "< 1").
+function experienceRange(value: string | null): string | null {
+  switch (value) {
+    case 'lt_1y':
+      return '< 1'
+    case '1_3y':
+      return '1-3'
+    case '3_5y':
+      return '3-5'
+    case 'gt_5y':
+      return '> 5'
+    default:
+      return null
+  }
+}
+
+// El tag "Cuenta" mostraba antes el tipo de cuenta (texto: "Cuenta personal",
+// etc.) — a pedido, ahora es un dato numérico también: antigüedad en la
+// plataforma, calculada a partir de profiles.created_at.
+function accountAgeDays(createdAt: string | undefined): number | null {
+  if (!createdAt) return null
+  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  return Math.max(0, days)
+}
+
 export default function Perfil() {
   const { user, role, avatarUrl, refreshProfile } = useAuth()
   const { showToast } = useToast()
@@ -33,6 +62,8 @@ export default function Perfil() {
   const [loading, setLoading] = useState(true)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -59,14 +90,36 @@ export default function Perfil() {
     void supabase.auth.signOut()
   }
 
-  async function handleAvatarSelected(file: File | undefined) {
-    if (!file || !user) return
+  // Selección de archivo abre el modal de recorte en vez de subir directo —
+  // ahí es donde vive el preview grande + el seleccionador de espacio de recorte.
+  function handleFileSelected(file: File | undefined) {
+    if (!file) return
+    setPhotoError('')
+    setPendingFile(file)
+    setCropSrc(URL.createObjectURL(file))
+  }
+
+  function closeCropModal() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    setPendingFile(null)
+  }
+
+  async function handleCropConfirm(area: Area) {
+    if (!cropSrc || !pendingFile || !user) return
     setPhotoUploading(true)
     setPhotoError('')
     try {
-      await uploadAvatar(file, user.id)
+      const croppedFile = await getCroppedImageFile(
+        cropSrc,
+        area,
+        pendingFile.name,
+        pendingFile.type || 'image/jpeg',
+      )
+      await uploadAvatar(croppedFile, user.id)
       await refreshProfile()
       showToast('Foto de perfil actualizada.', 'success')
+      closeCropModal()
     } catch (error: unknown) {
       setPhotoError(getErrorMessage(error))
     } finally {
@@ -74,10 +127,11 @@ export default function Perfil() {
     }
   }
 
+  const accountAge = accountAgeDays(profile?.created_at)
   const facts = profile
     ? [
-        { key: 'experience', label: 'Experiencia', value: optionLabel('experience', profile.trading_experience) },
-        { key: 'accountType', label: 'Cuenta', value: optionLabel('accountType', profile.account_type) },
+        { key: 'experience', label: 'Experiencia', value: experienceRange(profile.trading_experience) },
+        { key: 'accountAge', label: 'Antigüedad', value: accountAge !== null ? `${accountAge} días` : null },
         { key: 'broker', label: 'Broker', value: optionLabel('broker', profile.primary_broker) },
       ].filter((fact): fact is { key: string; label: string; value: string } => Boolean(fact.value))
     : []
@@ -96,18 +150,20 @@ export default function Perfil() {
               htmlFor="avatar-upload"
               className={`group relative shrink-0 cursor-pointer ${photoUploading ? 'opacity-60 pointer-events-none' : ''}`}
             >
-              <span className="block w-16 h-16 rounded-full bg-panel-2 border border-hairline overflow-hidden flex items-center justify-center font-mono text-[18px] text-signal transition-all duration-200 group-hover:border-signal/60 group-hover:shadow-glow">
+              {/* Preview más grande que antes (64px → 96px) para que la foto
+                  actual se vea con más detalle en la tarjeta de perfil. */}
+              <span className="block w-24 h-24 rounded-full bg-panel-2 border border-hairline overflow-hidden flex items-center justify-center font-mono text-[24px] text-signal transition-all duration-200 group-hover:border-signal/60 group-hover:shadow-glow">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   getInitials(user?.email)
                 )}
               </span>
-              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-signal border-2 border-ink flex items-center justify-center text-ink">
+              <span className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-signal border-2 border-ink flex items-center justify-center text-ink">
                 {photoUploading ? (
-                  <span className="w-3 h-3 border-2 border-ink/40 border-t-ink rounded-full animate-spin" aria-hidden="true" />
+                  <span className="w-3.5 h-3.5 border-2 border-ink/40 border-t-ink rounded-full animate-spin" aria-hidden="true" />
                 ) : (
-                  <CameraIcon className="w-3 h-3" />
+                  <CameraIcon className="w-3.5 h-3.5" />
                 )}
               </span>
               <input
@@ -116,7 +172,7 @@ export default function Perfil() {
                 accept="image/*"
                 className="hidden"
                 disabled={photoUploading}
-                onChange={(e) => void handleAvatarSelected(e.target.files?.[0])}
+                onChange={(e) => handleFileSelected(e.target.files?.[0])}
               />
             </label>
             {/* Jerarquía clara: nombre grande arriba (con fallback genérico, no el
@@ -223,6 +279,14 @@ export default function Perfil() {
         </p>
       </main>
       <AppFloatingNav />
+      {cropSrc && (
+        <AvatarCropModal
+          imageSrc={cropSrc}
+          saving={photoUploading}
+          onCancel={closeCropModal}
+          onConfirm={(area) => void handleCropConfirm(area)}
+        />
+      )}
     </div>
   )
 }

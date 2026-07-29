@@ -20,7 +20,9 @@ import { FloatingNav } from './ui/floating-navbar'
 // sesión ahora es una acción explícita dentro de Perfil, no un ícono más en
 // la navegación global.
 const ICON_CLASS = 'h-[18px] w-[18px]'
-const AVATAR_SIZE = 'w-[22px] h-[22px]'
+// Más grande que el resto de los íconos (18px) a propósito: es la foto real
+// del usuario, no un glifo genérico, y se pidió que destaque más en la barra.
+const AVATAR_SIZE = 'w-[28px] h-[28px]'
 
 export function AppFloatingNav() {
   const { user, avatarUrl } = useAuth()
@@ -43,7 +45,7 @@ export function AppFloatingNav() {
         <img src={avatarUrl} alt="" className={`${AVATAR_SIZE} rounded-full object-cover`} />
       ) : (
         <span
-          className={`${AVATAR_SIZE} rounded-full bg-panel border border-hairline flex items-center justify-center font-mono text-[9px] text-signal`}
+          className={`${AVATAR_SIZE} rounded-full bg-panel border border-hairline flex items-center justify-center font-mono text-[10px] text-signal`}
         >
           {getInitials(user?.email)}
         </span>

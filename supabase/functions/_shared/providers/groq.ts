@@ -56,6 +56,7 @@ export const groqProvider: AIProvider = {
         ...(req.forceJson ? { response_format: { type: 'json_object' } } : {}),
         messages: [
           { role: 'system', content: req.systemPrompt },
+          ...(req.history ?? []).map((m) => ({ role: m.role, content: m.content })),
           { role: 'user', content: buildUserContent(req) },
         ],
       }),

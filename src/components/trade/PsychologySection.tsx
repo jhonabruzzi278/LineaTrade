@@ -4,10 +4,18 @@ export interface PsychologyData {
   emotion: string
   confidenceLevel: number
   stressLevel: number
+  fearLevel: number
+  anxietyLevel: number
   followedPlan: boolean
   hadFomo: boolean
   movedStopLoss: boolean
   overtraded: boolean
+  closedEarly: boolean
+  movedTakeProfit: boolean
+  enteredImpulsively: boolean
+  hesitated: boolean
+  overconfidence: boolean
+  hadDistractions: boolean
 }
 
 interface PsychologySectionProps {
@@ -15,7 +23,17 @@ interface PsychologySectionProps {
   onChange: (next: PsychologyData) => void
 }
 
-type PsychologyBooleanKey = 'followedPlan' | 'hadFomo' | 'movedStopLoss' | 'overtraded'
+type PsychologyBooleanKey =
+  | 'followedPlan'
+  | 'hadFomo'
+  | 'movedStopLoss'
+  | 'overtraded'
+  | 'closedEarly'
+  | 'movedTakeProfit'
+  | 'enteredImpulsively'
+  | 'hesitated'
+  | 'overconfidence'
+  | 'hadDistractions'
 
 const emotionOptions = ['Confianza', 'Ansiedad', 'Euforia', 'Miedo', 'Frustración', 'Calma', 'Impulsividad', 'Duda']
 
@@ -23,7 +41,13 @@ const checkboxFields: Array<{ key: PsychologyBooleanKey; label: string }> = [
   { key: 'followedPlan', label: 'Seguí mi plan' },
   { key: 'hadFomo', label: 'Tuve FOMO' },
   { key: 'movedStopLoss', label: 'Moví el stop loss' },
+  { key: 'movedTakeProfit', label: 'Moví el take profit' },
   { key: 'overtraded', label: 'Sobre-operé (overtrading)' },
+  { key: 'closedEarly', label: 'Cerré antes de tiempo' },
+  { key: 'enteredImpulsively', label: 'Entré por impulso' },
+  { key: 'hesitated', label: 'Dudé antes de entrar' },
+  { key: 'overconfidence', label: 'Exceso de confianza' },
+  { key: 'hadDistractions', label: 'Tuve distracciones' },
 ]
 
 export function PsychologySection({ data, onChange }: PsychologySectionProps) {
@@ -55,6 +79,8 @@ export function PsychologySection({ data, onChange }: PsychologySectionProps) {
 
       <SliderField label="Nivel de confianza" value={data.confidenceLevel} onChange={(v) => set('confidenceLevel', v)} />
       <SliderField label="Nivel de estrés" value={data.stressLevel} onChange={(v) => set('stressLevel', v)} />
+      <SliderField label="Nivel de miedo" value={data.fearLevel} onChange={(v) => set('fearLevel', v)} />
+      <SliderField label="Nivel de ansiedad" value={data.anxietyLevel} onChange={(v) => set('anxietyLevel', v)} />
 
       <div className="space-y-1 divide-y divide-hairline border border-hairline rounded-sm bg-panel px-4">
         {checkboxFields.map((field) => (

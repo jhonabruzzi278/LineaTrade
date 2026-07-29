@@ -9,6 +9,13 @@ export interface AIProviderImage {
   mimeType: string
 }
 
+// Turnos previos de una conversación multi-turno (Fase 6, ai-coach-chat) — opcional,
+// ausente en el resto de las features (todas de un solo turno: system + userMessage).
+export interface AIProviderMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface AIProviderRequest {
   systemPrompt: string
   userMessage: string
@@ -16,6 +23,7 @@ export interface AIProviderRequest {
   model: string
   image?: AIProviderImage
   forceJson?: boolean
+  history?: AIProviderMessage[]
 }
 
 export interface AIProviderResponse {

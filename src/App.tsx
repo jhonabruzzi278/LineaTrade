@@ -19,6 +19,8 @@ import Noticias from './pages/Noticias'
 import NoticiaDetail from './pages/NoticiaDetail'
 import IaTrader from './pages/IaTrader'
 import EliminarCuenta from './pages/EliminarCuenta'
+import Scanner from './pages/Scanner'
+import Coach from './pages/Coach'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
@@ -138,6 +140,22 @@ export default function App() {
               <Suspense fallback={<RouteFallback />}>
                 <Backtesting />
               </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/escaner"
+          element={
+            <ProtectedRoute>
+              <Scanner />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coach"
+          element={
+            <ProtectedRoute>
+              <Coach />
             </ProtectedRoute>
           }
         />

@@ -27,14 +27,18 @@ export type ParsedAIAnalysisResponse = z.infer<typeof aiAnalysisResponseSchema>
 // sobre palabras que además pueden aparecer en contexto legítimo ("evité
 // vender por FOMO" no debería dispararlo, así que se buscan patrones de
 // recomendación directa, no la palabra suelta).
-const RECOMMENDATION_DENYLIST_PATTERNS = [
+export const RECOMMENDATION_DENYLIST_PATTERNS = [
   /\b(deber[ií]as?|te recomiendo|te sugiero)\s+(comprar|vender|invertir)\b/i,
   /\bcompra\s+(ahora|ya|ese|esa|este|esta)\b/i,
   /\bvende\s+(ahora|ya|ese|esa|este|esta)\b/i,
   /\binvierte\s+en\b/i,
 ]
 
-function resolveFieldPath(context: AIContext, fieldPath: string): unknown {
+// Exportada — reutilizada tal cual por insightsValidator.ts (Fase 4). El tipo del
+// primer parámetro es deliberadamente `unknown`, no `AIContext`: es un recorrido
+// genérico de propiedades por notación de puntos, no depende de la forma específica
+// de AIContext, y generate-insights necesita aplicarla sobre InsightsContext.
+export function resolveFieldPath(context: unknown, fieldPath: string): unknown {
   const parts = fieldPath.split('.')
   // deno-lint-ignore no-explicit-any
   let current: any = context

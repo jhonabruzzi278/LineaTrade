@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
 import { MetricCard } from '../components/MetricCard'
+import { InsightsSection } from '../components/InsightsSection'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
@@ -100,6 +101,8 @@ export default function Dashboard() {
           </>
         )}
 
+        {!loading && <InsightsSection />}
+
         <Link
           to="/ia-trader"
           className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
@@ -120,6 +123,32 @@ export default function Dashboard() {
           <div>
             <p className="font-mono text-[11px] text-signal tracking-wide mb-1">market replay</p>
             <p className="font-body text-[14px] text-text-primary">Analiza tus estrategias con backtesting</p>
+          </div>
+          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
+            →
+          </span>
+        </Link>
+
+        <Link
+          to="/escaner"
+          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
+        >
+          <div>
+            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">market scanner</p>
+            <p className="font-body text-[14px] text-text-primary">Filtrá el mercado cripto por RSI, volumen y más</p>
+          </div>
+          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
+            →
+          </span>
+        </Link>
+
+        <Link
+          to="/coach"
+          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
+        >
+          <div>
+            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">coach de trading</p>
+            <p className="font-body text-[14px] text-text-primary">Conversá con la IA sobre tus propios patrones</p>
           </div>
           <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
             →

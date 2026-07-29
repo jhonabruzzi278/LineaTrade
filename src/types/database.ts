@@ -98,6 +98,124 @@ export type Database = {
           },
         ]
       }
+      ai_coach_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_coach_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          facts_cited: Json | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          facts_cited?: Json | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          facts_cited?: Json | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_coach_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_coach_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_insights: {
+        Row: {
+          context_snapshot: Json
+          created_at: string
+          id: string
+          insights: Json
+          model_name: string
+          provider_name: string
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          context_snapshot: Json
+          created_at?: string
+          id?: string
+          insights: Json
+          model_name: string
+          provider_name: string
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          context_snapshot?: Json
+          created_at?: string
+          id?: string
+          insights?: Json
+          model_name?: string
+          provider_name?: string
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_prompts: {
         Row: {
           content: string
@@ -297,6 +415,131 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "backtest_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chart_annotations: {
+        Row: {
+          backtest_session_id: string | null
+          confluence_type_id: string
+          created_at: string
+          id: string
+          price_end: number | null
+          price_start: number
+          source: string
+          symbol: string
+          time_end: number | null
+          time_start: number
+          timeframe: string
+          trade_id: string | null
+          user_id: string
+        }
+        Insert: {
+          backtest_session_id?: string | null
+          confluence_type_id: string
+          created_at?: string
+          id?: string
+          price_end?: number | null
+          price_start: number
+          source?: string
+          symbol: string
+          time_end?: number | null
+          time_start: number
+          timeframe: string
+          trade_id?: string | null
+          user_id: string
+        }
+        Update: {
+          backtest_session_id?: string | null
+          confluence_type_id?: string
+          created_at?: string
+          id?: string
+          price_end?: number | null
+          price_start?: number
+          source?: string
+          symbol?: string
+          time_end?: number | null
+          time_start?: number
+          timeframe?: string
+          trade_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_annotations_backtest_session_id_fkey"
+            columns: ["backtest_session_id"]
+            isOneToOne: false
+            referencedRelation: "backtest_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_annotations_confluence_type_id_fkey"
+            columns: ["confluence_type_id"]
+            isOneToOne: false
+            referencedRelation: "confluence_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_annotations_confluence_type_id_fkey"
+            columns: ["confluence_type_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_stats_by_confluence_single"
+            referencedColumns: ["confluence_type_id"]
+          },
+          {
+            foreignKeyName: "chart_annotations_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_annotations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      confluence_types: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          shape: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          shape: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          shape?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confluence_types_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -573,6 +816,54 @@ export type Database = {
           },
         ]
       }
+      scanner_results: {
+        Row: {
+          bollinger_lower: number | null
+          bollinger_percent_b: number | null
+          bollinger_upper: number | null
+          last_candle_time: number
+          last_price: number
+          macd_histogram: number | null
+          macd_line: number | null
+          macd_signal: number | null
+          price_change_pct: number | null
+          rsi_14: number | null
+          scanned_at: string
+          symbol: string
+          volume_spike_ratio: number | null
+        }
+        Insert: {
+          bollinger_lower?: number | null
+          bollinger_percent_b?: number | null
+          bollinger_upper?: number | null
+          last_candle_time: number
+          last_price: number
+          macd_histogram?: number | null
+          macd_line?: number | null
+          macd_signal?: number | null
+          price_change_pct?: number | null
+          rsi_14?: number | null
+          scanned_at?: string
+          symbol: string
+          volume_spike_ratio?: number | null
+        }
+        Update: {
+          bollinger_lower?: number | null
+          bollinger_percent_b?: number | null
+          bollinger_upper?: number | null
+          last_candle_time?: number
+          last_price?: number
+          macd_histogram?: number | null
+          macd_line?: number | null
+          macd_signal?: number | null
+          price_change_pct?: number | null
+          rsi_14?: number | null
+          scanned_at?: string
+          symbol?: string
+          volume_spike_ratio?: number | null
+        }
+        Relationships: []
+      }
       strategies: {
         Row: {
           created_at: string
@@ -610,6 +901,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "strategies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_confluences: {
+        Row: {
+          confluence_type_id: string
+          created_at: string
+          trade_id: string
+          user_id: string
+        }
+        Insert: {
+          confluence_type_id: string
+          created_at?: string
+          trade_id: string
+          user_id: string
+        }
+        Update: {
+          confluence_type_id?: string
+          created_at?: string
+          trade_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_confluences_confluence_type_id_fkey"
+            columns: ["confluence_type_id"]
+            isOneToOne: false
+            referencedRelation: "confluence_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_confluences_confluence_type_id_fkey"
+            columns: ["confluence_type_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_stats_by_confluence_single"
+            referencedColumns: ["confluence_type_id"]
+          },
+          {
+            foreignKeyName: "trade_confluences_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_confluences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -887,7 +1228,9 @@ export type Database = {
       }
       trades: {
         Row: {
+          anxiety_level: number | null
           backtest_session_id: string | null
+          closed_early: boolean | null
           commission: number | null
           confidence_level: number | null
           confirmations: string | null
@@ -898,12 +1241,16 @@ export type Database = {
           deleted_at: string | null
           duration_minutes: number | null
           emotion: string | null
+          entered_impulsively: boolean | null
           entry_price: number
           entry_reason: string | null
           exit_price: number | null
           expiration_date: string | null
+          fear_level: number | null
           followed_plan: boolean | null
+          had_distractions: boolean | null
           had_fomo: boolean | null
+          hesitated: boolean | null
           id: string
           instrument_id: string
           is_backtest: boolean
@@ -911,7 +1258,9 @@ export type Database = {
           main_mistake: string | null
           management_notes: string | null
           moved_stop_loss: boolean | null
+          moved_take_profit: boolean | null
           option_type: Database["public"]["Enums"]["option_type"] | null
+          overconfidence: boolean | null
           overtraded: boolean | null
           pnl_amount: number | null
           pnl_r: number | null
@@ -934,7 +1283,9 @@ export type Database = {
           what_to_repeat: string | null
         }
         Insert: {
+          anxiety_level?: number | null
           backtest_session_id?: string | null
+          closed_early?: boolean | null
           commission?: number | null
           confidence_level?: number | null
           confirmations?: string | null
@@ -945,12 +1296,16 @@ export type Database = {
           deleted_at?: string | null
           duration_minutes?: number | null
           emotion?: string | null
+          entered_impulsively?: boolean | null
           entry_price: number
           entry_reason?: string | null
           exit_price?: number | null
           expiration_date?: string | null
+          fear_level?: number | null
           followed_plan?: boolean | null
+          had_distractions?: boolean | null
           had_fomo?: boolean | null
+          hesitated?: boolean | null
           id?: string
           instrument_id: string
           is_backtest?: boolean
@@ -958,7 +1313,9 @@ export type Database = {
           main_mistake?: string | null
           management_notes?: string | null
           moved_stop_loss?: boolean | null
+          moved_take_profit?: boolean | null
           option_type?: Database["public"]["Enums"]["option_type"] | null
+          overconfidence?: boolean | null
           overtraded?: boolean | null
           pnl_amount?: number | null
           pnl_r?: number | null
@@ -981,7 +1338,9 @@ export type Database = {
           what_to_repeat?: string | null
         }
         Update: {
+          anxiety_level?: number | null
           backtest_session_id?: string | null
+          closed_early?: boolean | null
           commission?: number | null
           confidence_level?: number | null
           confirmations?: string | null
@@ -992,12 +1351,16 @@ export type Database = {
           deleted_at?: string | null
           duration_minutes?: number | null
           emotion?: string | null
+          entered_impulsively?: boolean | null
           entry_price?: number
           entry_reason?: string | null
           exit_price?: number | null
           expiration_date?: string | null
+          fear_level?: number | null
           followed_plan?: boolean | null
+          had_distractions?: boolean | null
           had_fomo?: boolean | null
+          hesitated?: boolean | null
           id?: string
           instrument_id?: string
           is_backtest?: boolean
@@ -1005,7 +1368,9 @@ export type Database = {
           main_mistake?: string | null
           management_notes?: string | null
           moved_stop_loss?: boolean | null
+          moved_take_profit?: boolean | null
           option_type?: Database["public"]["Enums"]["option_type"] | null
+          overconfidence?: boolean | null
           overtraded?: boolean | null
           pnl_amount?: number | null
           pnl_r?: number | null
@@ -1112,10 +1477,112 @@ export type Database = {
           },
         ]
       }
+      v_user_psychology_stats: {
+        Row: {
+          pct_closed_early: number | null
+          pct_disciplined: number | null
+          pct_distractions: number | null
+          pct_fomo: number | null
+          pct_hesitated: number | null
+          pct_impulsive: number | null
+          pct_moved_stop: number | null
+          pct_moved_tp: number | null
+          pct_off_plan: number | null
+          pct_overconfidence: number | null
+          pct_overtraded: number | null
+          pct_revenge: number | null
+          total_trades: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_user_stats_by_confluence_combo: {
+        Row: {
+          avg_r: number | null
+          confluence_names: string[] | null
+          total_trades: number | null
+          user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_user_stats_by_confluence_single: {
+        Row: {
+          avg_r: number | null
+          confluence_name: string | null
+          confluence_type_id: string | null
+          total_trades: number | null
+          user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_confluences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_user_stats_by_emotion: {
         Row: {
           emotion: string | null
           trade_count: number | null
+          user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_user_stats_by_hour: {
+        Row: {
+          avg_r: number | null
+          hour_of_day: number | null
+          net_pnl: number | null
+          total_trades: number | null
+          user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_user_stats_by_instrument: {
+        Row: {
+          avg_r: number | null
+          net_pnl: number | null
+          symbol: string | null
+          total_trades: number | null
           user_id: string | null
           win_rate: number | null
         }
@@ -1134,6 +1601,25 @@ export type Database = {
           strategy_name: string | null
           trade_count: number | null
           user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_user_stats_by_weekday: {
+        Row: {
+          avg_r: number | null
+          net_pnl: number | null
+          total_trades: number | null
+          user_id: string | null
+          weekday: number | null
           win_rate: number | null
         }
         Relationships: [
@@ -1240,6 +1726,7 @@ export type Database = {
         }[]
       }
       invoke_news_cron_refresh: { Args: never; Returns: undefined }
+      invoke_scanner_cron: { Args: never; Returns: undefined }
       invoke_trade_reminder_cron: { Args: never; Returns: undefined }
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }

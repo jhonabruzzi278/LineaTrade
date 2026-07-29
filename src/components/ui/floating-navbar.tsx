@@ -117,7 +117,9 @@ export const FloatingNav = ({
               <span
                 className={cn(
                   'rounded-full transition-shadow duration-200',
-                  isActive && 'ring-2 ring-signal ring-offset-1 ring-offset-panel-2',
+                  // Anillo más fino y con opacidad reducida (antes ring-2 sólido) —
+                  // menos "amarillo" ocupando el borde de la foto, a pedido.
+                  isActive && 'ring-1 ring-signal/70 ring-offset-1 ring-offset-panel-2',
                 )}
               >
                 {navItem.icon}
