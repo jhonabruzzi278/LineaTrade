@@ -543,11 +543,25 @@ The database is real and the frontend is wired to it. Setup:
      actually needs shipped — `confluence_types`/`chart_annotations`/`trade_confluences`
      from the original plan doc do not exist yet, see "Backtesting" below for why.
 
+  **46-58 (2026-07-28/29) are the confluences/Coach/Scanner/Insights batch — written
+  and, as of this entry, still uncommitted and NOT pushed to Supabase Cloud
+  production.** `ls supabase/migrations | wc -l` reports **58 files total** in the
+  repo right now, not 45 — recount before trusting any number in this paragraph, same
+  standing lesson this file has already learned twice (the "34 files" and "43 files"
+  figures were both stale before their own session ended). See "Confluencias, Coach,
+  Scanner, Insights (2026-07-29)" under "Beyond Fase 4" below for the full story,
+  including 4 real bugs found and fixed directly in these files during the same-day
+  audit that added this note (safe to edit in place — none of these 13 had reached any
+  real environment yet, unlike every migration this paragraph calls "already
+  applied").
+
   The schema doc (`docs/trade-journal-os-schema.md`) is the source of truth for the
-  original 26; it predates migrations 27-45 and hasn't been updated for them — treat the
+  original 26; it predates migrations 27-58 and hasn't been updated for them — treat the
   migrations themselves as the source of truth for anything the doc doesn't cover. If
-  you need a schema change, add a **new** migration (never edit an already-applied one,
-  per the doc's own §11).
+  you need a schema change to an **already-applied** migration, add a **new** one
+  (never edit an already-applied migration, per the doc's own §11) — migrations still
+  sitting uncommitted/unpushed, like 46-58 above, are the one exception this file
+  currently has to that rule.
 - **Seed**: `supabase/seed.sql` — a starter `instruments` catalog (forex majors, top
   crypto, common US stocks/indices/futures). Not specified verbatim in the schema doc;
   it's a reasonable default set for local dev, extend it as needed.
@@ -950,6 +964,16 @@ not the phase table, as the current edge of the product:
   only, from a much larger pre-written plan — the semantic drawing/confluence system,
   extended dashboard, and pattern engine are explicitly deferred. See "Backtesting
   (Market Replay)" below.
+- **Confluencias semánticas, Coach de IA, Market Scanner, Insights cruzados, recorte de
+  avatar** (2026-07-29, **NOT DEPLOYED — written locally, never pushed to Vercel or
+  Supabase Cloud production as of this entry**) — the deferred pieces of the
+  backtesting plan (semantic drawing on the chart, extended dashboard) plus three
+  brand-new AI surfaces (`/coach`, `/escaner`, a Dashboard "Insights" section) that
+  have no precedent in the original roadmap at all. See "Confluencias, Coach, Scanner,
+  Insights (2026-07-29)" below — read it before touching any of these before they ship,
+  it documents 4 real bugs found and fixed in-place (never applied anywhere real, so
+  fixed directly in the migration files rather than via a follow-up migration) plus
+  what's still open.
 
 ### Options trading & order tickets
 
@@ -1417,6 +1441,235 @@ and it turned out to catch real bugs a screenshot might have too):
   anywhere in this feature, so every new interactive element still gets the browser's
   native focus ring for keyboard users — same policy as the rest of this codebase's
   form inputs already follow.
+
+### Confluencias, Coach, Scanner, Insights (2026-07-29)
+
+**Status as of this entry: written, type-checks clean (`npm run build`/`npm run lint`
+both pass with zero new errors/warnings), but NOT deployed and NOT verified against a
+running stack.** Every other section of this file that describes a shipped feature
+backs that up with a real end-to-end run (Mailpit, a live signup, a real Storage
+upload, a real `pg_net` round trip, etc.) — this section can't say that yet. The
+session that audited this work (2026-07-29) had Docker not running (so no local
+Supabase stack to apply the 12 pending migrations against) and no
+`SUPABASE_ACCESS_TOKEN` for the `pcmftbzpzeliurrnyidt` cloud project (CLI returned
+403; the one Supabase MCP connected in that session pointed at an unrelated project,
+not this one). **Do not treat this section's descriptions as "verified" the way the
+rest of this file uses that word** — they're read from source, not observed running.
+Before this ships, re-run the verification discipline the rest of this file expects
+(real signup/session, real Vercel deploy, real Supabase Cloud migration push) and
+update this section with what actually happened, same as every section above it.
+
+Five feature areas, all landed together as one batch of uncommitted work: a semantic
+drawing/confluence system for `/backtesting` (the Módulo 2/3/5 pieces the original
+2026-07-27 backtesting entry explicitly deferred), an AI Coach (`/coach`, this
+project's first multi-turn chat surface), a Market Scanner (`/escaner`, first cron job
+that hits an external API on a schedule rather than the app's own database), an
+Insights section embedded in `/dashboard` (cross-trade pattern-mining, distinct from
+`analyze-trade`'s one-trade-at-a-time analysis), and an avatar crop step added to the
+existing `Perfil.tsx` upload flow. 12 new migrations
+(`20260728100000_confluence_types.sql` through `20260729100000_scanner_cron_monitoring.sql`,
+recount with `ls supabase/migrations | wc -l` — 58 total in the repo right now, up from
+the 45 this file documented after the backtesting MVP), 7 new tables
+(`confluence_types`, `chart_annotations`, `trade_confluences`, `ai_insights`,
+`scanner_results`, `ai_coach_conversations`, `ai_coach_messages`) and 6 new views. All
+of it follows the established conventions in this file closely — RLS + owner policies
+on every table, `security_invoker = true` on every view, the insert-only-via-
+service-role pattern for anything "written by the AI," the same `ai_usage_daily`
+free-tier pool and BYOK resolution every other AI Edge Function already uses — which
+is exactly how the 4 bugs below were still findable: they're deviations from patterns
+this codebase already established, not new mistakes.
+
+**Confluencias semánticas (drawing system, `/backtesting`).** `DrawingToolbar.tsx`
+lets the user pick a `confluence_type` (9 system presets seeded by
+`20260728100000_confluence_types.sql` — FVG, Liquidez, Order Block, CHoCH, BOS, Zona
+de Oferta/Demanda, Mitigación, Confirmación — plus any the user defines) and click 1-2
+points on the chart; `ChartEngine.tsx`'s new click handler inserts a
+`chart_annotations` row (`src/lib/confluences.ts`). Point-shaped confluences
+(circle/arrow/label) render via `lightweight-charts`' `createSeriesMarkers`;
+range-shaped ones (square/rectangle/line) render via a hand-built `ISeriesPrimitive`
+(`src/components/backtesting/confluencePrimitive.ts`) because `lightweight-charts` v5
+ships no rectangle primitive itself. `src/lib/confluenceDetection.ts` is a pure-math
+candidate detector (3-candle-gap FVG, swing-break BOS/CHoCH, last-opposite-candle
+Order Block, near-equal-swing Liquidity) whose output can optionally go through the
+`detect-confluences` Edge Function so an LLM filters/explains candidates —
+`ConfluenceSuggestionsPanel.tsx` — without ever being the one to invent a candidate
+from scratch, same "backend calculates, AI interprets" principle as the rest of the
+product. Opening a backtest trade auto-populates `trade_confluences` from every
+`chart_annotations` row visible up to that candle (`src/lib/backtestTrades.ts`,
+`attachVisibleConfluences`) — populated by code only, by design, never by hand.
+**Two pieces of the original plan doc are explicitly not built in this pass**: Módulo
+8 (a `/sistema` tab for managing custom confluence types — `createConfluenceType`/
+`deleteConfluenceType` exist in `confluences.ts` but nothing calls them) and Módulo 7
+(the extended dashboard — `v_user_stats_by_confluence_single/combo`,
+`v_user_psychology_stats`, `v_user_stats_by_weekday/hour/instrument` all exist and are
+consumed only by `insightsContext.ts`, not rendered anywhere directly). Also dead
+schema: `chart_annotations.trade_id` was added for the journal to "read back which
+annotations belong to a trade," but the actual auto-population path goes through
+`trade_confluences` instead and no code ever sets it.
+
+**Coach de IA (`/coach`).** Two tables, `ai_coach_conversations` (a thread) and
+`ai_coach_messages` (a turn) — the client inserts its own `role='user'` message
+directly via RLS (`ai_coach_messages_insert_user_role` only allows that role for the
+client), then `requestCoachReply` (`src/lib/coach.ts`) invokes `ai-coach-chat`, which
+builds its system prompt from the exact same `buildInsightsContext` Insights uses
+(deliberately shared, not a third context builder), does real multi-turn — the first
+genuine multi-turn conversation in this codebase's AI engine, threaded through a new
+`AIProviderRequest.history` field added to `groq.ts`/`openai.ts` — and validates the
+reply with `coachValidator.ts` (reuses `resolveFieldPath`/
+`RECOMMENDATION_DENYLIST_PATTERNS`, promoted from private to exported in
+`responseValidator.ts` so the three new validators — coach/insights/scanner-explain —
+share the one anti-hallucination check instead of reimplementing it). Shares the
+3/day free-tier pool with every other AI feature. Route `/coach` is
+`<ProtectedRoute>`-wrapped (`App.tsx`), linked only from a new Dashboard card — like
+`/backtesting`/`/ia-trader` before it, deliberately not in `AppFloatingNav.tsx`.
+
+**Market Scanner (`/escaner`).** `run-scanner` is cron-only (`X-Cron-Secret` gate,
+never callable by a session — same skeleton as `send-trade-reminders`), scheduled
+every 5 minutes by `20260728190000_scanner_cron_job.sql` (crypto trades 24/7, so
+unlike the news cron there's no "market hours" to restrict to). It pulls the top ~150
+USDT pairs by 24h Binance volume, computes RSI/MACD/Bollinger/price-change/
+volume-spike with a new dependency-free indicators module
+(`supabase/functions/_shared/indicators.ts`), and `upsert`s into `scanner_results` — a
+global table with no `user_id`, same "public market data" pattern as `news_articles`.
+This is the first place in the codebase that needed real concurrency control against
+an external API's rate limit (`mapWithConcurrency`, a hand-rolled worker-pool of 10 —
+no library, same "don't add a dependency for one need" precedent as Noticias' swipe
+gesture). `Scanner.tsx` reads it read-only with client-side filters; per-row "Explicar
+con IA" (`ScannerResultRow.tsx`) calls `explain-scan-result`, user-initiated (not part
+of the cron), same free-tier pool and validation pattern as everything else. **Before
+this cron can run in production**, the same manual Vault step every prior cron in this
+project has needed: `select vault.create_secret('<random-32-bytes-hex>',
+'scanner_cron_secret');` against the target project, then `supabase secrets set
+SCANNER_CRON_SECRET=...` on the Edge Function to match — both called out in the
+migration's own header comment. Skip this and the cron does not error, it just
+silently no-ops forever (`raise warning` + `return`), the same failure mode that
+actually happened in production for the news cron once already (see "Push
+notification deployment" above) — which is exactly why bug fix #3 below matters.
+
+**Insights (`/dashboard`).** `InsightsSection.tsx` is folded directly into
+`Dashboard.tsx` (`{!loading && <InsightsSection />}`) — not a new route. It loads the
+latest stored `ai_insights` row on mount so a repeat visit isn't empty
+(`getLatestInsights`), and "Generar insights"/"Regenerar insights" calls
+`generate-insights`, which builds a full cross-account context from every new SQL view
+listed above (win rate/profit factor/avg R by strategy, by confluence, by weekday, by
+hour, by instrument with a `MIN_SAMPLE_FOR_BEST_WORST = 3` floor, plus psychology
+percentages) and asks the LLM only to pick and phrase the most notable patterns —
+`data_sufficiency === 'insufficient'` forces an empty result by the prompt's own rule,
+and any returned insight is discarded whole (not repaired) if its `facts_cited`
+doesn't resolve or its text matches the recommendation denylist. Same free-tier pool.
+
+**Recorte de avatar (Perfil).** `Perfil.tsx`'s file input now opens
+`AvatarCropModal.tsx` (a `react-easy-crop` circular cropper — already a committed
+dependency since `6e40015`, not new) instead of uploading immediately;
+`getCroppedImageFile` (`src/lib/cropImage.ts`) does an offscreen-canvas crop into a
+`File`, then hands off to the pre-existing `uploadAvatar`. No schema/backend change —
+purely a client-side step inserted before the existing `avatars` bucket upload. Same
+diff also grew the avatar preview 64px→96px and the floating-nav avatar icon
+22px→28px, and replaced the "Cuenta" fact chip with a numeric "Antigüedad" (days since
+`profiles.created_at`) per user request.
+
+**Bugs found in the 2026-07-29 audit — fixed in place** (none of the affected
+migrations had been applied anywhere but a disposable local/dev database used only to
+regenerate `database.types.ts`, so — unlike every migration this file calls
+"already applied" elsewhere — editing them directly was correct here, not a violation
+of the schema doc's "never edit an applied migration" rule):
+
+1. **Missing `service_role` GRANT on `ai_coach_conversations`.**
+   `20260728200000_ai_coach.sql` granted `service_role` access to `ai_coach_messages`
+   but not to `ai_coach_conversations` — yet `ai-coach-chat/index.ts` bumps that
+   table's `updated_at` with the service client after every reply (so the conversation
+   list sorts by most-recently-active). Exact same bug class this file already
+   documents twice (`news_articles`, `trades`): the UPDATE would have failed silently
+   with "permission denied," and because the code never checked that call's `error`,
+   the request still returned 200 — only the conversation ordering would have quietly
+   been wrong. Fixed: added `grant select, insert, update on
+   public.ai_coach_conversations to service_role;` to the same migration.
+2. **Confluence stats views missing the `is_backtest` filter.** The other 4 new views
+   in this batch (`v_user_stats_by_weekday/hour/instrument`, `v_user_psychology_stats`)
+   all correctly add `and t.is_backtest = false`, honoring the hard rule this file
+   already documents at length under "Backtesting (Market Replay)" — but
+   `v_user_stats_by_confluence_single`/`_combo`
+   (`20260728140000_confluence_stats_views.sql`) didn't. Since `trade_confluences` is
+   currently populated exclusively by backtest trades (manual confluence-tagging on a
+   real trade isn't built yet), these two views' win-rate numbers would have been
+   100% derived from practice trades while being cited by Insights/Coach exactly like
+   a real stat — a genuine violation of "a practice trade must never pollute a real
+   one," and a more insidious one than the earlier Dashboard/Historial bugs because the
+   AI would state the number as fact with a real `facts_cited` reference (the number
+   itself wouldn't be invented — just silently mis-scoped). Fixed: added
+   `and t.is_backtest = false` to both views' `where` clauses.
+3. **Scanner cron invisible to the admin panel's own monitoring.**
+   `get_cron_job_health()`/`get_cron_secrets_status()` (added 2026-07-27 specifically
+   to catch a cron silently no-op'ing on a missing Vault secret — see "Fase 4
+   (SuperAdmin)" above) hardcoded the 6 job/secret names known at the time;
+   `'market-scanner'`/`'scanner_cron_secret'` didn't exist yet when that migration was
+   written. Left as-is, a missing `scanner_cron_secret` in production would silently
+   no-op the scanner forever with `/admin` showing nothing wrong — the exact incident
+   class those two RPCs exist to prevent, just for a job they don't know about. Fixed:
+   new migration `20260729100000_scanner_cron_monitoring.sql`, `create or replace
+   function` on both (same `security definer` + `is_superadmin()` + `audit_log`
+   contract, no column-list change so `CREATE OR REPLACE` is valid unlike the
+   `get_system_metrics()` precedent), adding both names to their respective lists.
+4. **No length limit anywhere on a Coach chat message.** Every other AI input surface
+   in this codebase bounds its input (`extract-trade-image`'s 5MB cap,
+   `detect-confluences`' `max(60)` candidates) — the Coach `<textarea>` had none, and
+   neither did `sendUserMessage` (`lib/coach.ts`) nor `ai-coach-chat`'s request schema
+   (which only validates `conversation_id`, never sees message content before it's
+   forwarded to the LLM). Fixed at the actual boundary — the client inserts the
+   message directly via RLS, so a client-side `maxLength` alone wouldn't have been
+   enough: added `check (char_length(content) <= 4000)` to
+   `ai_coach_messages.content` in `20260728200000_ai_coach.sql`, plus a matching
+   `maxLength={4000}` on the `<textarea>` in `Coach.tsx` for immediate UX feedback.
+
+**Known gaps, left as backlog, not fixed in this pass** (deliberately — each is a
+scope decision, not an oversight, and this file's own convention is to defer rather
+than rush a feature addition into an audit pass):
+- `run-scanner` never purges a symbol that drops out of the top-150-by-volume list —
+  `scanner_results` only ever grows/refreshes, contradicting its own migration
+  comment ("no es una serie histórica, solo el snapshot más reciente"). Low
+  frequency/impact; worth a follow-up if the symbol list turns out to churn a lot.
+- `TradeDetail.tsx` was never extended to display the 8 new psychology fields
+  (`fear_level`, `anxiety_level`, `closed_early`, `moved_take_profit`,
+  `entered_impulsively`, `hesitated`, `overconfidence`, `had_distractions` —
+  `20260728130000_trades_psychology_fields.sql`). They're captured on entry
+  (`PsychologySection.tsx`) and feed `v_user_psychology_stats` → Insights/Coach in
+  aggregate, but a user can never see their own answer for a single trade again
+  anywhere in the UI. `TradeDetail.tsx` already has the exact pattern to extend
+  (`Field`/`Tag` around its existing psychology block).
+- Módulo 7 (extended dashboard: equity curve, win-rate-by-dimension charts, a
+  confluence-combo table, a psychology stats panel) and Módulo 8 (custom
+  confluence-type management UI in `/sistema`) from the original backtesting plan —
+  the data layer for both exists (the views, `createConfluenceType`/
+  `deleteConfluenceType`), the UI doesn't.
+- `/admin`'s `get_system_metrics()` was not re-extended for this batch — Coach/
+  Scanner/Insights/Confluences adoption has zero visibility in the SuperAdmin panel,
+  repeating the exact blind-spot pattern that was explicitly fixed for the *previous*
+  "Beyond Fase 4" batch on 2026-07-27 (see "Fase 4 (SuperAdmin)" above). Whoever picks
+  this up should extend `get_system_metrics()` the same way that entry describes.
+- `AvatarCropModal`'s file `<input>` doesn't reset its `value` after a selection, so
+  re-selecting the identical file after cancelling the crop won't fire a new
+  `onChange` (browsers dedupe identical file-input values). Minor UX papercut.
+- `confluencePrimitive.ts` imports a type from `fancy-canvas`, a transitive dependency
+  of `lightweight-charts` never declared directly in `package.json`. Type-only (erased
+  at build time, and the 2026-07-29 build already proved it resolves), so not a
+  current build risk — but fragile: a future `lightweight-charts` bump that changes
+  how `fancy-canvas` hoists would break this import with nothing in `package.json` to
+  explain why. Worth adding `fancy-canvas` as a direct devDependency if this recurs.
+
+**What actually blocks shipping this to production** (beyond the 4 fixes above, which
+are done): the frontend and backend must deploy together, not separately.
+`Dashboard.tsx` now unconditionally renders `InsightsSection` for every logged-in
+user, and that component queries the `ai_insights` table on mount — a table that only
+exists once the 12 pending migrations are pushed. Pushing `main` to trigger the
+existing GitHub→Vercel auto-deploy (see "Production" above) **before** running
+`supabase db push` against the `pcmftbzpzeliurrnyidt` cloud project would break
+`/dashboard` for every real production user, not just fail to show the new features.
+Order matters: migrations + the 5 new Edge Function deployments
+(`ai-coach-chat`, `detect-confluences`, `explain-scan-result`, `generate-insights`,
+`run-scanner`) + the `scanner_cron_secret` Vault secret + `SCANNER_CRON_SECRET` on the
+Edge Function all need to land in Supabase Cloud *before* the frontend push, mirroring
+exactly how every previous production rollout in this file (push notifications, news
+cron) was sequenced.
 
 ### Closing a trade
 
