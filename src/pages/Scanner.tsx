@@ -17,6 +17,19 @@ const SORT_LABELS: Record<SortKey, string> = {
   rsi_14: 'RSI',
 }
 
+// Ejemplos de consultas listas para probar — mismo rol que QUICK_SYMBOLS en
+// SymbolTimeframePicker.tsx: no adivinan vocabulario nuevo, solo frasean en
+// español los campos que resolve-scanner-query ya sabe traducir (ver
+// SCANNER_FIELD_ENUM en supabase/functions/_shared/scannerQueryValidator.ts).
+const SUGGESTED_QUERIES: { label: string; query: string }[] = [
+  { label: 'RSI en sobreventa', query: 'RSI menor a 30' },
+  { label: 'RSI en sobrecompra', query: 'RSI mayor a 70' },
+  { label: 'Volumen 2x el promedio', query: 'volumen mayor a 2 veces el promedio' },
+  { label: 'Suba fuerte en 24h', query: 'variación mayor a 5%' },
+  { label: 'Caída fuerte en 24h', query: 'variación menor a -5%' },
+  { label: 'Cruce alcista de MACD', query: 'histograma MACD mayor a 0' },
+]
+
 // Cripto solamente (Binance) — mismo alcance ya establecido en /backtesting, ver
 // CLAUDE.md "Crypto only — forex/stocks explicitly pending". Resultados globales
 // (scanner_results no tiene user_id), refrescados por el cron run-scanner cada 5
@@ -93,8 +106,8 @@ export default function Scanner() {
 
   const lastScannedAt = results[0]?.scanned_at
 
-  async function handleResolveQuery() {
-    const text = naturalQuery.trim()
+  async function handleResolveQuery(textOverride?: string) {
+    const text = (textOverride ?? naturalQuery).trim()
     if (!text) return
     setNaturalQueryLoading(true)
     setNaturalQueryError(null)
@@ -109,6 +122,11 @@ export default function Scanner() {
       return
     }
     setNaturalConditions(result.conditions)
+  }
+
+  function handleSuggestedQuery(query: string) {
+    setNaturalQuery(query)
+    void handleResolveQuery(query)
   }
 
   function handleClearNaturalConditions() {
@@ -164,6 +182,22 @@ export default function Scanner() {
             </button>
           )}
         </div>
+
+        {naturalConditions.length === 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {SUGGESTED_QUERIES.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => handleSuggestedQuery(s.query)}
+                disabled={naturalQueryLoading}
+                className="font-mono text-[11px] px-2.5 py-1.5 rounded-sm border border-hairline text-text-faint hover:text-signal hover:border-signal/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {naturalQueryError && <p className="font-body text-[13px] text-loss mb-3 -mt-2">{naturalQueryError}</p>}
 
