@@ -30,7 +30,7 @@ const sections = [
 
 export default function Privacidad() {
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <Nav />
       <main className="max-w-3xl mx-auto px-6 pt-20 pb-24">
         <p className="font-mono text-[13px] text-signal tracking-wide mb-4">legal</p>

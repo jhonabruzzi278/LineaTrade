@@ -1,0 +1,78 @@
+/* Todas las @keyframes del proyecto + sus clases utility. Este proyecto no
+   usa tailwindcss-animate ni ninguna librería de animación (framer-motion se
+   sacó del todo, ver CLAUDE.md "floating-navbar.tsx no longer uses
+   framer-motion") — toda animación nueva sigue este mismo patrón: keyframe
+   acá, aplicada via clase o style inline en el componente. */
+
+@keyframes trace-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Entrada — compositor-friendly (opacity + transform). Aplicar .reveal-up y
+   escalonar con un style={{ animationDelay }} inline. */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  opacity: 0;
+  animation: reveal-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animación de alto/cierre del Accordion de Radix — impulsada por la custom
+   property --radix-accordion-content-height que Radix setea en runtime.
+   Hand-rolled acá en vez de sumar el paquete tw-animate-css, siguiendo la
+   misma convención ya establecida (keyframe en CSS, sin dependencia de
+   plugin de animación). */
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
+}
+
+/* Deriva lenta y sutil para las auras de fondo (ver effects.css) — nunca un
+   movimiento que llame la atención por sí solo, solo una respiración de
+   fondo. Escala/opacidad, no posición, para que nunca afecte el layout. */
+@keyframes aura-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(3%, -4%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+.aura-animated {
+  animation: aura-drift 16s ease-in-out infinite;
+}
+
+.aura-animated.aura-animated-delay {
+  animation-delay: -8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  .reveal-up { opacity: 1; }
+}

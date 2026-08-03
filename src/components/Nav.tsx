@@ -9,7 +9,7 @@ export function Nav() {
             <path
               d="M2 14 L7 8 L11 12 L18 4"
               fill="none"
-              stroke="#E3A94A"
+              stroke="#C99C54"
               strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"

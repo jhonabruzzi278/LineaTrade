@@ -161,7 +161,7 @@ export default function IaTrader() {
 
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-ink flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <p className="font-body text-[14px] text-text-muted">Cargando...</p>
       </div>
     )
@@ -194,7 +194,7 @@ export default function IaTrader() {
   if (!plan) return null // guard defensivo — no debería alcanzarse
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       {user && <AppHeader />}
       <main className="max-w-xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         <p className="font-mono text-[13px] text-signal mb-2">tu plan de trading</p>

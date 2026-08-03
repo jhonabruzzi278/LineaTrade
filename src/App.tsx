@@ -25,6 +25,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt'
+import { AuraBackground } from './components/AuraBackground'
 
 // lightweight-charts (~solo esta ruta la usa) es la dependencia más pesada del
 // bundle — code-split para no cargarla en las otras ~20 rutas que nunca la tocan.
@@ -42,6 +43,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AuraBackground />
       <PwaUpdatePrompt />
       <NotificationPermissionPrompt />
       <Routes>

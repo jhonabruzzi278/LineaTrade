@@ -198,7 +198,7 @@ export default function TradeDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-ink">
+      <div className="min-h-screen">
         <AppHeader />
         <main className="max-w-3xl mx-auto px-6 py-10">
           <p className="font-body text-[14px] text-text-muted">Cargando...</p>
@@ -209,7 +209,7 @@ export default function TradeDetail() {
 
   if (notFound || !trade) {
     return (
-      <div className="min-h-screen bg-ink">
+      <div className="min-h-screen">
         <AppHeader />
         <main className="max-w-3xl mx-auto px-6 py-10 text-center">
           <p className="font-body text-[15px] text-text-muted mb-4">
@@ -227,7 +227,7 @@ export default function TradeDetail() {
     stopLossChanges != null && trade.moved_stop_loss === false && stopLossChanges > 0
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <AppHeader />
       <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         <div className="flex items-center gap-3 mb-1">

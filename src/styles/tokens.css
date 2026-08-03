@@ -1,0 +1,70 @@
+/* Design tokens — la única fuente de verdad de color/tipografía/sombra del
+   proyecto. Nunca hardcodear un hex en un componente: agregar o reusar un
+   token acá (ver CLAUDE.md "Design system"). */
+@theme {
+  --color-ink: #0A0D12;
+  --color-panel: #12161D;
+  --color-panel-2: #191E27;
+  --color-hairline: #232935;
+  --color-signal: #C99C54;
+  --color-signal-dim: #AB7E36;
+  --color-steel: #5B7A99;
+  --color-text-primary: #EEF0F3;
+  --color-text-muted: #8A93A3;
+  --color-text-faint: #565D6B;
+
+  /* Semantic P&L pair — deliberadamente separado de --color-signal (el acento
+     ámbar de marca usado en CTAs/links/focus). Los traders leen verde=gain/
+     rojo=loss al instante en cualquier plataforma que ya usan (TradingView,
+     Binance, brokers); reusar el acento de marca para "gain" pelearía contra
+     ese instinto. Los valores matchean la convención saturada verde/rojo de
+     UIs de trading oscuras estilo Binance/Bybit en vez de la paleta editorial
+     más apagada — es el único lugar del producto donde debe sentirse como los
+     terminales que los traders ya usan. Ambos pasan WCAG AA (>4.5:1) contra
+     --color-ink. */
+  --color-gain: #0ECB81;
+  --color-gain-dim: #0BA868;
+  --color-loss: #F6465D;
+  --color-loss-dim: #D8394E;
+
+  /* shadcn/ui token bridge — agregado 2026-07-20 junto con components/ui/
+     (Radix + class-variance-authority). Deliberadamente NO la paleta
+     zinc/slate default de shadcn: cada nombre semántico de abajo está
+     aliaseado a un token de marca que ya existía, así que un componente
+     shadcn recién copiado queda on-brand al pegarlo, sin ningún edit de color
+     a nivel de componente. Este es el único y exclusivo sistema de color —
+     son alias, no una segunda paleta. No agregar acá un hex crudo nuevo;
+     apuntar a un --color-* ya existente arriba. Ver
+     docs/lineatrade-design-system.md §3.5. */
+  --color-background: var(--color-ink);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-panel);
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: var(--color-panel-2);
+  --color-popover-foreground: var(--color-text-primary);
+  --color-primary: var(--color-signal);
+  --color-primary-foreground: var(--color-ink);
+  --color-secondary: var(--color-panel-2);
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-muted: var(--color-panel-2);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-accent: var(--color-panel-2);
+  --color-accent-foreground: var(--color-text-primary);
+  --color-destructive: var(--color-loss);
+  --color-destructive-foreground: var(--color-ink);
+  --color-border: var(--color-hairline);
+  --color-input: var(--color-hairline);
+  --color-ring: var(--color-signal);
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-serif: "Merriweather", Georgia, serif;
+
+  /* Profundidad — las tarjetas oscuras se leen en capas via un borde superior
+     iluminado + una sombra proyectada suave. Se consumen como utilities de
+     Tailwind: shadow-card / shadow-elevated / shadow-glow. */
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 24px -14px rgba(0, 0, 0, 0.75);
+  --shadow-elevated: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 42px -18px rgba(0, 0, 0, 0.85);
+  --shadow-glow: 0 8px 30px -10px rgba(201, 156, 84, 0.42);
+}

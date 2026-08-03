@@ -1,0 +1,34 @@
+/* Efectos visuales decorativos/atmosféricos — nunca interactivos
+   (pointer-events: none en todos), nunca afectan el layout (position:
+   absolute/fixed, no participan del flujo normal). Las animaciones de estos
+   efectos viven en animations.css (aura-drift), no acá. */
+
+/* Resplandor ámbar atmosférico, ubicado absolutamente detrás de contenido.
+   Ver src/components/AuraBackground.tsx para el fondo animado de toda la
+   app; este par de clases también se reusa suelto en algunas tarjetas
+   puntuales (ver Landing.tsx, sección #descargar). */
+.hero-aura {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(72px);
+  background: radial-gradient(circle, rgba(201, 156, 84, 0.16) 0%, rgba(201, 156, 84, 0) 70%);
+}
+
+.steel-aura {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(80px);
+  background: radial-gradient(circle, rgba(91, 122, 153, 0.14) 0%, rgba(91, 122, 153, 0) 70%);
+}
+
+/* Grano fino — overlay posicionado absolutamente dentro de un panel para
+   darle textura a superficies oscuras planas. Opacidad muy baja a propósito,
+   se lee como tono, no como ruido. */
+.grain-overlay {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}

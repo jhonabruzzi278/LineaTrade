@@ -21,8 +21,8 @@ export function TraceLine() {
     >
       <defs>
         <linearGradient id="trace-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#E3A94A" stopOpacity="0.16" />
-          <stop offset="100%" stopColor="#E3A94A" stopOpacity="0" />
+          <stop offset="0%" stopColor="#C99C54" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="#C99C54" stopOpacity="0" />
         </linearGradient>
       </defs>
 
@@ -40,7 +40,7 @@ export function TraceLine() {
       <path
         d={linePath}
         fill="none"
-        stroke="#E3A94A"
+        stroke="#C99C54"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -51,10 +51,10 @@ export function TraceLine() {
           animation: 'trace-draw 2.4s ease-out forwards',
         }}
       />
-      <circle cx="300" cy="50" r="3" fill="#E3A94A" opacity="0">
+      <circle cx="300" cy="50" r="3" fill="#C99C54" opacity="0">
         <animate attributeName="opacity" begin="2.2s" dur="0.4s" to="1" fill="freeze" />
       </circle>
-      <circle cx="300" cy="50" r="6" fill="none" stroke="#E3A94A" strokeWidth="0.75" opacity="0">
+      <circle cx="300" cy="50" r="6" fill="none" stroke="#C99C54" strokeWidth="0.75" opacity="0">
         <animate attributeName="opacity" begin="2.4s" dur="0.6s" to="0.4" fill="freeze" />
       </circle>
     </svg>

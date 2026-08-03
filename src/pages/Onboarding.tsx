@@ -230,7 +230,7 @@ function OptionButton({ label, hint, selected, onClick, role, indicator }: Optio
 
 function OnboardingComplete() {
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <main className="max-w-md mx-auto px-6 pt-24 text-center">
         <p className="font-mono text-[13px] text-signal mb-4">todo listo</p>
         <h1 className="font-display text-[26px] text-text-primary mb-3">Tu bitácora está lista</h1>

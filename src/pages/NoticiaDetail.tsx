@@ -142,7 +142,7 @@ export default function NoticiaDetail() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 h-[100dvh] w-full bg-ink flex items-center justify-center">
+      <div className="fixed inset-0 h-[100dvh] w-full flex items-center justify-center">
         <p className="font-body text-[14px] text-text-muted">Cargando...</p>
       </div>
     )
@@ -150,7 +150,7 @@ export default function NoticiaDetail() {
 
   if (notFound || !article) {
     return (
-      <div className="fixed inset-0 h-[100dvh] w-full bg-ink flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="fixed inset-0 h-[100dvh] w-full flex flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="font-body text-[15px] text-text-muted">No encontramos esta noticia.</p>
         <Link to="/noticias" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
           Volver a Noticias
@@ -160,7 +160,7 @@ export default function NoticiaDetail() {
   }
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-ink flex flex-col overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] w-full flex flex-col overflow-hidden">
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto overscroll-contain px-6 pt-7 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"

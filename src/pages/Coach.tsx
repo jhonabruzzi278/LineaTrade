@@ -148,7 +148,7 @@ export default function Coach() {
   const quotaExhausted = usedToday != null && usedToday >= FREE_TIER_DAILY_LIMIT
 
   return (
-    <div className="h-screen bg-ink flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden">
       <header className="border-b border-hairline px-4 py-3 flex items-center justify-between shrink-0">
         {activeId ? (
           <button

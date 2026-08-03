@@ -252,7 +252,7 @@ export default function Backtesting() {
 
   if (bt.phase !== 'active' || !bt.session) {
     return (
-      <div className="min-h-screen bg-ink flex flex-col">
+      <div className="min-h-screen flex flex-col">
         <BacktestingHeader />
         <div className="flex-1 flex items-center justify-center">
           <SymbolTimeframePicker loading={bt.phase === 'loading'} error={bt.error} onStart={(p) => void bt.start(p)} />
@@ -262,7 +262,7 @@ export default function Backtesting() {
   }
 
   return (
-    <div className="h-screen bg-ink flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden">
       <BacktestingHeader
         subtitle={`${bt.session.symbol} · ${bt.session.timeframe}`}
           onFinish={() => {

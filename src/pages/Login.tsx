@@ -34,10 +34,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <Nav />
       <main className="relative max-w-md mx-auto px-6 pt-20">
-        <div className="hero-aura left-1/2 -translate-x-1/2 -top-8 w-[360px] h-[260px]" aria-hidden="true" />
         <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated">
         <p className="font-mono text-[13px] text-signal mb-4">acceso</p>
         <h1 className="font-display text-[30px] text-text-primary mb-2">Ingresar</h1>

@@ -137,7 +137,7 @@ export default function Perfil() {
     : []
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <AppHeader />
       <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie

@@ -1,0 +1,28 @@
+/* Resets/estilos base a nivel de elemento HTML — nada específico de un
+   componente vive acá, solo el fondo/tipografía/selección/foco que aplica a
+   toda la app por igual. */
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(201, 156, 84, 0.22);
+  color: var(--color-text-primary);
+}
+
+/* Anillo de foco solo-teclado — aditivo al borde ámbar que los inputs ya usan,
+   así el mouse ve el tratamiento existente y el teclado recibe un anillo claro. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 3px;
+}

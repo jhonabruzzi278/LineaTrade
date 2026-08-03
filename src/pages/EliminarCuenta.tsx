@@ -53,7 +53,7 @@ export default function EliminarCuenta() {
   }
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <Nav />
       <main className="relative max-w-md mx-auto px-6 pt-20 pb-24">
         <p className="font-mono text-[13px] text-signal mb-4">cuenta</p>

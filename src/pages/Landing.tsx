@@ -128,15 +128,16 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <Nav />
 
       <main className="max-w-5xl mx-auto px-6">
         <section className="relative pt-20 pb-16 overflow-hidden">
-          {/* Ambiente: dos auras difusas detrás del hero, nunca afectan el layout. */}
-          <div className="hero-aura -top-24 -left-16 w-[520px] h-[520px]" aria-hidden="true" />
-          <div className="steel-aura top-40 -right-24 w-[440px] h-[440px]" aria-hidden="true" />
-
+          {/* El ambiente de fondo ahora lo da <AuraBackground/> (montado una
+              sola vez en App.tsx, cubre toda la app) — este hero tenía su
+              propio par de auras casi en la misma esquina superior
+              izquierda/derecha, y al quedar ambas visibles a la vez se veía
+              como una luz duplicada. Se saca el par local, no el global. */}
           <div className="relative">
             <p className="reveal-up font-mono text-[13px] text-signal tracking-wide mb-5">
               registro de comportamiento — no de mercado
@@ -192,7 +193,7 @@ export default function Landing() {
                     traza de comportamiento
                   </span>
                   <span className="flex items-center gap-2 font-mono text-[11px] text-text-muted">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-signal shadow-[0_0_8px_rgba(227,169,74,0.8)]" />
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-signal shadow-[0_0_8px_rgba(201,156,84,0.8)]" />
                     40 operaciones
                   </span>
                 </div>

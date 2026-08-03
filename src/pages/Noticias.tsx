@@ -63,7 +63,7 @@ export default function Noticias() {
   const hasArticles = articles.length > 0
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen">
       <AppHeader />
 
       <main className="max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-28 lg:pb-10 lg:pl-24">

@@ -24,7 +24,7 @@ export function WizardLayout({
   children,
 }: WizardLayoutProps) {
   return (
-    <div className="min-h-screen bg-ink flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <header className="border-b border-hairline">
         <div className="max-w-md mx-auto px-6 py-5 flex items-center justify-between">
           <span className="font-mono text-[12px] text-text-faint tracking-wide">{stepLabel}</span>
@@ -40,7 +40,7 @@ export function WizardLayout({
         </div>
         <div className="h-[2px] bg-panel-2">
           <div
-            className="h-full bg-signal shadow-[0_0_12px_rgba(227,169,74,0.6)] transition-all duration-500 ease-out"
+            className="h-full bg-signal shadow-[0_0_12px_rgba(201,156,84,0.6)] transition-all duration-500 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
