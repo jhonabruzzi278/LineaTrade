@@ -9,6 +9,7 @@ import type { Database } from '../types/database'
 
 type SystemMetrics = Database['public']['Functions']['get_system_metrics']['Returns'][number]
 type ProviderConfig = Database['public']['Tables']['ai_provider_config']['Row']
+type RateLimitConfig = Database['public']['Tables']['ai_rate_limit_config']['Row']
 type CronJobHealth = Database['public']['Functions']['get_cron_job_health']['Returns'][number]
 type CronSecretStatus = Database['public']['Functions']['get_cron_secrets_status']['Returns'][number]
 
@@ -94,6 +95,7 @@ export default function AdminPanel() {
 
             <CronHealthSection />
             <ProviderConfigSection />
+            <RateLimitSection />
           </>
         )}
       </main>
@@ -284,6 +286,94 @@ function ProviderConfigSection() {
         ) : (
           <p className="font-body text-[13px] text-text-muted">No hay proveedor por defecto configurado.</p>
         )}
+      </div>
+    </Section>
+  )
+}
+
+// Límite diario de análisis de IA del tier gratuito — antes una constante
+// fija en código (FREE_TIER_DAILY_LIMIT = 3, supabase/functions/_shared/
+// rateLimiter.ts), ahora una fila única en ai_rate_limit_config leída por
+// checkAndIncrementUsage en cada Edge Function que consume el cupo
+// (analyze-trade, extract-trade-image, ai-coach-chat, generate-insights,
+// explain-scan-result, resolve-scanner-query, detect-confluences). Subirlo
+// acá (ej. durante desarrollo, para no chocar contra el límite mientras se
+// prueba) no requiere redeployar ningún Edge Function — el próximo llamado
+// ya lee el valor nuevo. BYOK sigue sin límite práctico
+// (BYOK_DAILY_LIMIT_SENTINEL), esto solo afecta al tier gratuito.
+function RateLimitSection() {
+  const { showToast } = useToast()
+  const [config, setConfig] = useState<RateLimitConfig | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dailyLimit, setDailyLimit] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function loadConfig() {
+    const { data, error: fetchError } = await supabase.from('ai_rate_limit_config').select('*').eq('id', 1).maybeSingle()
+    if (fetchError) {
+      setError(getErrorMessage(fetchError))
+    } else if (data) {
+      setConfig(data)
+      setDailyLimit(String(data.free_tier_daily_limit))
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    void loadConfig()
+  }, [])
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault()
+    const parsed = Number(dailyLimit)
+    if (!Number.isInteger(parsed) || parsed < 1) return
+    setSaving(true)
+    setError(null)
+    const { error: saveError } = await supabase.rpc('set_ai_rate_limit', { p_daily_limit: parsed })
+    setSaving(false)
+    if (saveError) {
+      setError(getErrorMessage(saveError))
+      return
+    }
+    showToast('Límite de IA actualizado.', 'success')
+    void loadConfig()
+  }
+
+  if (loading) return null
+
+  return (
+    <Section title="Límite diario de IA (tier gratuito)">
+      <div className="col-span-2 md:col-span-4 border border-hairline rounded-sm bg-panel px-5 py-4">
+        <p className="font-mono text-[11px] text-text-faint mb-4">
+          Análisis/día que puede consumir un usuario sin BYOK antes de que analyze-trade, extract-trade-image, Coach,
+          Insights, Scanner y detección de confluencias empiecen a rechazar el pedido. Usuarios con su propia API key
+          (BYOK) no están sujetos a este número.
+        </p>
+        <form onSubmit={(e) => void handleSave(e)} className="flex items-end gap-3">
+          <div>
+            <label htmlFor="ai-daily-limit" className="font-body text-[13px] text-text-muted block mb-2">
+              Límite diario
+            </label>
+            <input
+              id="ai-daily-limit"
+              type="number"
+              min="1"
+              step="1"
+              value={dailyLimit}
+              onChange={(e) => setDailyLimit(e.target.value)}
+              className="w-32 bg-ink border border-hairline rounded-sm px-4 py-3 font-mono text-[15px] text-text-primary focus:outline-none focus:border-signal transition-colors"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={saving || !dailyLimit.trim() || Number(dailyLimit) === config?.free_tier_daily_limit}
+            className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+          >
+            {saving ? 'Guardando...' : 'Guardar límite'}
+          </button>
+        </form>
+        {error && <p className="font-body text-[13px] text-loss mt-3">{error}</p>}
       </div>
     </Section>
   )

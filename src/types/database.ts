@@ -293,6 +293,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_rate_limit_config: {
+        Row: {
+          free_tier_daily_limit: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          free_tier_daily_limit?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          free_tier_daily_limit?: number
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_usage_daily: {
         Row: {
           requests_count: number
@@ -1504,6 +1522,26 @@ export type Database = {
           },
         ]
       }
+      v_user_psychology_tag_stats: {
+        Row: {
+          avg_r: number | null
+          closed_trades: number | null
+          profit_factor: number | null
+          tag_name: string | null
+          total_trades: number | null
+          user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_user_stats_by_confluence_combo: {
         Row: {
           avg_r: number | null
@@ -1651,26 +1689,6 @@ export type Database = {
           },
         ]
       }
-      v_user_psychology_tag_stats: {
-        Row: {
-          avg_r: number | null
-          closed_trades: number | null
-          profit_factor: number | null
-          tag_name: string | null
-          total_trades: number | null
-          user_id: string | null
-          win_rate: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trades_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       check_and_increment_ai_usage: {
@@ -1750,6 +1768,7 @@ export type Database = {
       invoke_trade_reminder_cron: { Args: never; Returns: undefined }
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }
+      set_ai_rate_limit: { Args: { p_daily_limit: number }; Returns: undefined }
       set_byok_api_key: {
         Args: { p_api_key: string; p_model: string; p_provider: string }
         Returns: undefined
