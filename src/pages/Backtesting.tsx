@@ -17,7 +17,7 @@ import {
 import { getErrorMessage } from '../lib/errors'
 import { detectConfluenceCandidates } from '../lib/confluenceDetection'
 import { detectConfluencesWithAI } from '../lib/confluenceAIDetection'
-import { ChartEngine, type AnnotationView } from '../components/backtesting/ChartEngine'
+import { ChartEngine, type AnnotationView, type TradeMarker } from '../components/backtesting/ChartEngine'
 import { ReplayControls } from '../components/backtesting/ReplayControls'
 import { SymbolTimeframePicker } from '../components/backtesting/SymbolTimeframePicker'
 import { BacktestOrderPanel } from '../components/backtesting/BacktestOrderPanel'
@@ -39,7 +39,7 @@ export default function Backtesting() {
   const { user } = useAuth()
   const bt = useBacktestSession(user?.id)
   const replay = useMarketReplay(bt.klines)
-  const [openTrade, setOpenTrade] = useState<Trade | null>(null)
+  const [openTrades, setOpenTrades] = useState<Trade[]>([])
 
   const [confluenceTypes, setConfluenceTypes] = useState<ConfluenceType[]>([])
   const [annotations, setAnnotations] = useState<ChartAnnotation[]>([])
@@ -121,6 +121,17 @@ export default function Backtesting() {
         return [{ id: a.id, confluenceName: type.name, color: type.color }]
       }),
     [visibleAnnotations, confluenceTypeById],
+  )
+
+  const tradeMarkers = useMemo<TradeMarker[]>(
+    () =>
+      openTrades.map((t) => ({
+        id: t.id,
+        time: new Date(t.traded_at).getTime() / 1000,
+        price: t.entry_price,
+        side: t.side as 'long' | 'short',
+      })),
+    [openTrades],
   )
 
   function handleSelectType(type: ConfluenceType) {
@@ -254,60 +265,76 @@ export default function Backtesting() {
     <div className="h-screen bg-ink flex flex-col overflow-hidden">
       <BacktestingHeader
         subtitle={`${bt.session.symbol} · ${bt.session.timeframe}`}
-        onFinish={() => {
-          setOpenTrade(null)
-          void bt.finish()
-        }}
-        finishing={bt.finishing}
+          onFinish={() => {
+            if (openTrades.length > 0) return
+            void bt.finish()
+          }}
+          finishing={bt.finishing}
+          hasOpenTrades={openTrades.length > 0}
       />
       {(bt.error || confluenceError) && (
         <p className="font-body text-[13px] text-loss px-4 py-2 bg-loss/10 shrink-0">{bt.error || confluenceError}</p>
       )}
-      <div className="flex-1 min-h-0">
-        <ChartEngine
-          klines={replay.visibleKlines}
-          annotations={annotationViews}
-          pendingPoint={pendingPoint && drawingType ? { ...pendingPoint, color: drawingType.color } : null}
-          drawingActive={Boolean(drawingType)}
-          onChartPoint={(point) => void handleChartPoint(point)}
-        />
+      {/* Debajo de `lg:` (1024px), stack vertical de siempre: chart arriba, cada
+          panel su propia barra full-width abajo. Desde `lg:`, layout tipo
+          TradingView — chart + controles de replay a la izquierda (flex-1, se
+          lleva todo el ancho que sobra), y el resto de paneles (dibujo,
+          sugerencias IA, leyenda, ticket de orden) en un riel lateral fijo a la
+          derecha con scroll propio. Los 4 paneles del riel no necesitan cambiar
+          sus clases internas: su `max-w-2xl mx-auto` (672px) ya no restringe nada
+          dentro de un `<aside>` más angosto (24rem/384px) que ese máximo. */}
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0">
+            <ChartEngine
+              klines={replay.visibleKlines}
+              annotations={annotationViews}
+              pendingPoint={pendingPoint && drawingType ? { ...pendingPoint, color: drawingType.color } : null}
+              drawingActive={Boolean(drawingType)}
+              onChartPoint={(point) => void handleChartPoint(point)}
+              tradeMarkers={tradeMarkers}
+            />
+          </div>
+          <ReplayControls
+            currentIndex={replay.currentIndex}
+            total={bt.klines.length}
+            isPlaying={replay.isPlaying}
+            onTogglePlay={() => replay.setIsPlaying((p) => !p)}
+            onStepForward={() => replay.stepForward()}
+            onStepBack={() => replay.stepBackward()}
+            onReset={replay.reset}
+            speedMs={replay.speedMs}
+            onSpeedChange={replay.setSpeedMs}
+          />
+        </div>
+        <aside className="shrink-0 flex flex-col lg:w-96 lg:min-h-0 lg:border-l lg:border-hairline lg:overflow-y-auto">
+          <DrawingToolbar
+            confluenceTypes={confluenceTypes}
+            drawingType={drawingType}
+            hasPendingPoint={Boolean(pendingPoint)}
+            onSelectType={handleSelectType}
+            onCancel={handleCancelDrawing}
+            onSuggestAI={() => void handleSuggestConfluences()}
+            suggesting={suggesting}
+          />
+          <ConfluenceSuggestionsPanel
+            suggestions={suggestions}
+            onAccept={(s) => void handleAcceptSuggestion(s)}
+            onDismiss={handleDismissSuggestion}
+          />
+          <ConfluenceLegendPanel entries={legendEntries} onDelete={(id) => void handleDeleteAnnotation(id)} />
+          {user && (
+            <BacktestOrderPanel
+              userId={user.id}
+              session={bt.session}
+              currentKline={replay.currentKline}
+              openTrades={openTrades}
+              onTradeOpened={(trade) => setOpenTrades((prev) => [...prev, trade])}
+              onTradeClosed={(tradeId) => setOpenTrades((prev) => prev.filter((t) => t.id !== tradeId))}
+            />
+          )}
+        </aside>
       </div>
-      <DrawingToolbar
-        confluenceTypes={confluenceTypes}
-        drawingType={drawingType}
-        hasPendingPoint={Boolean(pendingPoint)}
-        onSelectType={handleSelectType}
-        onCancel={handleCancelDrawing}
-        onSuggestAI={() => void handleSuggestConfluences()}
-        suggesting={suggesting}
-      />
-      <ConfluenceSuggestionsPanel
-        suggestions={suggestions}
-        onAccept={(s) => void handleAcceptSuggestion(s)}
-        onDismiss={handleDismissSuggestion}
-      />
-      <ConfluenceLegendPanel entries={legendEntries} onDelete={(id) => void handleDeleteAnnotation(id)} />
-      <ReplayControls
-        currentIndex={replay.currentIndex}
-        total={bt.klines.length}
-        isPlaying={replay.isPlaying}
-        onTogglePlay={() => replay.setIsPlaying((p) => !p)}
-        onStepForward={() => replay.stepForward()}
-        onStepBack={() => replay.stepBackward()}
-        onReset={replay.reset}
-        speedMs={replay.speedMs}
-        onSpeedChange={replay.setSpeedMs}
-      />
-      {user && (
-        <BacktestOrderPanel
-          userId={user.id}
-          session={bt.session}
-          currentKline={replay.currentKline}
-          openTrade={openTrade}
-          onTradeOpened={setOpenTrade}
-          onTradeClosed={() => setOpenTrade(null)}
-        />
-      )}
     </div>
   )
 }
@@ -316,10 +343,12 @@ function BacktestingHeader({
   subtitle,
   onFinish,
   finishing = false,
+  hasOpenTrades = false,
 }: {
   subtitle?: string
   onFinish?: () => void
   finishing?: boolean
+  hasOpenTrades?: boolean
 }) {
   return (
     <header className="border-b border-hairline px-4 py-3 flex items-center justify-between shrink-0">
@@ -335,10 +364,11 @@ function BacktestingHeader({
         <button
           type="button"
           onClick={onFinish}
-          disabled={finishing}
+          disabled={finishing || hasOpenTrades}
+          title={hasOpenTrades ? 'Cerrá todas las operaciones antes de finalizar la sesión' : undefined}
           className="font-body text-[13px] px-3 py-1.5 rounded-sm border border-hairline text-text-muted hover:border-text-faint transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {finishing ? 'Finalizando...' : 'Finalizar sesión'}
+          {finishing ? 'Finalizando...' : hasOpenTrades ? 'Cerrá las operaciones primero' : 'Finalizar sesión'}
         </button>
       ) : (
         <span />

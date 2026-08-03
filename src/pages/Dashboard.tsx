@@ -4,6 +4,8 @@ import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
 import { MetricCard } from '../components/MetricCard'
 import { InsightsSection } from '../components/InsightsSection'
+import { PsychologyStatsCard } from '../components/PsychologyStatsCard'
+import { ExtendedStatsSection } from '../components/ExtendedStatsSection'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
@@ -60,7 +62,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28">
+      <main className="max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         <div className="mb-8">
           <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
           <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>
@@ -102,6 +104,10 @@ export default function Dashboard() {
         )}
 
         {!loading && <InsightsSection />}
+
+        {!loading && <PsychologyStatsCard />}
+
+        {!loading && <ExtendedStatsSection />}
 
         <Link
           to="/ia-trader"

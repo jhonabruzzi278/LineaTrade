@@ -10,17 +10,23 @@ type Props = {
   userId: string
   session: BacktestSession
   currentKline: Kline | undefined
-  openTrade: Trade | null
+  openTrades: Trade[]
   onTradeOpened: (trade: Trade) => void
-  onTradeClosed: () => void
+  onTradeClosed: (tradeId: string) => void
 }
 
-export function BacktestOrderPanel({ userId, session, currentKline, openTrade, onTradeOpened, onTradeClosed }: Props) {
+export function BacktestOrderPanel({ userId, session, currentKline, openTrades, onTradeOpened, onTradeClosed }: Props) {
   const [stopLoss, setStopLoss] = useState('')
   const [takeProfit, setTakeProfit] = useState('')
   const [positionSize, setPositionSize] = useState('1')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Set, no un solo string: si se cierra el trade A y, antes de que resuelva,
+  // se cierra el trade B, un solo valor haría que el finally de A borre el
+  // estado "cerrando" de B también — reactivando su botón mientras el pedido
+  // de B sigue en vuelo (riesgo de disparar closeBacktestTrade dos veces sobre
+  // la misma operación).
+  const [closingIds, setClosingIds] = useState<Set<string>>(new Set())
 
   async function handleOpen(side: 'long' | 'short') {
     if (!currentKline) return
@@ -57,62 +63,65 @@ export function BacktestOrderPanel({ userId, session, currentKline, openTrade, o
     }
   }
 
-  async function handleClose() {
-    if (!openTrade || !currentKline) return
-    setSubmitting(true)
+  async function handleClose(tradeId: string) {
+    if (!currentKline) return
+    setClosingIds((prev) => new Set(prev).add(tradeId))
     setError(null)
     try {
-      await closeBacktestTrade(openTrade.id, currentKline)
-      onTradeClosed()
+      await closeBacktestTrade(tradeId, currentKline)
+      onTradeClosed(tradeId)
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
-      setSubmitting(false)
+      setClosingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(tradeId)
+        return next
+      })
     }
-  }
-
-  if (openTrade) {
-    return (
-      <div className="border-t border-hairline bg-panel px-4 py-4">
-        {/* max-w-2xl mx-auto: la barra de fondo va full-bleed (como una toolbar de
-            TradingView), pero el contenido real se centra y no se estira a lo ancho
-            de un monitor grande — sin esto, "Cerrar operación" quedaba como un botón
-            perdido en una fila de 1440px. */}
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 mb-3">
-          <div>
-            <p className="font-body text-[14px] text-text-primary">
-              {openTrade.side === 'long' ? 'Compra' : 'Venta'} abierta a{' '}
-              <span className="font-mono tabular-nums">{openTrade.entry_price}</span>
-            </p>
-            {(openTrade.stop_loss || openTrade.take_profit) && (
-              <p className="font-mono text-[11px] text-text-faint">
-                {openTrade.stop_loss && `SL ${openTrade.stop_loss}`}
-                {openTrade.stop_loss && openTrade.take_profit && ' · '}
-                {openTrade.take_profit && `TP ${openTrade.take_profit}`}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleClose()}
-            disabled={submitting || !currentKline}
-            className="font-body text-[13px] px-4 py-2 rounded-sm border border-loss/40 text-loss hover:bg-loss/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {submitting ? 'Cerrando...' : 'Cerrar operación'}
-          </button>
-        </div>
-        {error && <p className="max-w-2xl mx-auto font-body text-[13px] text-loss">{error}</p>}
-      </div>
-    )
   }
 
   return (
     <div className="border-t border-hairline bg-panel px-4 py-4">
       <div className="max-w-2xl mx-auto">
-        {/* grid-cols-2 md:grid-cols-3, no un grid-cols-3 fijo — mismo patrón ya
-            establecido en TechnicalEntryPanel.tsx para una fila de 3 inputs numéricos
-            (ver CLAUDE.md "Same 375px-first lesson caught a second time"): 3 columnas
-            fijas dejan cada input con muy poco margen para escribir cómodo en mobile. */}
+        {openTrades.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {openTrades.map((trade) => (
+              <div
+                key={trade.id}
+                className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-sm border border-hairline bg-panel-2"
+              >
+                <div>
+                  <p className="font-body text-[13px]">
+                    <span className={trade.side === 'long' ? 'text-gain' : 'text-loss'}>
+                      {trade.side === 'long' ? 'Compra' : 'Venta'}
+                    </span>{' '}
+                    <span className="text-text-primary font-mono tabular-nums">{trade.entry_price}</span>
+                    {trade.position_size != null && trade.position_size !== 1 && (
+                      <span className="text-text-faint font-mono text-[11px]"> ×{trade.position_size}</span>
+                    )}
+                  </p>
+                  {(trade.stop_loss || trade.take_profit) && (
+                    <p className="font-mono text-[10px] text-text-faint">
+                      {trade.stop_loss && `SL ${trade.stop_loss}`}
+                      {trade.stop_loss && trade.take_profit && ' · '}
+                      {trade.take_profit && `TP ${trade.take_profit}`}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleClose(trade.id)}
+                  disabled={closingIds.has(trade.id) || !currentKline}
+                  className="shrink-0 font-body text-[12px] px-3 py-1.5 rounded-sm border border-loss/40 text-loss hover:bg-loss/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {closingIds.has(trade.id) ? 'Cerrando...' : 'Cerrar'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
           <div>
             <label htmlFor="bt-sl" className="font-mono text-[11px] text-text-faint block mb-1">

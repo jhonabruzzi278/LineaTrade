@@ -49,7 +49,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
-interface FloatingNavItem {
+export interface FloatingNavItem {
   name: string
   link: string
   icon?: ReactNode

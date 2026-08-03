@@ -38,12 +38,15 @@ export type AnnotationView = {
 
 type PendingPoint = { time: number; price: number; color: string }
 
+export type TradeMarker = { id: string; time: number; price: number; side: 'long' | 'short' }
+
 type Props = {
   klines: Kline[]
   annotations?: AnnotationView[]
   pendingPoint?: PendingPoint | null
   drawingActive?: boolean
   onChartPoint?: (point: { time: number; price: number }) => void
+  tradeMarkers?: TradeMarker[]
 }
 
 function shapeToZoneShape(shape: ConfluenceShape): ZoneShape {
@@ -66,7 +69,7 @@ function toMarker(annotation: AnnotationView): SeriesMarker<Time> {
   return { ...base, position: 'belowBar', shape: 'arrowUp' }
 }
 
-export function ChartEngine({ klines, annotations = [], pendingPoint = null, drawingActive = false, onChartPoint }: Props) {
+export function ChartEngine({ klines, annotations = [], pendingPoint = null, drawingActive = false, onChartPoint, tradeMarkers = [] }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
@@ -137,11 +140,19 @@ export function ChartEngine({ klines, annotations = [], pendingPoint = null, dra
   useEffect(() => {
     if (!markersApiRef.current) return
     const pointMarkers = annotations.filter((a) => !isRangeShape(a.shape)).map(toMarker)
+    const tradeMarks: SeriesMarker<Time>[] = tradeMarkers.map((t) => ({
+      time: t.time as UTCTimestamp,
+      position: t.side === 'long' ? 'belowBar' as const : 'aboveBar' as const,
+      shape: t.side === 'long' ? 'arrowUp' as const : 'arrowDown' as const,
+      color: t.side === 'long' ? CHART_COLORS.gain : CHART_COLORS.loss,
+      id: `trade-${t.id}`,
+      text: t.side === 'long' ? '◆' : '◆',
+    }))
     const pendingMarker: SeriesMarker<Time>[] = pendingPoint
       ? [{ time: pendingPoint.time as UTCTimestamp, position: 'inBar', shape: 'circle', color: pendingPoint.color, id: '__pending__' }]
       : []
-    markersApiRef.current.setMarkers([...pointMarkers, ...pendingMarker])
-  }, [annotations, pendingPoint])
+    markersApiRef.current.setMarkers([...pointMarkers, ...tradeMarks, ...pendingMarker])
+  }, [annotations, pendingPoint, tradeMarkers])
 
   // Objetos de rango (square/rectangle/line) — un ConfluenceZonePrimitive por
   // anotación, adjuntado/eliminado según qué ids siguen presentes.

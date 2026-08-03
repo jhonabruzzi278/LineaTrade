@@ -229,7 +229,7 @@ export default function TradeDetail() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         <div className="flex items-center gap-3 mb-1">
           <h1 className="font-display text-[26px] text-text-primary">
             {trade.instruments?.symbol ?? '—'}
@@ -368,12 +368,20 @@ export default function TradeDetail() {
             <Field label="Emoción" value={trade.emotion} />
             <Field label="Confianza" value={trade.confidence_level ? `${trade.confidence_level}/10` : null} />
             <Field label="Estrés" value={trade.stress_level ? `${trade.stress_level}/10` : null} />
+            <Field label="Miedo" value={trade.fear_level ? `${trade.fear_level}/10` : null} />
+            <Field label="Ansiedad" value={trade.anxiety_level ? `${trade.anxiety_level}/10` : null} />
           </div>
           <div className="flex flex-wrap gap-2">
             {trade.followed_plan && <Tag label="Siguió el plan" />}
             {trade.had_fomo && <Tag label="Tuvo FOMO" />}
             {trade.overtraded && <Tag label="Overtrading" />}
             {trade.moved_stop_loss && <Tag label="Movió el stop (autorreporte)" />}
+            {trade.closed_early && <Tag label="Cerró antes de tiempo" />}
+            {trade.moved_take_profit && <Tag label="Movió el take profit" />}
+            {trade.entered_impulsively && <Tag label="Entró por impulso" />}
+            {trade.hesitated && <Tag label="Dudó antes de entrar" />}
+            {trade.overconfidence && <Tag label="Exceso de confianza" />}
+            {trade.had_distractions && <Tag label="Hubo distracciones" />}
           </div>
           {stopLossChanges != null && stopLossChanges > 0 && (
             <p className="font-body text-[13px] text-text-muted mt-4 border-l-2 border-signal pl-3">

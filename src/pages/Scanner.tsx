@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
 import { ScannerResultRow } from '../components/scanner/ScannerResultRow'
-import { listScannerResults, type ScannerResult } from '../lib/scanner'
+import { listScannerResults, resolveScannerQuery, type ScannerResult, type ScannerQueryCondition } from '../lib/scanner'
 import { getErrorMessage } from '../lib/errors'
 
 type RsiZoneFilter = 'all' | 'oversold' | 'overbought'
@@ -28,6 +29,10 @@ export default function Scanner() {
   const [rsiZone, setRsiZone] = useState<RsiZoneFilter>('all')
   const [minVolumeSpike, setMinVolumeSpike] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('price_change_pct')
+  const [naturalQuery, setNaturalQuery] = useState('')
+  const [naturalConditions, setNaturalConditions] = useState<ScannerQueryCondition[]>([])
+  const [naturalQueryLoading, setNaturalQueryLoading] = useState(false)
+  const [naturalQueryError, setNaturalQueryError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -56,6 +61,27 @@ export default function Scanner() {
         if (rsiZone === 'oversold' && !(r.rsi_14 != null && r.rsi_14 < 30)) return false
         if (rsiZone === 'overbought' && !(r.rsi_14 != null && r.rsi_14 > 70)) return false
         if (minSpike != null && !(r.volume_spike_ratio != null && r.volume_spike_ratio >= minSpike)) return false
+        for (const cond of naturalConditions) {
+          const fieldVal = (r as Record<string, unknown>)[cond.field]
+          if (fieldVal == null || typeof fieldVal !== 'number') return false
+          switch (cond.operator) {
+            case '>':
+              if (!(fieldVal > cond.value)) return false
+              break
+            case '<':
+              if (!(fieldVal < cond.value)) return false
+              break
+            case '>=':
+              if (!(fieldVal >= cond.value)) return false
+              break
+            case '<=':
+              if (!(fieldVal <= cond.value)) return false
+              break
+            case '=':
+              if (fieldVal !== cond.value) return false
+              break
+          }
+        }
         return true
       })
       .sort((a, b) => {
@@ -63,14 +89,38 @@ export default function Scanner() {
         const bv = b[sortKey] ?? -Infinity
         return bv - av
       })
-  }, [results, search, rsiZone, minVolumeSpike, sortKey])
+  }, [results, search, rsiZone, minVolumeSpike, sortKey, naturalConditions])
 
   const lastScannedAt = results[0]?.scanned_at
+
+  async function handleResolveQuery() {
+    const text = naturalQuery.trim()
+    if (!text) return
+    setNaturalQueryLoading(true)
+    setNaturalQueryError(null)
+    const result = await resolveScannerQuery(text)
+    setNaturalQueryLoading(false)
+    if (!result.ok) {
+      setNaturalQueryError(result.message)
+      return
+    }
+    if (result.conditions.length === 0) {
+      setNaturalQueryError('No se encontraron condiciones traducibles en tu consulta. Probá con términos más directos.')
+      return
+    }
+    setNaturalConditions(result.conditions)
+  }
+
+  function handleClearNaturalConditions() {
+    setNaturalConditions([])
+    setNaturalQuery('')
+    setNaturalQueryError(null)
+  }
 
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28">
+      <main className="max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         <div className="mb-2">
           <p className="font-mono text-[13px] text-signal mb-2">market scanner</p>
           <h1 className="font-display text-[28px] text-text-primary">Escáner de cripto</h1>
@@ -81,6 +131,54 @@ export default function Scanner() {
         </p>
 
         {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
+
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <div className="flex-1 flex gap-2">
+            <input
+              type="text"
+              value={naturalQuery}
+              onChange={(e) => setNaturalQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleResolveQuery()
+              }}
+              placeholder="ej: RSI menor a 30 y volumen 2x el promedio"
+              className="flex-1 bg-panel border border-hairline rounded-sm px-4 py-2.5 font-body text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => void handleResolveQuery()}
+              disabled={naturalQueryLoading || !naturalQuery.trim()}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-sm bg-signal/10 border border-signal/30 text-signal font-body text-[13px] hover:bg-signal/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Sparkles size={14} />
+              Buscar
+            </button>
+          </div>
+          {naturalConditions.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearNaturalConditions}
+              className="shrink-0 font-mono text-[12px] text-text-faint hover:text-text-muted transition-colors"
+            >
+              limpiar filtros
+            </button>
+          )}
+        </div>
+
+        {naturalQueryError && <p className="font-body text-[13px] text-loss mb-3 -mt-2">{naturalQueryError}</p>}
+
+        {naturalConditions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {naturalConditions.map((cond, i) => (
+              <span
+                key={i}
+                className="font-mono text-[11px] px-2 py-1 rounded-sm border border-signal/30 text-signal bg-signal/5"
+              >
+                {cond.field} {cond.operator} {cond.value}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 mb-6">
           <input

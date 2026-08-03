@@ -974,6 +974,13 @@ not the phase table, as the current edge of the product:
   it documents 4 real bugs found and fixed in-place (never applied anywhere real, so
   fixed directly in the migration files rather than via a follow-up migration) plus
   what's still open.
+- **Diseño desktop/mobile diferenciado + auditoría del batch anterior** (2026-08-03) —
+  layout tipo TradingView para `/backtesting` en `lg:+`, sidebar de navegación de
+  escritorio, y una auditoría de las 4 features del punto anterior (2 bugs reales
+  corregidos: concurrencia en cierre de trades de Day Replay, y vocabulario de campos
+  no reforzado por Zod en el scanner NL) más una vista faltante conectada
+  (`v_user_psychology_stats`). Sigue sin verificarse en un navegador real — ver
+  "Auditoría del batch 2026-07-29 + diseño desktop/mobile diferenciado" below.
 
 ### Options trading & order tickets
 
@@ -1670,6 +1677,121 @@ Order matters: migrations + the 5 new Edge Function deployments
 Edge Function all need to land in Supabase Cloud *before* the frontend push, mirroring
 exactly how every previous production rollout in this file (push notifications, news
 cron) was sequenced.
+
+### Auditoría del batch 2026-07-29 + diseño desktop/mobile diferenciado (2026-08-03)
+
+Sesión disparada por un pedido de investigación de referencias competitivas
+(Tradezella, TradingView Replay, TrendSpider, TradesViz) que derivó en un plan de 4
+features y, por separado, un pedido de diseño de 3 experiencias (desktop / app
+instalada / navegador mobile). Al arrancar la implementación se descubrió que el
+batch de Confluencias/Coach/Scanner/Insights (arriba) ya tenía, sin commitear, 4
+archivos/migraciones adicionales que correspondían justo a esas 4 features — es
+decir, ya habían sido escritas en una sesión previa no documentada acá. Este pass
+fue una **auditoría de esas 4 features + el trabajo de diseño**, no una
+implementación desde cero.
+
+**Auditoría de las 4 features (3 agentes de exploración en paralelo, luego fixes
+manuales)** — hallazgos y qué se corrigió:
+
+1. **Tags de psicología + reporte comparativo** (`v_user_psychology_tag_stats`,
+   `PsychologyStatsCard.tsx`, `TradeDetail.tsx`'s sección Psicología) — auditoría:
+   **100% correcta**, wireada end-to-end, `security_invoker=true` y el mismo
+   filtro `is_backtest=false` que toda otra vista. Único hallazgo: un predicado
+   `status = 'closed'` redundante dentro de 3 `filter()` SQL (el `WHERE` externo ya
+   restringe todo a `closed`) — limpiado directamente en la migración (todavía sin
+   aplicar a ningún ambiente real, así que editarla in situ no viola la regla de
+   "nunca editar una migración ya aplicada").
+2. **Filtro en lenguaje natural del Scanner** (`resolve-scanner-query` Edge
+   Function, `scannerQueryValidator.ts`) — funcionalmente completo, auth/BYOK/rate
+   limit/reintento-en-JSON-inválido todos correctos, sin problemas de seguridad
+   (vocabulario de campos verificado contra las columnas reales de
+   `scanner_results`, cron de `run-scanner` confirmado sin ninguna llamada a IA).
+   Un desvío de diseño corregido: `scannerQueryValidator.ts` validaba `field` con
+   `z.string()` + un `.filter()` manual posterior, no con `z.enum(...)` directo en
+   el schema como especificaba el plan — cambiado a que Zod mismo sea la única
+   fuente de verdad del vocabulario permitido, y corregido un comentario que
+   afirmaba (falsamente) reusar `resolveFieldPath`/denylist de
+   `responseValidator.ts`.
+3. **Dashboard extendido / "Módulo 7"** (`ExtendedStatsSection.tsx`,
+   `extendedStats.ts`) — 5 de las 6 vistas planeadas (`weekday`/`hour`/
+   `instrument`/`confluence_single`/`confluence_combo`) estaban correctamente
+   conectadas sin ninguna migración nueva, con heatmap+tablas, piso de muestra
+   (`MIN_SAMPLE_FOR_HEATMAP = 3`), toggle colapsable y grid mobile-friendly. Faltaba
+   la 6ª: `v_user_psychology_stats` (el resumen de % de cuenta completa —
+   `pct_fomo`, `pct_impulsive`, etc. — genuinamente distinto de
+   `v_user_psychology_tag_stats`, que es rendimiento *por tag*, no frecuencia de
+   comportamiento) nunca se había conectado a ninguna UI. Se agregó
+   `getPsychologyPctStats()` + una sección "Frecuencia de comportamientos" (barras
+   horizontales, mismo piso de muestra) — el Módulo 7 queda con sus 6 vistas
+   cubiertas.
+4. **Day Replay multi-trade** (`openTrades: Trade[]` en `Backtesting.tsx`,
+   markers múltiples en `ChartEngine.tsx` vía el mismo `setMarkers([...])` que ya
+   usan las confluencias) — arquitectura y el guardrail de seguridad ("Finalizar
+   sesión" bloqueado mientras haya trades abiertos) correctos. Un bug real de
+   concurrencia en `BacktestOrderPanel.tsx`: `closingId` era un solo
+   `string | null` — cerrar el trade A y, antes de que resuelva, cerrar el B hacía
+   que el `finally` de A borrara también el estado "cerrando" de B, reactivando su
+   botón mientras el pedido de B seguía en vuelo (riesgo de disparar
+   `closeBacktestTrade` dos veces sobre la misma operación). Corregido a
+   `closingIds: Set<string>`.
+
+**Diseño desktop/mobile diferenciado** — hallazgo clave que cambió el enfoque: la
+app era prácticamente mobile-only, sin un solo breakpoint `lg:`/`xl:` real en
+ninguna pantalla protegida. "App instalada" y "navegador mobile" resultaron ser,
+en la práctica, el mismo layout — la única diferencia real y ya cubierta por el
+código existente es que `Landing.tsx:115`'s `isStandaloneDisplay()` redirige
+cualquier sesión standalone a `/login` antes de renderizar el CTA de instalación
+(`#descargar`), así que un usuario con la app instalada nunca lo ve; no hace falta
+ningún cambio adicional ahí, ni existe ningún otro CTA de instalación en el resto
+de la app (verificado por grep). Se priorizó por lo tanto el layout de
+**desktop real**, que sí no existía:
+
+- `src/hooks/useIsStandalone.ts` — versión reactiva de `isStandaloneDisplay()`
+  (con listener de `matchMedia`), disponible para cualquier futuro uso condicional
+  a modo standalone, aunque hoy no haga falta en `Landing.tsx` (que usa la versión
+  síncrona por ser una decisión de routing de una sola vez, no un re-render).
+- **`/backtesting` en `lg:+` (1024px)**: de un stack vertical (chart →
+  `DrawingToolbar` → `ConfluenceSuggestionsPanel` → `ConfluenceLegendPanel` →
+  `ReplayControls` → `BacktestOrderPanel`, todo full-width) pasa a un layout tipo
+  TradingView — `flex-row`, chart + `ReplayControls` a la izquierda (todo el ancho
+  disponible), y el resto de paneles en un `<aside className="lg:w-96
+  lg:border-l ...">` lateral con scroll propio. Cambio acotado a
+  `Backtesting.tsx`: los 4 componentes del panel lateral no necesitaron tocarse,
+  porque su `max-w-2xl mx-auto` (672px) ya no restringe nada dentro de un
+  `<aside>` de 384px. Por debajo de `lg:`, comportamiento idéntico al de antes.
+- **Sidebar de navegación desktop**: `src/hooks/useNavItems.tsx` extrae el array
+  de items (antes inline en `AppFloatingNav.tsx`) a un hook compartido;
+  `src/components/ui/sidebar-navbar.tsx` es una nueva píldora vertical fija en el
+  borde izquierdo, mismo lenguaje visual que la pill inferior; `AppFloatingNav.tsx`
+  ahora renderiza ambas presentaciones desde un único componente (`FloatingNav`
+  envuelta en `lg:hidden`, `SidebarNav` en `hidden lg:block`) — como cada página ya
+  renderiza `<AppFloatingNav/>` sin cambios, el sidebar aparece en las 10 páginas
+  existentes sin tocarlas. Cada `<main>` que ya usaba `pb-28` (Dashboard,
+  Historial, Scanner, AdminPanel, TradeDetail, Sistema, Perfil, ConfiguracionIA,
+  IaTrader, Noticias) pasó a `pb-28 lg:pb-10 lg:pl-24` — libera el espacio inferior
+  que ya no hace falta en desktop y deja hueco a la izquierda para el nuevo riel.
+
+**Deliberadamente no hecho en este pase** (deferido a pedido explícito, no
+olvidado): mejoras de densidad desktop en Dashboard (grid 2 columnas para las
+stat cards nuevas)/Historial (tabla real en vez de lista)/TradeDetail (2 columnas)
+— cada una es una reestructuración real, no solo aprovechar ancho existente, y se
+decidió no gastar ese esfuerzo hasta confirmar que el resto del diseño desktop se
+ve bien primero.
+
+**Verificación de esta sesión — limitación real, no hipotética**: no se pudo
+confirmar nada de esto en un navegador real logueado. Con Docker/Supabase local
+ya levantado, se intentó un signup real vía el navegador automatizado de esta
+herramienta, pero **el pane no composita frames** (`screenshot failed: the
+Browser pane is not displayed`) y ningún clic disparó una request real a la API
+de auth local (confirmado con `read_network_requests`) — la misma clase de
+limitación de esta herramienta ya documentada más arriba para el chart de
+`/backtesting` y el prompt nativo de push. Lo único verificado en esta sesión fue
+`npm run build`/`npm run lint` limpios después de cada cambio. Antes de confiar en
+este trabajo, verificar a mano en un navegador real: el layout de escritorio de
+`/backtesting` en 1024px/1440px, el sidebar apareciendo en las páginas protegidas,
+y las 4 correcciones de la auditoría (especialmente el fix de `closingIds` —
+abrir y cerrar 2-3 trades de práctica rápido, en distinto orden, y confirmar que
+ningún trade queda con `status='open'` en la base).
 
 ### Closing a trade
 

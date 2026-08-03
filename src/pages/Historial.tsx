@@ -81,7 +81,7 @@ export default function Historial() {
   return (
     <div className="min-h-screen bg-ink">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28">
+      <main className="max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div>
             <p className="font-mono text-[13px] text-signal mb-2">registro completo</p>

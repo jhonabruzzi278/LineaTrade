@@ -1651,6 +1651,26 @@ export type Database = {
           },
         ]
       }
+      v_user_psychology_tag_stats: {
+        Row: {
+          avg_r: number | null
+          closed_trades: number | null
+          profit_factor: number | null
+          tag_name: string | null
+          total_trades: number | null
+          user_id: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_and_increment_ai_usage: {
