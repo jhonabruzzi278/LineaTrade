@@ -5,6 +5,8 @@ import { AppFloatingNav } from '../components/AppFloatingNav'
 import { ScannerResultRow } from '../components/scanner/ScannerResultRow'
 import { listScannerResults, resolveScannerQuery, type ScannerResult, type ScannerQueryCondition } from '../lib/scanner'
 import { getErrorMessage } from '../lib/errors'
+import { useSidebar } from '../lib/sidebar'
+import { cn } from '@/lib/utils'
 
 type RsiZoneFilter = 'all' | 'oversold' | 'overbought'
 type SortKey = 'price_change_pct' | 'volume_spike_ratio' | 'rsi_14'
@@ -35,6 +37,7 @@ const SUGGESTED_QUERIES: { label: string; query: string }[] = [
 // (scanner_results no tiene user_id), refrescados por el cron run-scanner cada 5
 // minutos — esta página solo lee, nunca dispara un escaneo ella misma.
 export default function Scanner() {
+  const { expanded } = useSidebar()
   const [results, setResults] = useState<ScannerResult[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -138,7 +141,12 @@ export default function Scanner() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <div className="mb-2">
           <p className="font-mono text-[13px] text-signal mb-2">market scanner</p>
           <h1 className="font-display text-[28px] text-text-primary">Escáner de cripto</h1>

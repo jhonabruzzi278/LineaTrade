@@ -9,6 +9,7 @@ import { getInitials } from '../components/Avatar'
 import { MetricCard } from '../components/MetricCard'
 import { onboardingSteps } from '../data/onboarding'
 import { useAuth } from '../lib/auth'
+import { useSidebar } from '../lib/sidebar'
 import { supabase } from '../lib/supabase'
 import { uploadAvatar } from '../lib/avatarUpload'
 import { getCroppedImageFile } from '../lib/cropImage'
@@ -17,6 +18,7 @@ import { useToast } from '../lib/toast'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { CameraIcon } from '../components/icons/NavIcons'
 import { formatNumber, formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
+import { cn } from '@/lib/utils'
 import type { Database } from '../types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -56,6 +58,7 @@ function accountAgeDays(createdAt: string | undefined): number | null {
 
 export default function Perfil() {
   const { user, role, avatarUrl, refreshProfile } = useAuth()
+  const { expanded } = useSidebar()
   const { showToast } = useToast()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<TradeStats | null>(null)
@@ -139,7 +142,12 @@ export default function Perfil() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie
             propia, como la tarjeta de cuenta de TradingView (avatar, usuario, plan).
             `pl-4` (en vez de `pr-6` simétrico) acerca la foto al borde de la tarjeta;

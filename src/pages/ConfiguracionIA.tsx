@@ -5,6 +5,8 @@ import { SettingsGroup, SettingsRow } from '../components/SettingsRow'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
+import { useSidebar } from '../lib/sidebar'
+import { cn } from '@/lib/utils'
 
 // Proveedores con implementación real en el registry de ambos Edge
 // Functions (ver supabase/functions/_shared/providers/) — no hay check
@@ -27,6 +29,7 @@ type ByokStatus = {
 }
 
 export default function ConfiguracionIA() {
+  const { expanded } = useSidebar()
   const { showToast } = useToast()
   const [status, setStatus] = useState<ByokStatus | null>(null)
   const [provider, setProvider] = useState<string>(BYOK_PROVIDERS[0])
@@ -92,7 +95,12 @@ export default function ConfiguracionIA() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <p className="font-mono text-[12px] text-signal tracking-wide mb-2">configuración</p>
         <h1 className="font-display text-[26px] text-text-primary mb-1">Tu propia API key (BYOK)</h1>
         <p className="font-body text-[14px] text-text-muted mb-8">

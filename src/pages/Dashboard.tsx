@@ -9,9 +9,11 @@ import { ExtendedStatsSection } from '../components/ExtendedStatsSection'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
+import { useSidebar } from '../lib/sidebar'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { formatNumber, formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
+import { cn } from '@/lib/utils'
 import type { Database } from '../types/database'
 
 type TradeRow = Database['public']['Tables']['trades']['Row'] & {
@@ -23,6 +25,7 @@ const RECENT_TRADES_LIMIT = 10
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const { expanded } = useSidebar()
   const [recentTrades, setRecentTrades] = useState<TradeRow[]>([])
   const [stats, setStats] = useState<TradeStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -62,7 +65,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <div className="mb-8">
           <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
           <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>
@@ -108,6 +116,19 @@ export default function Dashboard() {
         {!loading && <PsychologyStatsCard />}
 
         {!loading && <ExtendedStatsSection />}
+
+        <Link
+          to="/reporte"
+          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
+        >
+          <div>
+            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">estadísticas avanzadas</p>
+            <p className="font-body text-[14px] text-text-primary">Reporte: rachas, mejor/peor día y curva de capital</p>
+          </div>
+          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
+            →
+          </span>
+        </Link>
 
         <Link
           to="/ia-trader"

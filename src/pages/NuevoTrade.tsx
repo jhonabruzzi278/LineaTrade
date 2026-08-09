@@ -14,6 +14,7 @@ import { getErrorMessage } from '../lib/errors'
 import type { Database } from '../types/database'
 
 type InstrumentMarket = Database['public']['Enums']['instrument_market']
+type Strategy = Pick<Database['public']['Tables']['strategies']['Row'], 'id' | 'name'>
 
 function orNull(value: string): string | null {
   const trimmed = value.trim()
@@ -42,6 +43,7 @@ interface TradeDraft {
   technical: TechnicalEntryData
   entryReason: string
   confirmations: string
+  strategyId: string
   psychology: PsychologyData
   mainMistake: string
   whatToRepeat: string
@@ -71,6 +73,7 @@ const initialDraft: TradeDraft = {
   },
   entryReason: '',
   confirmations: '',
+  strategyId: '',
   psychology: {
     emotion: '',
     confidenceLevel: 5,
@@ -106,6 +109,29 @@ export default function NuevoTrade() {
   const [done, setDone] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [strategies, setStrategies] = useState<Strategy[]>([])
+
+  // Estrategias activas del usuario para el selector opcional del paso Contexto — el
+  // reporte de /reporte ("Mejor/Peor Modelo") solo tiene datos reales una vez que los
+  // trades nuevos empiezan a llevar strategy_id (antes de esto la columna nunca se
+  // seteaba desde ningún lado, ver CLAUDE.md).
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    supabase
+      .from('strategies')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled) setStrategies(data ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   const isLastStep = stepIndex === STEP_LABELS.length - 1
 
@@ -199,6 +225,7 @@ export default function NuevoTrade() {
           expiration_date: isOptions && draft.technical.expirationDate ? draft.technical.expirationDate : null,
           entry_reason: orNull(draft.entryReason),
           confirmations: orNull(draft.confirmations),
+          strategy_id: draft.strategyId || null,
           emotion: orNull(draft.psychology.emotion),
           confidence_level: draft.psychology.confidenceLevel,
           stress_level: draft.psychology.stressLevel,
@@ -298,6 +325,25 @@ export default function NuevoTrade() {
               onChange={(value) => setDraft((prev) => ({ ...prev, confirmations: value }))}
               placeholder="¿Qué señales o confluencias confirmaron la entrada?"
             />
+            {strategies.length > 0 && (
+              <div>
+                <label className="font-body text-[13px] text-text-muted block mb-2">
+                  Estrategia (opcional)
+                </label>
+                <select
+                  value={draft.strategyId}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, strategyId: e.target.value }))}
+                  className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary focus:outline-none focus:border-signal transition-colors"
+                >
+                  <option value="">Sin clasificar</option>
+                  {strategies.map((strategy) => (
+                    <option key={strategy.id} value={strategy.id}>
+                      {strategy.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </>
       )}

@@ -7,7 +7,9 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
+import { useSidebar } from '../lib/sidebar'
 import { formatDateOnly } from '../lib/tradeDisplay'
+import { cn } from '@/lib/utils'
 import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
 import { OrderTicketFields, emptyOrderTicket, hasOrderTicketData, type OrderTicketData } from '../components/trade/OrderTicketFields'
 import type { Database } from '../types/database'
@@ -31,6 +33,7 @@ const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { expanded } = useSidebar()
   const { showToast } = useToast()
   const [trade, setTrade] = useState<Trade | null>(null)
   const [stopLossChanges, setStopLossChanges] = useState<number | null>(null)
@@ -229,7 +232,12 @@ export default function TradeDetail() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <div className="flex items-center gap-3 mb-1">
           <h1 className="font-display text-[26px] text-text-primary">
             {trade.instruments?.symbol ?? '—'}

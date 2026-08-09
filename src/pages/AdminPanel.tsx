@@ -5,6 +5,8 @@ import { MetricCard } from '../components/MetricCard'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
+import { useSidebar } from '../lib/sidebar'
+import { cn } from '@/lib/utils'
 import type { Database } from '../types/database'
 
 type SystemMetrics = Database['public']['Functions']['get_system_metrics']['Returns'][number]
@@ -14,6 +16,7 @@ type CronJobHealth = Database['public']['Functions']['get_cron_job_health']['Ret
 type CronSecretStatus = Database['public']['Functions']['get_cron_secrets_status']['Returns'][number]
 
 export default function AdminPanel() {
+  const { expanded } = useSidebar()
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +45,12 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <p className="font-mono text-[13px] text-signal mb-2">solo superadmin</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Panel de sistema</h1>
 

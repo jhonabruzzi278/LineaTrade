@@ -13,6 +13,8 @@ import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { loadAndClearQuizAnswers, saveQuizAnswers } from '../lib/traderQuizStorage'
 import { buildTraderPackage, downloadBlob } from '../lib/traderPackage'
+import { useSidebar } from '../lib/sidebar'
+import { cn } from '@/lib/utils'
 import type { Json } from '../types/database'
 
 const QUESTION_IDS = traderQuizQuestions.map((q) => q.id)
@@ -26,6 +28,7 @@ type Phase = 'loading' | 'quiz' | 'result'
 // parcialmente tapado — ver PlanReport's prop `blurred`.
 export default function IaTrader() {
   const { user, loading: authLoading } = useAuth()
+  const { expanded } = useSidebar()
   const wizard = useWizard(QUESTION_IDS)
   const [phase, setPhase] = useState<Phase>('loading')
   const [plan, setPlan] = useState<TraderPlan | null>(null)
@@ -196,7 +199,12 @@ export default function IaTrader() {
   return (
     <div className="min-h-screen">
       {user && <AppHeader />}
-      <main className="max-w-xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <p className="font-mono text-[13px] text-signal mb-2">tu plan de trading</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Convierte la IA en tu trader</h1>
         {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}

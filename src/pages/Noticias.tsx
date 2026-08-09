@@ -11,11 +11,14 @@ import {
   type NewsArticle,
   type NewsCategory,
 } from '../lib/news'
+import { useSidebar } from '../lib/sidebar'
+import { cn } from '@/lib/utils'
 
 type CategoryFilter = 'all' | NewsCategory
 const CATEGORY_FILTERS: CategoryFilter[] = ['all', 'cripto', 'forex', 'acciones', 'tecnologia', 'futuros', 'general', 'otro']
 
 export default function Noticias() {
+  const { expanded } = useSidebar()
   // Se siembra desde el cache de sesión (lib/news.ts): al volver desde el
   // detalle la lista aparece al instante — el skeleton solo existe en la
   // primera visita de la sesión.
@@ -66,7 +69,12 @@ export default function Noticias() {
     <div className="min-h-screen">
       <AppHeader />
 
-      <main className="max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         {/* Header — título compacto alineado a la izquierda, estilo feed de
             noticias densa (no el masthead editorial centrado anterior). */}
         <h1 className="font-body text-[28px] font-bold text-text-primary tracking-tight mb-4">Noticias</h1>

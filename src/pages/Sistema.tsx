@@ -5,6 +5,8 @@ import { RulesSection } from '../components/sistema/RulesSection'
 import { StrategiesSection } from '../components/sistema/StrategiesSection'
 import { ObjectivesSection } from '../components/sistema/ObjectivesSection'
 import { useAuth } from '../lib/auth'
+import { useSidebar } from '../lib/sidebar'
+import { cn } from '@/lib/utils'
 
 type Tab = 'reglas' | 'estrategias' | 'objetivos'
 
@@ -18,6 +20,7 @@ const TABS: { id: Tab; label: string }[] = [
 // schema (con RLS y grants) pero sin ninguna pantalla que las usara.
 export default function Sistema() {
   const { user } = useAuth()
+  const { expanded } = useSidebar()
   const [tab, setTab] = useState<Tab>('reglas')
 
   if (!user) return null
@@ -25,7 +28,12 @@ export default function Sistema() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 lg:pl-24">
+      <main
+        className={cn(
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          expanded ? 'lg:pl-80' : 'lg:pl-24',
+        )}
+      >
         <p className="font-mono text-[13px] text-signal mb-2">tu sistema</p>
         <h1 className="font-display text-[28px] text-text-primary mb-8">Reglas, estrategias y objetivos</h1>
 

@@ -981,6 +981,98 @@ not the phase table, as the current edge of the product:
   no reforzado por Zod en el scanner NL) más una vista faltante conectada
   (`v_user_psychology_stats`). Sigue sin verificarse en un navegador real — ver
   "Auditoría del batch 2026-07-29 + diseño desktop/mobile diferenciado" below.
+- **Sidebar de escritorio expandible + `/reporte` (estadísticas avanzadas)**
+  (2026-08-06) — el sidebar de escritorio (antes solo una píldora de 5 íconos, ver
+  "Diseño desktop/mobile diferenciado" arriba) ahora se expande/colapsa y da acceso a
+  todos los módulos que antes solo vivían en tarjetas sueltas del Dashboard
+  (Backtesting, Scanner, Coach, IA Trader, Sistema, Configuración IA, Admin). Nueva
+  página `/reporte` con win rate, expected value, rachas, R promedio en ganadoras,
+  duración promedio, mejor/peor día-semana-modelo y curva de capital, todo sobre datos
+  reales (nada inventado — ver "Sidebar expandible y Reporte" below).
+
+### Sidebar expandible y Reporte (2026-08-06)
+
+El sidebar de escritorio (`components/ui/sidebar-navbar.tsx`, `SidebarNav`) dejó de ser
+solo una píldora de 5 íconos: ahora tiene un botón que lo expande/colapsa
+(`src/lib/sidebar.tsx`, `SidebarProvider`/`useSidebar`, estado persistido en
+`localStorage` bajo `lt_sidebar_expanded` — preferencia de UI, no dato financiero, así
+que no aplica la regla "nunca localStorage" de `lib/news.ts`). Colapsado sigue siendo la
+píldora `rounded-full` de siempre; expandido pasa a un panel `rounded-sm` de `w-64`
+(mismo criterio de forma-distinta-para-affordance-distinta que el resto del design
+system) con dos secciones: "Principal" (los mismos 5 `useNavItems()` de siempre, ahora
+con label) y "Herramientas" (`hooks/useSidebarModules.tsx`, nuevo hook: Reporte,
+Backtesting, Scanner, Coach IA, IA Trader, Sistema, Configuración IA, y Admin solo si
+`role === 'superadmin'`) — módulos que antes no vivían en ninguna navegación global,
+solo en tarjetas sueltas de `/dashboard`. Al expandirse **empuja el contenido** (no
+overlay, a pedido explícito): las 10 páginas que ya reservaban `lg:pl-24` para el
+sidebar (`Dashboard`/`Historial`/`Sistema`/`Perfil`/`Scanner`/`Noticias`/
+`ConfiguracionIA`/`AdminPanel`/`TradeDetail`/`IaTrader`) más la nueva `Reporte.tsx`
+ahora leen `useSidebar().expanded` y alternan entre `lg:pl-24`/`lg:pl-80`. La barra
+móvil de 5 íconos (`FloatingNav`, `hooks/useNavItems.tsx`) no cambió — no hay espacio
+para 12 íconos en una píldora inferior de teléfono, así que en mobile los módulos
+nuevos solo son alcanzables desde las tarjetas de Dashboard, igual que antes.
+`Backtesting.tsx`/`Coach.tsx` no se tocaron: ya eran "modo foco" sin `<AppFloatingNav/>`
+a propósito, el sidebar nunca se monta ahí.
+
+**`/reporte` (`pages/Reporte.tsx`)** es la nueva página de estadísticas avanzadas
+pedida a partir de una captura de un reporte de backtest estilo MT4/EA. Se replicó la
+**estructura informativa** (win rate, rachas, mejor/peor día-semana-modelo, drawdown,
+curva de capital) con los tokens de marca de LineaTrade, no un clon pixel del template
+azul genérico de la captura — y dos métricas de esa captura no tienen equivalente real
+en este schema, así que se tradujeron a la más cercana que sí es 100% real en vez de
+inventarse: "RR Máximo Prom." → **R promedio en operaciones ganadoras** (no se guarda
+un "R máximo intra-trade"), y "DrawDown Prom. TP" → **drawdown de la curva de capital**
+(peor caída pico-a-valle del P&L acumulado; no hay MFE/MAE intra-operación guardado,
+así que un "drawdown antes de tocar TP" no es calculable con los datos que existen).
+Todo el cálculo vive en `src/lib/reportStats.ts`: una sola query real
+(`getClosedRealTrades`, trades cerrados, `is_backtest = false`, con `strategies(name)`
+embebido vía la FK existente) y una función pura (`computeReportStats`) que hace toda
+la aritmética — streaks, curva de capital, drawdown, agrupación por día/semana/
+estrategia — client-side sobre `pnl_amount`/`pnl_r` que el trigger del backend ya
+calculó, el mismo criterio que `Historial.tsx` ya usa para su win-rate sobre el
+subconjunto real. No se agregó ninguna vista SQL nueva para esto. Cada bucket vacío
+devuelve `null` → "—"/"datos insuficientes" en la UI, nunca un 0 fabricado.
+
+Dos gaps de datos reales que había que cerrar antes de que el reporte pudiera mostrar
+algo verdadero:
+1. **`trades.strategy_id` nunca se seteaba** — la columna y `v_user_stats_by_strategy`
+   ya existían (migración `20260727110000`) pero `NuevoTrade.tsx` nunca preguntaba la
+   estrategia. Se agregó un `<select>` opcional en el paso "Contexto" (poblado desde
+   `strategies` activas del usuario, mismo query que `StrategiesSection.tsx`) — los
+   trades viejos quedan sin clasificar, "Mejor/Peor Modelo" muestra "datos
+   insuficientes" hasta que existan trades nuevos con estrategia asignada.
+2. **`trades.duration_minutes` nunca se calculaba** — columna `integer` existente
+   desde el schema original, sin ningún código que la escribiera. Nueva migración
+   `20260806100000_trade_duration_auto.sql`: `create or replace function` sobre
+   `trg_calculate_trade_pnl()` (la función ya aplicada en producción se reemplaza, no
+   se edita el archivo de migración original que la creó, mismo patrón ya usado para
+   `get_system_metrics()`) — calcula `duration_minutes` solo en la transición real
+   `open → closed` (`tg_op`/`old.status` guard, para que editar un trade ya cerrado no
+   "alargue" la duración), usando `now() - traded_at` porque no existe una columna
+   `closed_at` separada. Trades cerrados antes de esta migración quedan en `null` (no
+   se estiman retroactivamente).
+
+**Verificación de esta sesión**: `npm run build`/`npm run lint` limpios. `computeReportStats`
+se verificó a mano contra un dataset con streaks/drawdown/día/semana conocidos de
+antemano (6 trades, racha de 2 ganadoras seguida de 3 perdedoras, drawdown pico-a-valle
+del 40%) ejecutando una copia exacta de sus funciones puras fuera de Vite — los 15
+checks (win rate, expected value, streaks, drawdown, mejor/peor día/semana) coincidieron
+exactamente con el cálculo manual. El mecanismo de expandir/colapsar el sidebar
+(botón → cambia de ícono, ancho del panel pasa a 256px = `w-64`, aparecen los 7 links de
+"Herramientas", persiste en `localStorage` tras un reload completo) y la barra móvil
+sin cambios en 375px (5 íconos, sin overflow horizontal) se confirmaron con una ruta de
+desarrollo temporal (`AppFloatingNav` montado fuera de `<ProtectedRoute>`, eliminada
+antes de terminar) porque **Docker no estaba disponible en este entorno** (`docker ps`
+nunca conectó al pipe del engine de Docker Desktop pese a que el proceso corría) — sin
+Supabase local no había forma de loguearse de verdad, y ninguna página que monta
+`<AppFloatingNav/>` lo hace fuera de una sesión autenticada. El toggle del sidebar
+tampoco respondió a clics sintéticos por coordenada de esta herramienta (mismo tipo de
+limitación ya documentado para el chart de `/backtesting` y el prompt nativo de push —
+el pane no composita frames) pero sí a un `.click()` real disparado por JS, que es lo
+que se usó para medir el resultado. **No verificado**: el reporte con datos reales de
+un usuario logueado de verdad, ni el selector de estrategia de Nuevo Trade guardando
+`strategy_id` contra una base real — pendiente la próxima vez que Supabase local esté
+disponible.
 
 ### Options trading & order tickets
 
