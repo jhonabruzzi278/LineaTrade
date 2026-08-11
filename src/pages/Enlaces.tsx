@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Download, Globe, Smartphone } from 'lucide-react'
-import { useInstallPrompt } from '../hooks/useInstallPrompt'
-import { useToast } from '../lib/toast'
+import { Globe, Smartphone } from 'lucide-react'
 
 // Mismo archivo que ya sirve el botón de descarga de Landing.tsx — ver
 // CLAUDE.md "PWA-to-APK". Único punto de verdad, no lo dupliques.
@@ -31,7 +29,7 @@ function InstagramIcon({ className }: { className?: string }) {
 type TileProps = {
   icon: ReactNode
   label: string
-  sublabel: string
+  sublabel?: string
   emphasized?: boolean
   children: ReactNode
 }
@@ -54,7 +52,7 @@ function LinkTile({ icon, label, sublabel, emphasized, children }: TileProps) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block font-body text-[15px] font-medium text-text-primary">{label}</span>
-        <span className="block font-mono text-[12px] text-text-faint">{sublabel}</span>
+        {sublabel && <span className="block font-mono text-[12px] text-text-faint">{sublabel}</span>}
       </span>
       {children}
     </div>
@@ -62,20 +60,6 @@ function LinkTile({ icon, label, sublabel, emphasized, children }: TileProps) {
 }
 
 export default function Enlaces() {
-  const { canInstall, promptInstall } = useInstallPrompt()
-  const { showToast } = useToast()
-
-  const handleInstallClick = async () => {
-    if (canInstall) {
-      await promptInstall()
-      return
-    }
-    showToast(
-      'Tu navegador no ofrece instalación directa. En Android: menú ⋮ → Agregar a pantalla de inicio. En iPhone: Compartir → Agregar a inicio.',
-      'info',
-    )
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center px-6 py-16">
       <div className="w-full max-w-sm">
@@ -102,26 +86,9 @@ export default function Enlaces() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3">
-          <button type="button" onClick={handleInstallClick} className="text-left">
-            <LinkTile
-              icon={<Download size={18} />}
-              label="Descargar la app"
-              sublabel="PWA instalable · Android, iPhone y escritorio"
-              emphasized
-            >
-              <span aria-hidden="true" className="font-mono text-[13px] text-signal">
-                →
-              </span>
-            </LinkTile>
-          </button>
-
           <a href={APK_DOWNLOAD_URL} download>
-            <LinkTile
-              icon={<Smartphone size={18} />}
-              label="Descargar APK (Android)"
-              sublabel="Instalación directa, sin Play Store"
-            >
-              <span aria-hidden="true" className="font-mono text-[13px] text-text-faint">
+            <LinkTile icon={<Smartphone size={18} />} label="Descargar APK (Android)" emphasized>
+              <span aria-hidden="true" className="font-mono text-[13px] text-signal">
                 ↓
               </span>
             </LinkTile>
