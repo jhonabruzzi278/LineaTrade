@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
+import Enlaces from './pages/Enlaces'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Recuperar from './pages/Recuperar'
@@ -51,6 +52,7 @@ export default function App() {
         <NotificationPermissionPrompt />
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/enlaces" element={<Enlaces />} />
           <Route path="/registro" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/recuperar" element={<Recuperar />} />
