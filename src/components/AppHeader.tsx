@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ThemeToggle } from './ThemeToggle'
 
 // Header para las pantallas autenticadas (Dashboard, Historial, Detalle de Trade, etc.).
 // Distinto del <Nav/> público a propósito: acá nunca van "Ingresar"/"Crear cuenta". Los
@@ -12,13 +13,13 @@ import { Link } from 'react-router-dom'
 export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-ink/80 backdrop-blur-md">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-        <Link to="/dashboard" className="flex items-center gap-2 w-fit">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+        <Link to="/dashboard" className="flex items-center gap-2 w-fit text-signal">
           <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
             <path
               d="M2 14 L7 8 L11 12 L18 4"
               fill="none"
-              stroke="#C99C54"
+              stroke="currentColor"
               strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -28,6 +29,7 @@ export function AppHeader() {
             lineatrade
           </span>
         </Link>
+        <ThemeToggle />
       </div>
     </header>
   )

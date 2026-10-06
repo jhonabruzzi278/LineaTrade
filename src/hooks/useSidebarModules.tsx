@@ -1,4 +1,4 @@
-import { BarChart3, Bot, History as ReplayIcon, Radar, ShieldCheck, Sliders, Sparkles, Target } from 'lucide-react'
+import { BarChart3, Bot, History as ReplayIcon, Lightbulb, Radar, ShieldCheck, Sliders, Sparkles, Target } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import type { FloatingNavItem } from '../components/ui/floating-navbar'
 
@@ -15,6 +15,7 @@ export function useSidebarModules(): FloatingNavItem[] {
 
   const items: FloatingNavItem[] = [
     { name: 'Reporte', link: '/reporte', icon: <BarChart3 className={ICON_CLASS} /> },
+    { name: 'Insights', link: '/insights', icon: <Lightbulb className={ICON_CLASS} /> },
     { name: 'Market Replay', link: '/backtesting', icon: <ReplayIcon className={ICON_CLASS} /> },
     { name: 'Scanner', link: '/escaner', icon: <Radar className={ICON_CLASS} /> },
     { name: 'Coach IA', link: '/coach', icon: <Bot className={ICON_CLASS} /> },

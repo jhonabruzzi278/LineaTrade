@@ -1,28 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
-import Enlaces from './pages/Enlaces'
-import Signup from './pages/Signup'
-import Login from './pages/Login'
-import Recuperar from './pages/Recuperar'
-import ActualizarPassword from './pages/ActualizarPassword'
-import Privacidad from './pages/Privacidad'
-import Onboarding from './pages/Onboarding'
-import NuevoTrade from './pages/NuevoTrade'
-import Dashboard from './pages/Dashboard'
-import Historial from './pages/Historial'
-import TradeDetail from './pages/TradeDetail'
-import ConfiguracionIA from './pages/ConfiguracionIA'
-import AdminPanel from './pages/AdminPanel'
-import Sistema from './pages/Sistema'
-import Perfil from './pages/Perfil'
-import Noticias from './pages/Noticias'
-import NoticiaDetail from './pages/NoticiaDetail'
-import IaTrader from './pages/IaTrader'
-import EliminarCuenta from './pages/EliminarCuenta'
-import Scanner from './pages/Scanner'
-import Coach from './pages/Coach'
-import Reporte from './pages/Reporte'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
@@ -30,10 +8,36 @@ import { NotificationPermissionPrompt } from './components/NotificationPermissio
 import { AuraBackground } from './components/AuraBackground'
 import { SidebarProvider } from './lib/sidebar'
 
-// lightweight-charts (~solo esta ruta la usa) es la dependencia más pesada del
-// bundle — code-split para no cargarla en las otras ~20 rutas que nunca la tocan.
-// Ver CLAUDE.md "Backtesting (Market Replay)".
+// Cada pantalla se carga bajo demanda. Landing queda en el paquete inicial porque es
+// la primera experiencia pública; el producto privado se descarga después del login.
+const Enlaces = lazy(() => import('./pages/Enlaces'))
+const Signup = lazy(() => import('./pages/Signup'))
+const Login = lazy(() => import('./pages/Login'))
+const Recuperar = lazy(() => import('./pages/Recuperar'))
+const ActualizarPassword = lazy(() => import('./pages/ActualizarPassword'))
+const Privacidad = lazy(() => import('./pages/Privacidad'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const NuevoTrade = lazy(() => import('./pages/NuevoTrade'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Historial = lazy(() => import('./pages/Historial'))
+const TradeDetail = lazy(() => import('./pages/TradeDetail'))
+const ConfiguracionIA = lazy(() => import('./pages/ConfiguracionIA'))
+const AdminPanel = lazy(() => import('./pages/AdminPanel'))
+const Sistema = lazy(() => import('./pages/Sistema'))
+const Perfil = lazy(() => import('./pages/Perfil'))
+const Noticias = lazy(() => import('./pages/Noticias'))
+const NoticiaDetail = lazy(() => import('./pages/NoticiaDetail'))
+const IaTrader = lazy(() => import('./pages/IaTrader'))
+const EliminarCuenta = lazy(() => import('./pages/EliminarCuenta'))
+const Scanner = lazy(() => import('./pages/Scanner'))
+const Coach = lazy(() => import('./pages/Coach'))
+const Reporte = lazy(() => import('./pages/Reporte'))
+const Herramientas = lazy(() => import('./pages/Herramientas'))
+const Insights = lazy(() => import('./pages/Insights'))
 const Backtesting = lazy(() => import('./pages/Backtesting'))
+const Academia = lazy(() => import('./pages/Academia'))
+const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
+const Planes = lazy(() => import('./pages/Planes'))
 
 function RouteFallback() {
   return (
@@ -50,6 +54,7 @@ export default function App() {
         <AuraBackground />
         <PwaUpdatePrompt />
         <NotificationPermissionPrompt />
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/enlaces" element={<Enlaces />} />
@@ -175,6 +180,46 @@ export default function App() {
             }
           />
           <Route
+            path="/herramientas"
+            element={
+              <ProtectedRoute>
+                <Herramientas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/insights"
+            element={
+              <ProtectedRoute>
+                <Insights />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/academia"
+            element={
+              <ProtectedRoute>
+                <Academia />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/academia/lecciones/:lessonId"
+            element={
+              <ProtectedRoute>
+                <AcademyLesson />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/planes"
+            element={
+              <ProtectedRoute>
+                <Planes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <ProtectedRoute>
@@ -185,6 +230,7 @@ export default function App() {
             }
           />
         </Routes>
+        </Suspense>
       </SidebarProvider>
     </BrowserRouter>
   )

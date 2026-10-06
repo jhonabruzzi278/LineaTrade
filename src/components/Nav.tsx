@@ -1,35 +1,40 @@
 import { Link } from 'react-router-dom'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Nav() {
   return (
-    <header className="sticky top-0 z-30 border-b border-hairline bg-ink/80 backdrop-blur-md">
-      <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+    <header className="landing-nav sticky top-0 z-30 px-3 pt-3 sm:px-4 sm:pt-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-hairline bg-ink/85 px-4 py-2 backdrop-blur-xl sm:px-6">
         <Link to="/" className="group flex items-center gap-2.5">
           <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
             <path
               d="M2 14 L7 8 L11 12 L18 4"
               fill="none"
-              stroke="#C99C54"
+              stroke="currentColor"
               strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="transition-[stroke-width] duration-200 group-hover:[stroke-width:2]"
+              className="text-signal transition-[stroke-width] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:[stroke-width:2]"
             />
           </svg>
           <span className="font-display text-[15px] tracking-tight text-text-primary">
             lineatrade
           </span>
         </Link>
-        <nav className="flex items-center gap-6">
+        <nav aria-label="Navegación principal" className="flex items-center gap-1 sm:gap-4">
+          <a href="#como-funciona" className="hidden min-h-11 items-center text-sm text-text-muted hover:text-text-primary lg:inline-flex">Plataforma</a>
+          <a href="#academia" className="hidden min-h-11 items-center text-sm text-text-muted hover:text-text-primary lg:inline-flex">Academia</a>
+          <a href="#planes" className="hidden min-h-11 items-center text-sm text-text-muted hover:text-text-primary lg:inline-flex">Planes</a>
+          <ThemeToggle />
           <Link
             to="/login"
-            className="font-body text-[14px] text-text-muted hover:text-text-primary transition-colors"
+            className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-text-muted transition-colors duration-150 hover:text-text-primary"
           >
             Ingresar
           </Link>
           <Link
             to="/registro"
-            className="font-body text-[14px] px-4 py-2 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow"
+            className="hidden min-h-11 items-center rounded-full bg-signal px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-signal-dim active:scale-[0.96] sm:inline-flex"
           >
             Crear cuenta
           </Link>

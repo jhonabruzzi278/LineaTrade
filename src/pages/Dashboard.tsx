@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { AppFloatingNav } from '../components/AppFloatingNav'
 import { MetricCard } from '../components/MetricCard'
 import { InsightsSection } from '../components/InsightsSection'
-import { PsychologyStatsCard } from '../components/PsychologyStatsCard'
-import { ExtendedStatsSection } from '../components/ExtendedStatsSection'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
@@ -21,12 +20,14 @@ type TradeRow = Database['public']['Tables']['trades']['Row'] & {
 }
 type TradeStats = Database['public']['Views']['v_user_trade_stats']['Row']
 
-const RECENT_TRADES_LIMIT = 10
+const RECENT_TRADES_LIMIT = 5
+const OPEN_TRADES_LIMIT = 3
 
 export default function Dashboard() {
   const { user } = useAuth()
   const { expanded } = useSidebar()
   const [recentTrades, setRecentTrades] = useState<TradeRow[]>([])
+  const [openTrades, setOpenTrades] = useState<TradeRow[]>([])
   const [stats, setStats] = useState<TradeStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,23 +37,32 @@ export default function Dashboard() {
     let cancelled = false
 
     async function load() {
-      const [tradesRes, statsRes] = await Promise.all([
+      const [tradesRes, openRes, statsRes] = await Promise.all([
         supabase
           .from('trades')
           .select('*, instruments(symbol, market)')
           .eq('is_backtest', false)
           .order('traded_at', { ascending: false })
           .limit(RECENT_TRADES_LIMIT),
+        supabase
+          .from('trades')
+          .select('*, instruments(symbol, market)')
+          .eq('is_backtest', false)
+          .eq('status', 'open')
+          .order('traded_at', { ascending: false })
+          .limit(OPEN_TRADES_LIMIT),
         supabase.from('v_user_trade_stats').select('*').eq('user_id', user!.id).maybeSingle(),
       ])
       if (cancelled) return
-      if (tradesRes.error) {
-        setError(getErrorMessage(tradesRes.error))
-        setLoading(false)
-        return
+
+      const firstError = tradesRes.error ?? openRes.error ?? statsRes.error
+      if (firstError) {
+        setError(getErrorMessage(firstError))
+      } else {
+        setRecentTrades((tradesRes.data as TradeRow[] | null) ?? [])
+        setOpenTrades((openRes.data as TradeRow[] | null) ?? [])
+        setStats(statsRes.data ?? null)
       }
-      setRecentTrades((tradesRes.data as TradeRow[] | null) ?? [])
-      setStats(statsRes.data ?? null)
       setLoading(false)
     }
 
@@ -67,20 +77,31 @@ export default function Dashboard() {
       <AppHeader />
       <main
         className={cn(
-          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
+          'max-w-6xl mx-auto px-6 py-8 sm:py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
           expanded ? 'lg:pl-80' : 'lg:pl-24',
         )}
       >
-        <div className="mb-8">
-          <p className="font-mono text-[13px] text-signal mb-2">tu bitácora</p>
-          <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>
-        </div>
+        <header className="flex items-end justify-between gap-5 mb-8 reveal-up">
+          <div>
+            <p className="font-mono text-[13px] text-signal mb-2">resumen</p>
+            <h1 className="font-display text-[28px] text-text-primary">Tus trades</h1>
+            <p className="font-body text-[13px] text-text-muted mt-1">Estado actual de tu bitácora.</p>
+          </div>
+          <Link
+            to="/nuevo-trade"
+            className="hidden sm:inline-flex items-center gap-2 shrink-0 rounded-sm bg-signal px-4 py-3 font-body text-[13px] font-medium text-ink transition-all hover:bg-signal-dim hover:-translate-y-0.5 hover:shadow-glow"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar trade
+          </Link>
+        </header>
 
         {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
+        {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
 
-        {!loading && (
+        {!loading && !error && (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <section aria-label="Métricas principales" className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-9">
               <MetricCard
                 label="Win rate"
                 value={formatPercent(stats?.win_rate)}
@@ -102,115 +123,74 @@ export default function Dashboard() {
                 value={String(stats?.total_trades ?? 0)}
                 icon={<TradeCountIcon className="w-4 h-4" />}
               />
-            </div>
+            </section>
+
             {(stats?.total_trades ?? 0) > 0 && (stats?.closed_trades ?? 0) === 0 && (
-              <p className="font-mono text-[12px] text-text-faint -mt-6 mb-8">
-                win rate, profit factor y R promedio solo se calculan sobre trades cerrados.
+              <p className="font-mono text-[11px] text-text-faint -mt-6 mb-8">
+                Win rate, profit factor y R promedio se calculan sobre trades cerrados.
               </p>
             )}
+
+            <div className="grid lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.75fr)] gap-9 lg:gap-12 items-start">
+              <section className="order-2 lg:order-1 min-w-0">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h2 className="font-display text-[18px] text-text-primary">Actividad reciente</h2>
+                  <Link to="/historial" className="font-body text-[12px] text-signal hover:text-signal-dim transition-colors">
+                    Ver historial
+                  </Link>
+                </div>
+
+                {recentTrades.length === 0 ? (
+                  <div className="border-y border-hairline py-9">
+                    <p className="font-body text-[14px] text-text-muted mb-4">Aún no tienes trades registrados.</p>
+                    <Link to="/nuevo-trade" className="font-body text-[13px] text-signal hover:text-signal-dim">
+                      Registrar el primero →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="border-y border-hairline divide-y divide-hairline overflow-hidden">
+                    {recentTrades.map((trade, index) => (
+                      <TradeListRow key={trade.id} trade={trade} index={index} />
+                    ))}
+                  </div>
+                )}
+
+                <Link
+                  to="/reporte"
+                  className="group mt-5 flex items-center justify-between gap-4 py-3 font-body text-[13px] text-text-muted hover:text-text-primary transition-colors"
+                >
+                  <span>Ver estadísticas y curva de capital</span>
+                  <span className="font-mono text-text-faint transition-all group-hover:text-signal group-hover:translate-x-1">→</span>
+                </Link>
+              </section>
+
+              <aside className="order-1 lg:order-2 space-y-7 min-w-0">
+                <section>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-faint">seguimiento</p>
+                      <h2 className="font-display text-[18px] text-text-primary mt-1">Trades abiertos</h2>
+                    </div>
+                    <span className="font-mono text-[12px] text-signal">{openTrades.length}</span>
+                  </div>
+
+                  {openTrades.length === 0 ? (
+                    <p className="border-y border-hairline py-4 font-body text-[13px] text-text-faint">
+                      No hay operaciones pendientes.
+                    </p>
+                  ) : (
+                    <div className="border-y border-hairline divide-y divide-hairline overflow-hidden">
+                      {openTrades.map((trade, index) => (
+                        <TradeListRow key={trade.id} trade={trade} index={index} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <InsightsSection compact />
+              </aside>
+            </div>
           </>
-        )}
-
-        {!loading && <InsightsSection />}
-
-        {!loading && <PsychologyStatsCard />}
-
-        {!loading && <ExtendedStatsSection />}
-
-        <Link
-          to="/reporte"
-          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
-        >
-          <div>
-            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">estadísticas avanzadas</p>
-            <p className="font-body text-[14px] text-text-primary">Reporte: rachas, mejor/peor día y curva de capital</p>
-          </div>
-          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/ia-trader"
-          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
-        >
-          <div>
-            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">test de perfil</p>
-            <p className="font-body text-[14px] text-text-primary">Convierte la IA en tu trader</p>
-          </div>
-          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/backtesting"
-          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
-        >
-          <div>
-            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">market replay</p>
-            <p className="font-body text-[14px] text-text-primary">Analiza tus estrategias con backtesting</p>
-          </div>
-          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/escaner"
-          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
-        >
-          <div>
-            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">market scanner</p>
-            <p className="font-body text-[14px] text-text-primary">Filtrá el mercado cripto por RSI, volumen y más</p>
-          </div>
-          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/coach"
-          className="group flex items-center justify-between gap-4 mb-8 px-5 py-4 rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card transition-all duration-200 hover:border-signal/30 hover:-translate-y-0.5"
-        >
-          <div>
-            <p className="font-mono text-[11px] text-signal tracking-wide mb-1">coach de trading</p>
-            <p className="font-body text-[14px] text-text-primary">Conversá con la IA sobre tus propios patrones</p>
-          </div>
-          <span className="font-mono text-[13px] text-text-faint shrink-0 transition-all duration-200 group-hover:text-signal group-hover:translate-x-1">
-            →
-          </span>
-        </Link>
-
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-[18px] text-text-primary">Últimos trades</h2>
-          <Link to="/historial" className="font-body text-[13px] text-signal hover:text-signal-dim transition-colors">
-            Ver historial completo
-          </Link>
-        </div>
-
-        {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
-
-        {!loading && recentTrades.length === 0 && (
-          <div className="border border-hairline rounded-sm bg-gradient-to-b from-panel-2 to-panel px-6 py-10 text-center shadow-card">
-            <p className="font-body text-[15px] text-text-muted mb-4">
-              Aún no tienes trades registrados.
-            </p>
-            <Link
-              to="/nuevo-trade"
-              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5"
-            >
-              Registrar mi primer trade
-            </Link>
-          </div>
-        )}
-
-        {!loading && recentTrades.length > 0 && (
-          <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
-            {recentTrades.map((trade, index) => (
-              <TradeListRow key={trade.id} trade={trade} index={index} />
-            ))}
-          </div>
         )}
       </main>
       <AppFloatingNav />

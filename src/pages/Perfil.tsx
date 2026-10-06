@@ -263,6 +263,7 @@ export default function Perfil() {
 
         <h2 className="font-display text-[16px] text-text-primary mb-4">Más</h2>
         <nav className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card mb-10">
+          <ProfileLink to="/planes" label="Plan y límites" hint="Funciones disponibles en tu cuenta" />
           <ProfileLink to="/historial" label="Historial completo" />
           {role === 'superadmin' && <ProfileLink to="/admin" label="Admin" />}
         </nav>

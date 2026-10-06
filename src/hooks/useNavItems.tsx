@@ -1,4 +1,4 @@
-import { History, Home, Newspaper, Plus } from 'lucide-react'
+import { GraduationCap, History, Home, LayoutGrid, Newspaper, Plus } from 'lucide-react'
 import { getInitials } from '../components/Avatar'
 import { useAuth } from '../lib/auth'
 import type { FloatingNavItem } from '../components/ui/floating-navbar'
@@ -18,6 +18,7 @@ export function useNavItems(): FloatingNavItem[] {
 
   return [
     { name: 'Dashboard', link: '/dashboard', icon: <Home className={ICON_CLASS} /> },
+    { name: 'Academia', link: '/academia', icon: <GraduationCap className={ICON_CLASS} />, desktopOnly: true },
     { name: 'Historial', link: '/historial', icon: <History className={ICON_CLASS} /> },
     {
       name: 'Nuevo trade',
@@ -25,7 +26,8 @@ export function useNavItems(): FloatingNavItem[] {
       icon: <Plus className={ICON_CLASS} />,
       emphasized: true,
     },
-    { name: 'Noticias', link: '/noticias', icon: <Newspaper className={ICON_CLASS} /> },
+    { name: 'Noticias', link: '/noticias', icon: <Newspaper className={ICON_CLASS} />, desktopOnly: true },
+    { name: 'Herramientas', link: '/herramientas', icon: <LayoutGrid className={ICON_CLASS} />, mobileOnly: true },
     {
       name: 'Perfil',
       link: '/perfil',

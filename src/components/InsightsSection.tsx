@@ -23,7 +23,7 @@ function isDataSufficiency(value: unknown): value is DataSufficiency {
 // Sección de Módulo 9 real (ver auditoría del spec): a diferencia de
 // AIAnalysisPanel.tsx (un trade a la vez), esto mina TODO el historial cerrado del
 // usuario buscando patrones — día de semana, hora, confluencia, psicología, activo.
-export function InsightsSection() {
+export function InsightsSection({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth()
   const [insights, setInsights] = useState<Insight[] | null>(null)
   const [dataSufficiency, setDataSufficiency] = useState<DataSufficiency | null>(null)
@@ -60,6 +60,7 @@ export function InsightsSection() {
   }, [user])
 
   useEffect(() => {
+    if (compact) return
     let cancelled = false
     async function loadQuota() {
       const today = new Date().toISOString().slice(0, 10)
@@ -70,7 +71,7 @@ export function InsightsSection() {
     return () => {
       cancelled = true
     }
-  }, [generatedAt])
+  }, [compact, generatedAt])
 
   async function handleGenerate() {
     setLoading(true)
@@ -86,6 +87,39 @@ export function InsightsSection() {
   }
 
   const quotaExhausted = usedToday != null && usedToday >= FREE_TIER_DAILY_LIMIT
+
+  if (compact) {
+    const primaryInsight = insights?.[0]
+    return (
+      <section className="border-t border-hairline pt-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles size={15} className="text-signal" />
+            <h2 className="font-display text-[16px] text-text-primary">Qué revisar</h2>
+          </div>
+          <Link to="/insights" className="font-body text-[12px] text-signal hover:text-signal-dim transition-colors">
+            Ver insights
+          </Link>
+        </div>
+
+        {initializing && <p className="font-body text-[13px] text-text-faint">Buscando tu último insight...</p>}
+        {!initializing && primaryInsight && (
+          <div className="border-l-2 border-signal pl-3 reveal-up">
+            <p className="font-body text-[14px] leading-relaxed text-text-primary">{primaryInsight.text}</p>
+            {dataSufficiency && dataSufficiency !== 'sufficient' && (
+              <p className="font-mono text-[10px] text-text-faint mt-2">{DATA_SUFFICIENCY_LABELS[dataSufficiency]}</p>
+            )}
+          </div>
+        )}
+        {!initializing && !primaryInsight && (
+          <p className="font-body text-[13px] text-text-faint">
+            Aún no hay un patrón guardado. Genera el primero desde Insights.
+          </p>
+        )}
+        {error && <p className="font-body text-[12px] text-loss mt-2">{error}</p>}
+      </section>
+    )
+  }
 
   return (
     <div className="border border-hairline rounded-sm bg-gradient-to-b from-panel-2 to-panel shadow-card px-5 py-5 mb-8">

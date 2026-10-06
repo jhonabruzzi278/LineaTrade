@@ -88,7 +88,7 @@ export const SidebarNav = ({ navItems, className }: { navItems: FloatingNavItem[
           <ChevronsRight className="h-[18px] w-[18px]" />
         </button>
         <div className="w-6 h-px bg-hairline my-1" />
-        {navItems.map((item, idx) => (
+        {navItems.filter((item) => !item.mobileOnly).map((item, idx) => (
           <SidebarLink key={`collapsed-${idx}`} item={item} showLabel={false} />
         ))}
       </div>
@@ -118,7 +118,7 @@ export const SidebarNav = ({ navItems, className }: { navItems: FloatingNavItem[
       <div className="px-2 pb-3">
         <SectionLabel>Principal</SectionLabel>
         <div className="space-y-0.5">
-          {navItems.map((item, idx) => (
+          {navItems.filter((item) => !item.mobileOnly).map((item, idx) => (
             <SidebarLink key={`primary-${idx}`} item={item} showLabel />
           ))}
         </div>

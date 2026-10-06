@@ -1,5 +1,9 @@
 # Documentación — LineaTrade
 
+## Plan maestro de lanzamiento
+
+- [`lineatrade-plan-maestro-lanzamiento.md`](./lineatrade-plan-maestro-lanzamiento.md) — roadmap v2 consolidado: posicionamiento, arquitectura, Operativa configurable, Discipline Score, suscripciones, IA, mercado, noticias, Academia, Comunidad, administración, PWA/app y lanzamiento.
+
 Esta carpeta es la **fuente de verdad** del producto. Cualquier feature debe construirse
 contra estos documentos, no contra suposiciones. Si el código contradice un doc, gana el
 doc (o se corrige el doc explícitamente).

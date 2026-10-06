@@ -12,11 +12,43 @@ body {
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
 }
 
 ::selection {
-  background: rgba(201, 156, 84, 0.22);
+  background: color-mix(in srgb, var(--color-signal) 25%, transparent);
   color: var(--color-text-primary);
+}
+
+.theme-switching *, .theme-switching *::before, .theme-switching *::after {
+  transition: none !important;
+}
+
+.landing-page p { line-height: 1.7; }
+.landing-page h1, .landing-page h2, .landing-page h3 { text-wrap: balance; }
+.landing-page a, .landing-page button { -webkit-tap-highlight-color: transparent; }
+.landing-page a[class*='rounded-full'], .landing-page button[class*='rounded-full'] {
+  min-height: 44px;
+  transition-duration: 150ms;
+}
+.landing-page a[class*='bg-signal'], .landing-nav a[class*='bg-signal'] {
+  color: var(--color-ink);
+}
+:root[data-theme='light'] .landing-page a[class*='bg-signal'],
+:root[data-theme='light'] .landing-nav a[class*='bg-signal'] { color: white; }
+.landing-page a[class*='rounded-full']:active { transform: scale(0.96); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .landing-page *, .landing-nav *, .theme-switching * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .landing-page a:active, .landing-nav button:active { transform: none; }
 }
 
 /* Anillo de foco solo-teclado — aditivo al borde ámbar que los inputs ya usan,

@@ -58,6 +58,8 @@ export interface FloatingNavItem {
   // `text-signal` como un ícono SVG con `currentColor`, así que la ruta
   // activa se marca con un anillo en vez de un cambio de color.
   isAvatar?: boolean
+  mobileOnly?: boolean
+  desktopOnly?: boolean
 }
 
 export const FloatingNav = ({
@@ -92,7 +94,7 @@ export const FloatingNav = ({
         className,
       )}
     >
-      {navItems.map((navItem, idx) => (
+      {navItems.filter((item) => !item.desktopOnly).map((navItem, idx) => (
         <NavLink
           key={`link=${idx}`}
           to={navItem.link}
