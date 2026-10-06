@@ -34,6 +34,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      academy_lesson_progress: {
+        Row: { completed_at: string; lesson_id: string; updated_at: string; user_id: string }
+        Insert: { completed_at?: string; lesson_id: string; updated_at?: string; user_id: string }
+        Update: { completed_at?: string; lesson_id?: string; updated_at?: string; user_id?: string }
+        Relationships: [{
+          foreignKeyName: "academy_lesson_progress_user_id_fkey"
+          columns: ["user_id"]
+          isOneToOne: false
+          referencedRelation: "profiles"
+          referencedColumns: ["id"]
+        }]
+      }
       ai_analysis: {
         Row: {
           cost_estimate: number | null
@@ -1691,6 +1703,16 @@ export type Database = {
       }
     }
     Functions: {
+      get_my_entitlements: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          feature_key: string
+          hard_limit: number | null
+          period: string | null
+          plan_key: string
+        }[]
+      }
       check_and_increment_ai_usage: {
         Args: {
           p_daily_limit: number
@@ -1947,4 +1969,3 @@ export const Constants = {
     },
   },
 } as const
-
