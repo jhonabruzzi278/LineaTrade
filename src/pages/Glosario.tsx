@@ -1,52 +1,119 @@
-import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { academyGlossary } from '../data/academy'
-import { PageHeader } from '../components/ui/page-header'
-import { FIELD_CLASS } from '../components/ui/field'
+import { useEffect, useMemo, useState } from 'react'
+import { ChevronLeft, Search } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Tag } from '@/components/ui/tag'
+import { FIELD_CLASS } from '@/components/ui/field'
+import { cn } from '@/lib/utils'
+import { academyLessons } from '../data/academy'
+import {
+  filterGlossary,
+  GLOSSARY_CATEGORIES,
+  GLOSSARY_CATEGORY_LABEL,
+  glossaryTerms,
+  type GlossaryCategory,
+} from '../data/glossary'
+
+type CategoryFilter = GlossaryCategory | 'todo'
+
+const FILTERS: { value: CategoryFilter; label: string }[] = [
+  { value: 'todo', label: 'Todo' },
+  ...GLOSSARY_CATEGORIES.map((value) => ({ value, label: GLOSSARY_CATEGORY_LABEL[value] })),
+]
+
+const lessonTitleById = new Map(academyLessons.map((lesson) => [lesson.id, lesson.title]))
 
 export default function Glosario() {
   const [query, setQuery] = useState('')
-  const entries = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase('es')
-    return academyGlossary.filter((entry) =>
-      `${entry.term} ${entry.category} ${entry.definition}`.toLocaleLowerCase('es').includes(normalized),
-    )
-  }, [query])
+  const [category, setCategory] = useState<CategoryFilter>('todo')
+  const { hash } = useLocation()
+  const results = useMemo(() => filterGlossary(glossaryTerms, query, category), [query, category])
+
+  // Llegar desde un término subrayado de una lección (/academia/glosario#drawdown).
+  useEffect(() => {
+    if (!hash) return
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: 'start' })
+  }, [hash])
 
   return (
-    <div className="min-h-screen bg-ink">
-      <main className="mx-auto max-w-4xl px-5 pb-28 pt-8 sm:px-6 lg:pb-12 lg:pt-10">
-        <PageHeader kicker="Tu aula · referencia" title="Glosario" lead="Términos para leer tus notas y analizar el mercado. Las definiciones técnicas pueden variar entre métodos: documenta la que usas." />
+    <main className="mx-auto max-w-6xl px-5 pt-3 pb-28 lg:pt-6 lg:pb-12">
+      <Link to="/academia" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 font-body text-[14px] font-semibold text-text-faint hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:text-[13px]">
+        <ChevronLeft className="h-5 w-5 lg:h-4 lg:w-4" aria-hidden="true" /> Academia
+      </Link>
 
-        <label htmlFor="glossary-search" className="sr-only">Buscar un término</label>
-        <div className="relative mb-7">
-          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
-          <input id="glossary-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar término, categoría o definición…" className={`${FIELD_CLASS} pl-10`} />
+      <div className="max-w-[980px]">
+        <header className="mt-2 mb-5">
+          <p className="label-mono">academia</p>
+          <h1 className="font-display mt-1.5 text-[26px] leading-tight text-text-primary sm:text-[32px]">Glosario</h1>
+          <p className="mt-2 hidden max-w-2xl font-body text-[15px] leading-relaxed text-text-faint lg:block">
+            Los conceptos de riesgo, fondeo y resultados que vas a encontrar en la app, explicados sin jerga.
+          </p>
+        </header>
+
+        <div className="relative max-w-[520px]">
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 h-[18px] w-[18px] -translate-y-1/2 text-text-faint" aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Buscar un término"
+            placeholder="Buscar un término…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className={cn(FIELD_CLASS, 'h-12 bg-panel pl-10')}
+          />
         </div>
 
-        <p className="mb-3 font-mono text-[10px] text-text-faint" aria-live="polite">{entries.length} {entries.length === 1 ? 'término' : 'términos'}</p>
-        {entries.length ? (
-          <dl className="divide-y divide-hairline border-y border-hairline">
-            {entries.map((entry) => (
-              <div key={entry.term} className="grid gap-2 py-5 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-5">
-                <div>
-                  <dt className="font-display text-[16px] font-medium text-text-primary">{entry.term}</dt>
-                  <dd className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-signal">{entry.category}</dd>
-                </div>
-                <dd className="font-body text-[13px] leading-6 text-text-muted">{entry.definition}</dd>
+        <div role="group" aria-label="Tema" className="mt-3 flex flex-wrap gap-2">
+          {FILTERS.map((filter) => {
+            const selected = filter.value === category
+            return (
+              <button
+                key={filter.value}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setCategory(filter.value)}
+                className={cn(
+                  'inline-flex min-h-11 items-center rounded-full border px-4 font-body text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  selected ? 'border-ink bg-signal text-on-signal' : 'border-input text-text-muted hover:text-text-primary',
+                )}
+              >
+                {filter.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <p role="status" className="num mt-4 text-[11px] text-text-faint">
+          {results.length === 1 ? '1 término' : `${results.length} términos`}
+        </p>
+
+        {results.length === 0 ? (
+          <p className="mt-6 font-body text-[15px] text-text-faint">
+            No hay términos que coincidan con «{query.trim()}». Prueba con otra palabra o quita el filtro de tema.
+          </p>
+        ) : (
+          <dl className="mt-1">
+            {results.map((term, index) => (
+              <div key={term.id} id={term.id} className={cn('scroll-mt-6 border-t border-hairline py-5', index === results.length - 1 && 'border-b')}>
+                <dt className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-body text-[17px] font-bold text-text-primary lg:text-[19px]">
+                  {term.term}
+                  <Tag tone="brand">{GLOSSARY_CATEGORY_LABEL[term.category]}</Tag>
+                </dt>
+                <dd className="mt-2 max-w-[680px] font-body text-[14px] leading-[1.65] text-text-muted lg:text-[15px]">{term.definition}</dd>
+                {term.lessonId && (
+                  <dd>
+                    <Link
+                      to={`/academia/lecciones/${term.lessonId}`}
+                      className="mt-2.5 inline-flex min-h-11 items-center font-body text-[13px] font-bold text-steel hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="lg:hidden">Ver lección →</span>
+                      <span className="hidden lg:inline">Ver lección: {lessonTitleById.get(term.lessonId)} →</span>
+                    </Link>
+                  </dd>
+                )}
               </div>
             ))}
           </dl>
-        ) : (
-          <div className="border border-dashed border-hairline px-5 py-10 text-center">
-            <p className="font-display text-[17px] text-text-primary">No encontramos ese término</p>
-            <p className="mt-2 font-body text-[13px] text-text-faint">Prueba con otra palabra o categoría.</p>
-          </div>
         )}
-
-        <Link to="/academia" className="mt-7 inline-flex min-h-11 items-center font-body text-[13px] font-semibold text-signal hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal">Volver a Academia</Link>
-      </main>
-    </div>
+      </div>
+    </main>
   )
 }

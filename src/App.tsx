@@ -36,8 +36,8 @@ const Simulador = lazy(() => import('./pages/Simulador'))
 const Mas = lazy(() => import('./pages/Mas'))
 const Insights = lazy(() => import('./pages/Insights'))
 const Academia = lazy(() => import('./pages/Academia'))
-  const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
-  const Glosario = lazy(() => import('./pages/Glosario'))
+const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
+const Glosario = lazy(() => import('./pages/Glosario'))
 const Planes = lazy(() => import('./pages/Planes'))
 
 function RouteFallback() {
@@ -88,7 +88,6 @@ export default function App() {
             <Route path="/academia" element={<Academia />} />
             <Route path="/academia/glosario" element={<Glosario />} />
             <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
-
             <Route path="/mas" element={<Mas />} />
             {/* Cuenta: subnav de 200px en escritorio, "← Más" en móvil. */}
             <Route element={<AccountLayout />}>

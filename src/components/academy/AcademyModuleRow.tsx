@@ -1,62 +1,78 @@
-import { Check, ChevronDown, Play } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Tag } from '@/components/ui/tag'
+import { cn } from '@/lib/utils'
 import type { AcademyModule } from '../../data/academy'
 import { formatAcademyDuration } from '../../data/academy'
-import { Tag } from '../ui/tag'
+import { getLessonStatus, lessonStatusLabel } from './lessonStatus'
+import { LessonStatusDot } from './LessonStatusDot'
 
-type Props = {
+interface Props {
   module: AcademyModule
-  recommended: boolean
-  completed: Set<string>
+  completed: ReadonlySet<string>
+  /** Lección recomendada a continuación (se resalta dentro de su módulo). */
+  currentLessonId: string
   open: boolean
   onToggle: () => void
 }
 
-export function AcademyModuleRow({ module, recommended, completed, open, onToggle }: Props) {
-  const completedCount = module.lessons.filter((lesson) => completed.has(lesson.id)).length
-  const complete = completedCount === module.lessons.length
+// Fila de módulo del aula. Todas las lecciones están abiertas: el orden es una
+// recomendación, así que nunca hay candados ni lecciones deshabilitadas.
+export function AcademyModuleRow({ module, completed, currentLessonId, open, onToggle }: Props) {
+  const doneCount = module.lessons.filter((lesson) => completed.has(lesson.id)).length
+  const isComplete = doneCount === module.lessons.length
+  const panelId = `modulo-${module.id}`
 
   return (
-    <article className="border-t border-hairline last:border-b">
+    <article
+      className={cn(
+        'rounded-xl border bg-panel',
+        module.isNew && !open ? 'border-spark/40 bg-gradient-to-b from-spark/[0.07] to-panel' : open ? 'border-signal/40' : 'border-hairline',
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="group grid min-h-20 w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+        aria-controls={panelId}
+        className="flex min-h-[72px] w-full items-center gap-4 rounded-xl px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6"
       >
-        <span className="font-mono text-[20px] tabular-nums text-text-primary">{module.number}</span>
-        <span className="min-w-0">
-          <span className="flex flex-wrap items-center gap-2 font-display text-[17px] font-medium text-text-primary">
-            {module.title}
-            {recommended && <Tag tone="brand" className="font-body normal-case tracking-normal">Orden sugerido</Tag>}
+        <span className={cn('num text-[22px] sm:text-[26px]', isComplete ? 'text-steel' : 'text-text-primary')}>{module.number}</span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span className="font-body text-[15px] font-bold text-text-primary sm:text-[17px]">{module.title}</span>
+            {module.isNew && <Tag tone="solid-spark">Nuevo</Tag>}
           </span>
-          <span className="mt-1 block font-body text-[12px] leading-relaxed text-text-faint">
-            {completedCount}/{module.lessons.length} lecciones · {formatAcademyDuration(module.durationMinutes)}
+          <span className="num mt-1 block text-[11px] text-text-faint sm:text-[12px]">
+            {doneCount}/{module.lessons.length} lecciones · {formatAcademyDuration(module.durationMinutes)}
           </span>
+          {module.isNew && !open && (
+            <span className="mt-1.5 block font-body text-[12px] leading-snug text-text-muted sm:text-[13px]">{module.description}</span>
+          )}
         </span>
-        <span className="flex h-11 w-11 items-center justify-center text-text-faint">
-          {complete ? <Check className="h-4 w-4 text-steel" /> : <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />}
-        </span>
+        {isComplete && <Tag tone="brand">Completo</Tag>}
+        <ChevronDown className={cn('h-[18px] w-[18px] shrink-0 text-text-faint transition-transform duration-200', open && 'rotate-180')} aria-hidden="true" />
       </button>
 
       {open && (
-        <ol className="pb-5 pl-12">
+        <ol id={panelId} className="px-4 pb-2 sm:ml-11 sm:pl-0 sm:pr-6">
           {module.lessons.map((lesson) => {
-            const lessonComplete = completed.has(lesson.id)
+            const status = getLessonStatus(lesson.id, completed, currentLessonId)
             return (
-              <li key={lesson.id} className="border-t border-hairline/70 first:border-t-0">
+              <li key={lesson.id} className="border-t border-hairline">
                 <Link
                   to={`/academia/lecciones/${lesson.id}`}
-                  className="group flex min-h-14 items-center gap-3 py-3 pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                  aria-current={status === 'current' ? 'step' : undefined}
+                  className="flex min-h-[50px] items-center gap-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-3.5"
                 >
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${lessonComplete ? 'border-steel/40 bg-steel/10 text-steel' : 'border-hairline text-text-faint group-hover:border-signal/50 group-hover:text-signal'}`}>
-                    {lessonComplete ? <Check className="h-3.5 w-3.5" /> : <Play className="h-3 w-3 translate-x-px" />}
+                  <LessonStatusDot status={status} />
+                  <span className={cn('min-w-0 flex-1 font-body text-[14px] sm:text-[15px]', status === 'current' ? 'font-bold text-text-primary' : 'text-text-muted')}>
+                    <span className="sr-only">{lessonStatusLabel(status)}: </span>
+                    {lesson.title}
+                    {lesson.practice && <Tag tone="spark" className="ml-2 align-middle">Práctica</Tag>}
+                    {lesson.isNew && <Tag tone="solid-spark" className="ml-1.5 align-middle">Nuevo</Tag>}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-body text-[13px] text-text-primary">{lesson.title}</span>
-                    {lesson.practice && <span className="mt-0.5 block font-mono text-[10px] text-steel">Práctica · {lesson.practice}</span>}
-                  </span>
-                  <span className="font-mono text-[10px] tabular-nums text-text-faint">{lesson.durationMinutes} min</span>
+                  <span className="num shrink-0 text-[11px] text-text-faint sm:text-[12px]">{lesson.durationMinutes} min</span>
                 </Link>
               </li>
             )
