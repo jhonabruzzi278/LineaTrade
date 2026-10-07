@@ -1,106 +1,118 @@
-import { MetricCard } from '../MetricCard'
-import {
-  ARCHETYPE_LABELS,
-  INSTRUMENT_CATEGORY_LABELS,
-  STYLE_LABELS,
-  type TraderPlan,
-} from '../../lib/traderPlanEngine'
+import type { ReactNode } from 'react'
+import { ARCHETYPE_LABELS, INSTRUMENT_CATEGORY_LABELS, STYLE_LABELS, type TraderPlan } from '../../lib/traderPlanEngine'
+import { Card } from '../ui/card'
 
 interface PlanReportProps {
   plan: TraderPlan
+  /** Teaser público: «Cómo debes operar» en claro y el resto difuminado. */
   blurred?: boolean
+  /** Contenido superpuesto sobre la parte difuminada (invitación a registrarse). */
+  overlay?: ReactNode
 }
 
-// blurred=true es el teaser público (ver PlanTeaser.tsx): se muestra la
-// sección "Cómo debes operar" en claro y el resto tapado, en vez de ocultar
-// componentes enteros — así el usuario ve que el plan existe y es concreto,
-// no una promesa vacía.
-export function PlanReport({ plan, blurred = false }: PlanReportProps) {
+const LEVEL_LABELS: Record<TraderPlan['level'], string> = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' }
+
+function formatDecimal(value: number): string {
+  return String(value).replace('.', ',')
+}
+
+function PlanSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="space-y-8">
-      <section>
-        <p className="font-mono text-[12px] text-signal mb-3 tracking-wide">cómo debes operar</p>
-        <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
-          <PlanRow label="Nivel" value={plan.level === 'principiante' ? 'Principiante' : plan.level === 'intermedio' ? 'Intermedio' : 'Avanzado'} />
-          <PlanRow label="Estilo" value={STYLE_LABELS[plan.style]} />
-          <PlanRow label="Arquetipo" value={ARCHETYPE_LABELS[plan.archetype]} />
-          <PlanRow
-            label="Instrumento"
-            value={`${plan.recommendedInstrument} (${INSTRUMENT_CATEGORY_LABELS[plan.instrumentCategory]})`}
-          />
-        </div>
-      </section>
+    <Card as="section" className="px-4 py-4 sm:px-6 sm:py-5">
+      <h2 className="font-display text-[16px] text-text-primary sm:text-[17px]">{title}</h2>
+      <div className="mt-3">{children}</div>
+    </Card>
+  )
+}
 
-      <div className={blurred ? 'relative' : undefined}>
-        {blurred && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink/80 backdrop-blur-sm rounded-sm">
-            <p className="font-body text-[14px] text-text-muted text-center px-6 max-w-xs">
-              Regístrate gratis para ver tu gestión de riesgo completa y descargar tu paquete para IA.
-            </p>
-          </div>
-        )}
-        <div className={blurred ? 'pointer-events-none select-none blur-[3px]' : undefined}>
-          <section className="mb-8">
-            <p className="font-mono text-[12px] text-signal mb-3 tracking-wide">gestión del riesgo</p>
-            <div className="grid grid-cols-2 gap-3">
-              <MetricCard label="riesgo por operación" value={`${plan.riskPerTradePercent}%`} />
-              <MetricCard label="ratio riesgo:beneficio" value={`1:${plan.riskRewardRatio}`} />
-              <MetricCard label="apalancamiento máximo" value={`1:${plan.maxLeverage}`} />
-              <MetricCard label="pérdida semanal máxima" value={`${plan.maxWeeklyLossMultiple}× riesgo/op`} />
-            </div>
-          </section>
-
-          <section className="mb-8">
-            <p className="font-mono text-[12px] text-signal mb-3 tracking-wide">qué esperar</p>
-            <div className="grid grid-cols-2 gap-3">
-              <MetricCard label="win rate mínimo viable" value={`${plan.minViableWinRatePercent}%`} />
-              <MetricCard label="expectativa en tu suelo" value={`${plan.floorExpectancyR > 0 ? '+' : ''}${plan.floorExpectancyR}R`} />
-            </div>
-            <p className="font-body text-[13px] text-text-muted mt-3">
-              Objetivo mensual realista: {plan.realisticMonthlyReturnRange[0]}–{plan.realisticMonthlyReturnRange[1]}%. No es un
-              suelo garantizado — es el techo razonable para tu perfil.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <p className="font-mono text-[12px] text-signal mb-3 tracking-wide">rutina operativa</p>
-            <ol className="space-y-2">
-              {plan.operatingRoutine.map((step) => (
-                <li key={step} className="font-body text-[14px] text-text-muted flex gap-3">
-                  <span className="text-signal shrink-0">·</span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section>
-            <p className="font-mono text-[12px] text-signal mb-3 tracking-wide">tus señales de alerta</p>
-            {plan.redFlags.length === 0 ? (
-              <p className="font-body text-[14px] text-text-muted">
-                Sin señales de alerta críticas en tu perfil. Aun así, empieza con prudencia.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {plan.redFlags.map((flag) => (
-                  <li key={flag} className="font-body text-[14px] text-text-muted border-l-2 border-signal/40 pl-3">
-                    {flag}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-      </div>
+function KeyValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[10px] border border-hairline bg-ink px-3.5 py-3">
+      <p className="label-mono">{label}</p>
+      <p className="num mt-1.5 text-[18px] text-text-primary sm:text-[20px]">{value}</p>
     </div>
   )
 }
 
 function PlanRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-5 py-3.5">
-      <span className="font-mono text-[12px] text-text-faint">{label}</span>
-      <span className="font-body text-[14px] text-text-primary text-right">{value}</span>
+    <div className="flex items-center justify-between gap-4 border-t border-hairline py-3 first:border-t-0 first:pt-0 last:pb-0">
+      <span className="label-mono shrink-0">{label}</span>
+      <span className="text-right font-body text-[15px] font-semibold text-text-primary">{value}</span>
+    </div>
+  )
+}
+
+// Todo sale de TraderPlan, que calcula traderPlanEngine.ts con reglas fijas (sin
+// modelo de lenguaje). La pantalla solo presenta esas cifras; no agrega ninguna.
+export function PlanReport({ plan, blurred = false, overlay }: PlanReportProps) {
+  const sections = (
+    <div className="space-y-4">
+      <PlanSection title="Gestión del riesgo">
+        <div className="grid grid-cols-2 gap-2.5">
+          <KeyValue label="Riesgo por operación" value={`${formatDecimal(plan.riskPerTradePercent)}%`} />
+          <KeyValue label="Relación riesgo:beneficio" value={`1:${formatDecimal(plan.riskRewardRatio)}`} />
+          <KeyValue label="Apalancamiento máximo" value={`1:${formatDecimal(plan.maxLeverage)}`} />
+          <KeyValue label="Pérdida semanal máxima" value={`${formatDecimal(plan.maxWeeklyLossMultiple)}× riesgo/op`} />
+        </div>
+      </PlanSection>
+
+      <PlanSection title="Qué esperar">
+        <div className="grid grid-cols-2 gap-2.5">
+          <KeyValue label="Win rate mínimo viable" value={`${formatDecimal(plan.minViableWinRatePercent)}%`} />
+          <KeyValue label="Expectativa en tu suelo" value={`${plan.floorExpectancyR > 0 ? '+' : ''}${formatDecimal(plan.floorExpectancyR)}R`} />
+        </div>
+        <p className="mt-3 font-body text-[13px] leading-relaxed text-text-faint">
+          Con una relación 1:{formatDecimal(plan.riskRewardRatio)} necesitas acertar al menos {formatDecimal(plan.minViableWinRatePercent)}% de tus operaciones para no perder, antes de comisiones. No es una predicción de tus resultados.
+        </p>
+      </PlanSection>
+
+      <PlanSection title="Rutina operativa">
+        <ol className="list-none space-y-0.5 p-0">
+          {plan.operatingRoutine.map((step, index) => (
+            <li key={step} className="grid grid-cols-[26px_minmax(0,1fr)] gap-3 py-2 font-body text-[14px] leading-relaxed text-text-muted sm:text-[15px]">
+              <span className="num mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-panel-2 text-[11px] text-steel">{index + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </PlanSection>
+
+      <PlanSection title="Tus señales de alerta">
+        {plan.redFlags.length === 0 ? (
+          <p className="font-body text-[14px] text-text-muted">Sin señales de alerta críticas en tu perfil. Aun así, empieza con prudencia.</p>
+        ) : (
+          <ul className="space-y-2">
+            {plan.redFlags.map((flag) => (
+              <li key={flag} className="border-l-[3px] border-l-loss/60 pl-3 font-body text-[14px] leading-relaxed text-text-muted">
+                {flag}
+              </li>
+            ))}
+          </ul>
+        )}
+      </PlanSection>
+    </div>
+  )
+
+  return (
+    <div className="space-y-4">
+      <PlanSection title="Cómo debes operar">
+        <PlanRow label="Nivel" value={LEVEL_LABELS[plan.level]} />
+        <PlanRow label="Estilo" value={STYLE_LABELS[plan.style]} />
+        <PlanRow label="Arquetipo" value={ARCHETYPE_LABELS[plan.archetype]} />
+        <PlanRow label="Instrumento" value={`${plan.recommendedInstrument} (${INSTRUMENT_CATEGORY_LABELS[plan.instrumentCategory]})`} />
+      </PlanSection>
+
+      {blurred ? (
+        <div className="relative">
+          <div aria-hidden="true" className="pointer-events-none max-h-[420px] select-none overflow-hidden opacity-55 blur-[6px]">
+            {sections}
+          </div>
+          {overlay && <div className="absolute inset-0 flex items-center justify-center p-2">{overlay}</div>}
+        </div>
+      ) : (
+        sections
+      )}
     </div>
   )
 }
