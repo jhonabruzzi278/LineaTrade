@@ -1,8 +1,7 @@
 import type { EquityPoint } from '../../lib/reportStats'
 
 // SVG a mano, sin librería nueva de charting — mismo criterio que TraceLine.tsx (este
-// proyecto no suma una dependencia para una sola necesidad puntual; lightweight-charts
-// se mantiene reservado y code-splitteado solo para /backtesting). Colores en hex
+// proyecto no suma una dependencia para una sola necesidad puntual). Colores en hex
 // crudo porque son atributos SVG, no clases Tailwind — mismo caso ya documentado para
 // TraceLine.tsx en CLAUDE.md; deben mantenerse en sync con --color-gain/--color-loss
 // de src/styles/tokens.css.

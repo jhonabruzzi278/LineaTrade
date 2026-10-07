@@ -15,7 +15,7 @@ const faqItems = [
   ['¿Necesito conectar mi bróker?', 'No. Puedes registrar las operaciones manualmente o importar datos desde una captura y confirmarlos antes de guardar.'],
   ['¿Mis operaciones son privadas?', 'Sí. Cada usuario accede únicamente a sus propios trades mediante políticas de seguridad en la base de datos.'],
   ['¿Qué incluye el plan gratuito?', 'Journal, dashboard, Academia y una cuota diaria de acciones con IA. Puedes comenzar sin tarjeta.'],
-  ['¿Cómo funciona Pro?', 'Pro amplía IA, scanner, noticias e insights. Cuesta $4.900 CLP al mes e incluye 31 días de prueba mediante Flow.'],
+  ['¿Cómo funciona Pro?', 'Pro amplía IA, noticias e insights. Cuesta $4.900 CLP al mes e incluye 31 días de prueba mediante Flow.'],
   ['¿Funciona como aplicación?', 'Sí. Puedes instalar la PWA en tu teléfono o computador y conservar una experiencia de pantalla completa.'],
 ]
 
@@ -100,7 +100,7 @@ export default function Landing() {
         </section>
 
         <section className="border-y border-hairline bg-panel">
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-6 py-8 text-center text-sm font-semibold text-text-muted sm:grid-cols-4"><span>Journal</span><span>Backtesting</span><span>Academia</span><span>IA con evidencia</span></div>
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-6 py-8 text-center text-sm font-semibold text-text-muted sm:grid-cols-4"><span>Journal</span><span>Coach IA</span><span>Academia</span><span>IA con evidencia</span></div>
         </section>
 
         <section className="mx-auto max-w-6xl px-6 pb-4 pt-16"><WordReveal /></section>
@@ -119,7 +119,7 @@ export default function Landing() {
 
         <section id="planes" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20">
           <div className="mb-8"><p className="text-sm font-semibold text-steel">A tu ritmo</p><h2 className="mt-3 text-3xl font-semibold tracking-tight">Empieza gratis. Amplía cuando lo necesites.</h2></div>
-          <div className="grid gap-4 lg:grid-cols-2"><div className="rounded-2xl border border-hairline bg-panel p-8"><p className="text-sm text-text-faint">Free</p><p className="mt-4 text-4xl font-semibold">$0</p><p className="mt-3 text-sm text-text-muted">Journal, dashboard, Academia y cuota diaria de IA.</p><Link to="/registro" className="mt-8 inline-flex rounded-full bg-text-primary px-5 py-3 text-base font-semibold text-ink">Comenzar gratis</Link></div><div className="rounded-2xl border border-signal/40 bg-panel p-8"><p className="text-sm text-signal">Pro · 31 días de prueba</p><p className="mt-4 text-4xl font-semibold tabular-nums">$4.900 <span className="text-base font-medium text-text-muted">CLP al mes</span></p><p className="mt-3 text-sm text-text-muted">Más IA, scanner, briefs, insights y alertas avanzadas.</p><Link to="/registro" className="mt-8 inline-flex rounded-full bg-signal px-5 py-3 text-base font-semibold text-white">Probar Pro</Link></div></div>
+          <div className="grid gap-4 lg:grid-cols-2"><div className="rounded-2xl border border-hairline bg-panel p-8"><p className="text-sm text-text-faint">Free</p><p className="mt-4 text-4xl font-semibold">$0</p><p className="mt-3 text-sm text-text-muted">Journal, dashboard, Academia y cuota diaria de IA.</p><Link to="/registro" className="mt-8 inline-flex rounded-full bg-text-primary px-5 py-3 text-base font-semibold text-ink">Comenzar gratis</Link></div><div className="rounded-2xl border border-signal/40 bg-panel p-8"><p className="text-sm text-signal">Pro · 31 días de prueba</p><p className="mt-4 text-4xl font-semibold tabular-nums">$4.900 <span className="text-base font-medium text-text-muted">CLP al mes</span></p><p className="mt-3 text-sm text-text-muted">Más IA, briefs, insights y alertas avanzadas.</p><Link to="/registro" className="mt-8 inline-flex rounded-full bg-signal px-5 py-3 text-base font-semibold text-white">Probar Pro</Link></div></div>
         </section>
 
         <section className="mx-auto grid max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[0.7fr_1.3fr]"><div><p className="text-sm font-semibold text-steel">Preguntas frecuentes</p><h2 className="mt-3 text-3xl font-semibold">Antes de tu primer registro.</h2></div><Accordion type="single" collapsible>{faqItems.map(([question, answer], index) => <AccordionItem key={question} value={`faq-${index}`}><AccordionTrigger className="text-base">{question}</AccordionTrigger><AccordionContent><p className="text-sm text-text-muted">{answer}</p></AccordionContent></AccordionItem>)}</Accordion></section>

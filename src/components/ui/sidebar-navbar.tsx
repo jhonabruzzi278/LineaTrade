@@ -2,7 +2,7 @@
 // navItems primarios (fuente única en hooks/useNavItems.tsx), pero acá además tiene
 // dos modos: colapsado (píldora vertical solo-íconos, el look original) y expandido
 // (panel con etiquetas + una segunda sección "Herramientas" con los módulos que antes
-// no vivían en ninguna navegación global — Backtesting, Scanner, Coach, IA Trader,
+// no vivían en ninguna navegación global — Reporte, Insights, Coach, IA Trader,
 // Sistema, Configuración IA, Admin). Solo visible desde `lg:` (1024px);
 // AppFloatingNav.tsx decide cuál de las dos presentaciones (esta o FloatingNav)
 // mostrar según el breakpoint, nunca las dos pisándose.

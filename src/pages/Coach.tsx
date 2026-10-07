@@ -22,11 +22,11 @@ const FREE_TIER_DAILY_LIMIT = 3
 // solo feedback inmediato en el input.
 const MAX_MESSAGE_LENGTH = 4000
 
-// Modo foco, sin <AppFloatingNav/> — mismo criterio que Backtesting.tsx: un input de
+// Modo foco, sin <AppFloatingNav/>: un input de
 // chat anclado abajo compite por el mismo espacio que la pill flotante de navegación
 // (ver CLAUDE.md "pb-28" — acá directamente no aplica esa convención porque no hay
 // nav flotante en esta pantalla). Volver al dashboard es un link explícito en el
-// header, igual que "Dashboard" en BacktestingHeader.
+// header.
 export default function Coach() {
   const { user } = useAuth()
   const [conversations, setConversations] = useState<CoachConversation[]>([])

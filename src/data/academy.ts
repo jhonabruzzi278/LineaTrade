@@ -69,7 +69,7 @@ export const academyModules: AcademyModule[] = [
       { id: 'sweeps', title: 'Sweeps e invalidación', durationMinutes: 12 },
       { id: 'fvg', title: 'Fair Value Gaps', durationMinutes: 12, practice: 'Registra veinte ejemplos' },
       { id: 'order-blocks', title: 'Order Blocks y breakers', durationMinutes: 12 },
-      { id: 'confluencia', title: 'Confluencia con contexto', durationMinutes: 10, practice: 'Compara zonas en backtesting' },
+      { id: 'confluencia', title: 'Confluencia con contexto', durationMinutes: 10, practice: 'Compara zonas en tu journal' },
     ],
   },
   {

@@ -4,15 +4,11 @@ import {
   getWeekdayStats,
   getHourStats,
   getInstrumentStats,
-  getConfluenceSingleStats,
-  getConfluenceComboStats,
   getPsychologyPctStats,
   MIN_SAMPLE_FOR_HEATMAP,
   type WeekdayStat,
   type HourStat,
   type InstrumentStat,
-  type ConfluenceSingleStat,
-  type ConfluenceComboStat,
   type PsychologyPctStat,
 } from '../lib/extendedStats'
 import { getErrorMessage } from '../lib/errors'
@@ -58,8 +54,6 @@ export function ExtendedStatsSection() {
   const [weekdayStats, setWeekdayStats] = useState<WeekdayStat[] | null>(null)
   const [hourStats, setHourStats] = useState<HourStat[] | null>(null)
   const [instrumentStats, setInstrumentStats] = useState<InstrumentStat[] | null>(null)
-  const [confluenceSingleStats, setConfluenceSingleStats] = useState<ConfluenceSingleStat[] | null>(null)
-  const [confluenceComboStats, setConfluenceComboStats] = useState<ConfluenceComboStat[] | null>(null)
   const [psychologyPctStats, setPsychologyPctStats] = useState<PsychologyPctStat | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -74,17 +68,13 @@ export function ExtendedStatsSection() {
       getWeekdayStats().catch(() => [] as WeekdayStat[]),
       getHourStats().catch(() => [] as HourStat[]),
       getInstrumentStats().catch(() => [] as InstrumentStat[]),
-      getConfluenceSingleStats().catch(() => [] as ConfluenceSingleStat[]),
-      getConfluenceComboStats().catch(() => [] as ConfluenceComboStat[]),
       getPsychologyPctStats().catch(() => null),
     ])
-      .then(([wd, hr, inst, cs, cc, psych]) => {
+      .then(([wd, hr, inst, psych]) => {
         if (cancelled) return
         setWeekdayStats(wd)
         setHourStats(hr)
         setInstrumentStats(inst)
-        setConfluenceSingleStats(cs)
-        setConfluenceComboStats(cc)
         setPsychologyPctStats(psych)
       })
       .catch((err) => {
@@ -104,7 +94,6 @@ export function ExtendedStatsSection() {
     (!weekdayStats?.length || weekdayStats.every((r) => (r.total_trades ?? 0) < MIN_SAMPLE_FOR_HEATMAP)) &&
     (!hourStats?.length || hourStats.every((r) => (r.total_trades ?? 0) < MIN_SAMPLE_FOR_HEATMAP)) &&
     !instrumentStats?.length &&
-    !confluenceSingleStats?.length &&
     (!psychologyPctStats || (psychologyPctStats.total_trades ?? 0) < MIN_SAMPLE_FOR_HEATMAP)
 
   return (
@@ -120,7 +109,7 @@ export function ExtendedStatsSection() {
 
       {!expanded && (
         <p className="font-body text-[13px] text-text-faint ml-7">
-          Heatmaps por día, hora, instrumento, confluencia y frecuencia de comportamientos. Requiere datos suficientes
+          Heatmaps por día, hora, instrumento y frecuencia de comportamientos. Requiere datos suficientes
           (mín. 3 trades cerrados por celda).
         </p>
       )}
@@ -206,64 +195,6 @@ export function ExtendedStatsSection() {
                     {instrumentStats.filter((r) => (r.total_trades ?? 0) >= MIN_SAMPLE_FOR_HEATMAP).map((row) => (
                       <tr key={row.symbol} className="hover:bg-panel/50 transition-colors">
                         <td className="py-2 pr-4 text-text-primary">{row.symbol}</td>
-                        <td className="py-2 px-2 text-right text-text-faint">{row.total_trades}</td>
-                        <td className="py-2 px-2 text-right">{formatPercent(row.win_rate)}</td>
-                        <td className="py-2 pl-2 text-right text-text-faint">{row.avg_r != null ? row.avg_r.toFixed(2) : '\u2014'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Por confluencia simple */}
-          {confluenceSingleStats && confluenceSingleStats.length > 0 && confluenceSingleStats.some((r) => (r.total_trades ?? 0) >= MIN_SAMPLE_FOR_HEATMAP) && (
-            <div>
-              <h3 className="font-mono text-[11px] text-text-faint tracking-wide mb-3">POR CONFLUENCIA (SINGLE)</h3>
-              <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <table className="w-full text-left font-mono text-[12px] max-w-xl">
-                  <thead>
-                    <tr className="text-text-faint border-b border-hairline">
-                      <th className="font-normal pb-2 pr-4">Confluencia</th>
-                      <th className="font-normal pb-2 px-2 text-right">Trades</th>
-                      <th className="font-normal pb-2 px-2 text-right">Win rate</th>
-                      <th className="font-normal pb-2 pl-2 text-right">Avg R</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-hairline/60">
-                    {confluenceSingleStats.filter((r) => (r.total_trades ?? 0) >= MIN_SAMPLE_FOR_HEATMAP).map((row) => (
-                      <tr key={row.confluence_name ?? row.confluence_type_id} className="hover:bg-panel/50 transition-colors">
-                        <td className="py-2 pr-4 text-text-primary">{row.confluence_name}</td>
-                        <td className="py-2 px-2 text-right text-text-faint">{row.total_trades}</td>
-                        <td className="py-2 px-2 text-right">{formatPercent(row.win_rate)}</td>
-                        <td className="py-2 pl-2 text-right text-text-faint">{row.avg_r != null ? row.avg_r.toFixed(2) : '\u2014'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Por confluencia combo */}
-          {confluenceComboStats && confluenceComboStats.length > 0 && confluenceComboStats.some((r) => (r.total_trades ?? 0) >= MIN_SAMPLE_FOR_HEATMAP) && (
-            <div>
-              <h3 className="font-mono text-[11px] text-text-faint tracking-wide mb-3">POR CONFLUENCIA (COMBO)</h3>
-              <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <table className="w-full text-left font-mono text-[12px] max-w-xl">
-                  <thead>
-                    <tr className="text-text-faint border-b border-hairline">
-                      <th className="font-normal pb-2 pr-4">Combinación</th>
-                      <th className="font-normal pb-2 px-2 text-right">Trades</th>
-                      <th className="font-normal pb-2 px-2 text-right">Win rate</th>
-                      <th className="font-normal pb-2 pl-2 text-right">Avg R</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-hairline/60">
-                    {confluenceComboStats.filter((r) => (r.total_trades ?? 0) >= MIN_SAMPLE_FOR_HEATMAP).map((row, i) => (
-                      <tr key={i} className="hover:bg-panel/50 transition-colors">
-                        <td className="py-2 pr-4 text-text-primary">{row.confluence_names?.join(' + ') ?? '\u2014'}</td>
                         <td className="py-2 px-2 text-right text-text-faint">{row.total_trades}</td>
                         <td className="py-2 px-2 text-right">{formatPercent(row.win_rate)}</td>
                         <td className="py-2 pl-2 text-right text-text-faint">{row.avg_r != null ? row.avg_r.toFixed(2) : '\u2014'}</td>

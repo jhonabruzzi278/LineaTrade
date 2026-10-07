@@ -1371,6 +1371,17 @@ main path, but it does mean iOS users don't get this feature yet.
 
 ### Backtesting (Market Replay)
 
+> **Eliminado el 2026-10-06** junto con el Market Scanner, por decisión del dueño del
+> producto. Se borraron las rutas `/backtesting` y `/escaner`, sus páginas, componentes,
+> hooks y libs, la dependencia `lightweight-charts`, las Edge Functions `run-scanner`,
+> `explain-scan-result`, `resolve-scanner-query` y `detect-confluences`, y las stats por
+> confluencia de `ExtendedStatsSection`. La migración `20261006100000_remove_market_scanner.sql`
+> desprograma el cron `market-scanner`, borra `scanner_results` y la cuota
+> `scanner_queries`. Los datos de práctica de los usuarios (`backtest_sessions`,
+> `trades.is_backtest`, `chart_annotations`, `trade_confluences`, `confluence_types`)
+> siguen en la base: Historial todavía muestra el badge "práctica" en esos trades y las
+> vistas siguen excluyéndolos. Todo lo que sigue en esta sección es historia.
+
 Added 2026-07-27, from a pre-written implementation plan
 (`docs/lineatrade-backtesting-plan.md`) specifying 9 modules: chart replay, semantic
 drawing of "confluences" (FVG, liquidity, order blocks, CHoCH, BOS, supply/demand

@@ -29,12 +29,10 @@ const Noticias = lazy(() => import('./pages/Noticias'))
 const NoticiaDetail = lazy(() => import('./pages/NoticiaDetail'))
 const IaTrader = lazy(() => import('./pages/IaTrader'))
 const EliminarCuenta = lazy(() => import('./pages/EliminarCuenta'))
-const Scanner = lazy(() => import('./pages/Scanner'))
 const Coach = lazy(() => import('./pages/Coach'))
 const Reporte = lazy(() => import('./pages/Reporte'))
 const Herramientas = lazy(() => import('./pages/Herramientas'))
 const Insights = lazy(() => import('./pages/Insights'))
-const Backtesting = lazy(() => import('./pages/Backtesting'))
 const Academia = lazy(() => import('./pages/Academia'))
 const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
 const Planes = lazy(() => import('./pages/Planes'))
@@ -142,24 +140,6 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <NoticiaDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/backtesting"
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<RouteFallback />}>
-                  <Backtesting />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/escaner"
-            element={
-              <ProtectedRoute>
-                <Scanner />
               </ProtectedRoute>
             }
           />

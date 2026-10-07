@@ -3,10 +3,8 @@ import { Link } from 'react-router-dom'
 import {
   BarChart3,
   Bot,
-  History as ReplayIcon,
   Lightbulb,
   Newspaper,
-  Radar,
   Sliders,
   Sparkles,
   Target,
@@ -26,8 +24,6 @@ interface ToolLink {
 const ANALYSIS_TOOLS: ToolLink[] = [
   { name: 'Reporte', description: 'Rachas, drawdown y curva de capital.', to: '/reporte', icon: <BarChart3 /> },
   { name: 'Insights', description: 'Patrones encontrados en tu historial.', to: '/insights', icon: <Lightbulb /> },
-  { name: 'Market Replay', description: 'Prueba estrategias con datos históricos.', to: '/backtesting', icon: <ReplayIcon /> },
-  { name: 'Scanner', description: 'Filtra el mercado cripto por condiciones.', to: '/escaner', icon: <Radar /> },
 ]
 
 const WORKFLOW_TOOLS: ToolLink[] = [

@@ -303,8 +303,7 @@ function ProviderConfigSection() {
 // fija en código (FREE_TIER_DAILY_LIMIT = 3, supabase/functions/_shared/
 // rateLimiter.ts), ahora una fila única en ai_rate_limit_config leída por
 // checkAndIncrementUsage en cada Edge Function que consume el cupo
-// (analyze-trade, extract-trade-image, ai-coach-chat, generate-insights,
-// explain-scan-result, resolve-scanner-query, detect-confluences). Subirlo
+// (analyze-trade, extract-trade-image, ai-coach-chat, generate-insights). Subirlo
 // acá (ej. durante desarrollo, para no chocar contra el límite mientras se
 // prueba) no requiere redeployar ningún Edge Function — el próximo llamado
 // ya lee el valor nuevo. BYOK sigue sin límite práctico
@@ -354,8 +353,8 @@ function RateLimitSection() {
     <Section title="Límite diario de IA (tier gratuito)">
       <div className="col-span-2 md:col-span-4 border border-hairline rounded-sm bg-panel px-5 py-4">
         <p className="font-mono text-[11px] text-text-faint mb-4">
-          Análisis/día que puede consumir un usuario sin BYOK antes de que analyze-trade, extract-trade-image, Coach,
-          Insights, Scanner y detección de confluencias empiecen a rechazar el pedido. Usuarios con su propia API key
+          Análisis/día que puede consumir un usuario sin BYOK antes de que analyze-trade, extract-trade-image, Coach
+          e Insights empiecen a rechazar el pedido. Usuarios con su propia API key
           (BYOK) no están sujetos a este número.
         </p>
         <form onSubmit={(e) => void handleSave(e)} className="flex items-end gap-3">

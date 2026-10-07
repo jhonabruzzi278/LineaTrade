@@ -37,7 +37,7 @@ export default function AcademyLesson() {
             <section className="mt-9 border-l-2 border-signal bg-panel px-5 py-5">
               <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-signal"><FlaskConical className="h-4 w-4" /> Práctica</p>
               <p className="mt-3 text-text-primary">{lesson.practice}</p>
-              <p className="mt-1 text-[13px] text-text-faint">La evidencia práctica se conectará con backtesting y journal en la siguiente fase.</p>
+              <p className="mt-1 text-[13px] text-text-faint">La evidencia práctica se conectará con tu journal en la siguiente fase.</p>
             </section>
           )}
         </article>
