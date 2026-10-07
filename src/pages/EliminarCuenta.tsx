@@ -1,6 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Nav } from '../components/Nav'
+import { AuthError } from '../components/auth/AuthError'
+import { PasswordField } from '../components/auth/PasswordField'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Field, FIELD_CLASS } from '../components/ui/field'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { getErrorMessage, getFunctionErrorMessage } from '../lib/errors'
@@ -13,6 +18,18 @@ import { getErrorMessage, getFunctionErrorMessage } from '../lib/errors'
 // (o sin la app instalada), así que el login vive dentro de esta misma
 // página en vez de redirigir a /login y perder el contexto de la solicitud.
 const CONFIRM_WORD = 'ELIMINAR'
+const LOGIN_ERROR_ID = 'eliminar-login-error'
+const DELETE_ERROR_ID = 'eliminar-delete-error'
+
+const DELETED_ITEMS = [
+  'Tu perfil y toda la configuración de tu cuenta',
+  'Todas tus operaciones (trades) registradas y su historial',
+  'Imágenes de trades y tu foto de perfil',
+  'Comentarios, objetivos, reglas y estrategias',
+  'Tu configuración de IA, incluida cualquier clave BYOK guardada',
+  'Tus planes de IA Trader generados',
+  'Tu cuenta de acceso (correo y contraseña)',
+]
 
 export default function EliminarCuenta() {
   const { user, loading: authLoading } = useAuth()
@@ -53,90 +70,71 @@ export default function EliminarCuenta() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-ink text-text-primary">
       <Nav />
-      <main className="relative max-w-md mx-auto px-6 pt-20 pb-24">
-        <p className="font-mono text-[13px] text-signal mb-4">cuenta</p>
-        <h1 className="font-display text-[28px] text-text-primary mb-2">Eliminar cuenta</h1>
-        <p className="font-body text-[15px] text-text-muted mb-8">
-          Solicitá la eliminación permanente de tu cuenta de LineaTrade y de todos los datos asociados.
+      <main className="mx-auto max-w-md px-5 pb-24 pt-10 lg:pt-16">
+        <p className="label-mono text-steel">Cuenta</p>
+        <h1 className="mt-2 text-balance font-display text-[30px] leading-[1.05] lg:text-[38px]">Eliminar cuenta</h1>
+        <p className="mb-8 mt-3 text-pretty font-body text-[15px] leading-relaxed text-text-faint">
+          Solicita la eliminación permanente de tu cuenta de LineaTrade y de todos los datos asociados.
         </p>
 
         {done ? (
-          <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated">
-            <p className="font-body text-[15px] text-text-primary mb-4">
+          <Card className="space-y-4 p-6">
+            <p className="font-body text-[15px] text-text-primary">
               Tu cuenta y todos tus datos fueron eliminados de forma permanente.
             </p>
-            <Link to="/" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
+            <Link to="/" className="inline-flex min-h-11 items-center font-body text-[14px] font-bold text-steel hover:underline">
               Volver al inicio
             </Link>
-          </div>
+          </Card>
         ) : !authLoading && !user ? (
-          <form
-            onSubmit={handleLogin}
-            className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated space-y-5"
-          >
-            <p className="font-body text-[13px] text-text-muted">
-              Iniciá sesión para confirmar que sos vos quien solicita la eliminación.
-            </p>
-            <div>
-              <label htmlFor="email" className="font-body text-[13px] text-text-muted block mb-2">
-                Correo electrónico
-              </label>
-              <input
+          <Card as="section" className="p-6">
+            <form onSubmit={handleLogin} className="space-y-5">
+              <p className="font-body text-[13px] text-text-faint">
+                Inicia sesión para confirmar que eres tú quien solicita la eliminación.
+              </p>
+              <Field
                 id="email"
+                label="Correo"
                 type="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nombre@correo.com"
-                className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
               />
-            </div>
-            <div>
-              <label htmlFor="password" className="font-body text-[13px] text-text-muted block mb-2">
-                Contraseña
-              </label>
-              <input
+              <PasswordField
                 id="password"
-                type="password"
+                label="Contraseña"
+                autoComplete="current-password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onValueChange={setPassword}
                 placeholder="Tu contraseña"
-                className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+                errorId={loginError ? LOGIN_ERROR_ID : undefined}
               />
-            </div>
-            {loginError && <p className="font-body text-[13px] text-loss">{loginError}</p>}
-            <button
-              type="submit"
-              disabled={loggingIn}
-              className="w-full font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loggingIn ? 'Ingresando...' : 'Ingresar'}
-            </button>
-          </form>
+              <AuthError id={LOGIN_ERROR_ID} message={loginError} />
+              <Button type="submit" variant="cta" size="lg" disabled={loggingIn} className="w-full">
+                {loggingIn ? 'Ingresando...' : 'Ingresar'}
+              </Button>
+            </form>
+          </Card>
         ) : (
-          <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated space-y-6">
-            <p className="font-body text-[13px] text-text-faint break-all">
+          <Card as="section" className="space-y-6 p-6">
+            <p className="break-all font-body text-[13px] text-text-faint">
               Cuenta: <span className="text-text-muted">{user?.email ?? email}</span>
             </p>
 
             <div>
-              <p className="font-body text-[14px] text-text-primary mb-2">Se elimina permanentemente:</p>
-              <ul className="font-body text-[13px] text-text-muted space-y-1 list-disc list-inside">
-                <li>Tu perfil y toda la configuración de tu cuenta</li>
-                <li>Todas tus operaciones (trades) registradas y su historial</li>
-                <li>Imágenes de trades y tu foto de perfil</li>
-                <li>Comentarios, objetivos, reglas y estrategias</li>
-                <li>Tu configuración de IA, incluida cualquier clave BYOK guardada</li>
-                <li>Tus planes de IA Trader generados</li>
-                <li>Tu cuenta de acceso (correo y contraseña)</li>
+              <p className="mb-2 font-body text-[14px] font-bold text-text-primary">Se elimina permanentemente:</p>
+              <ul className="list-inside list-disc space-y-1 font-body text-[13px] text-text-muted">
+                {DELETED_ITEMS.map((item) => <li key={item}>{item}</li>)}
               </ul>
             </div>
 
             <div>
-              <p className="font-body text-[14px] text-text-primary mb-2">Se conserva:</p>
+              <p className="mb-2 font-body text-[14px] font-bold text-text-primary">Se conserva:</p>
               <p className="font-body text-[13px] text-text-muted">
                 Únicamente registros de auditoría de seguridad exigidos por motivos de cumplimiento, ya
                 anonimizados — dejan de estar vinculados a tu cuenta o identidad.
@@ -144,29 +142,32 @@ export default function EliminarCuenta() {
             </div>
 
             <div>
-              <label htmlFor="confirm" className="font-body text-[13px] text-text-muted block mb-2">
-                Escribí <span className="text-loss font-medium">{CONFIRM_WORD}</span> para confirmar
+              <label htmlFor="confirm" className="mb-1.5 block font-body text-[12px] font-semibold text-text-faint">
+                Escribe <span className="font-bold text-loss">{CONFIRM_WORD}</span> para confirmar
               </label>
               <input
                 id="confirm"
                 type="text"
+                autoComplete="off"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary focus:outline-none focus:border-loss transition-colors"
+                className={FIELD_CLASS}
               />
             </div>
 
-            {deleteError && <p className="font-body text-[13px] text-loss">{deleteError}</p>}
+            <AuthError id={DELETE_ERROR_ID} message={deleteError} />
 
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="lg"
               disabled={confirmText !== CONFIRM_WORD || deleting}
               onClick={() => void handleDelete()}
-              className="w-full flex items-center justify-center gap-2 font-body text-[14px] font-medium px-5 py-3 rounded-sm border border-loss/40 text-loss transition-colors duration-200 hover:bg-loss/10 hover:border-loss disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-full whitespace-normal text-center"
             >
               {deleting ? 'Eliminando...' : 'Eliminar mi cuenta y todos mis datos'}
-            </button>
-          </div>
+            </Button>
+          </Card>
         )}
       </main>
     </div>
