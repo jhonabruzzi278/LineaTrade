@@ -18,7 +18,7 @@ interface AccountSection {
 // Zona "Cuenta": cuatro pantallas de usuario más Admin. El encabezado vive aquí
 // (no en cada página) para que el subnav lateral y el título compartan la misma
 // estructura que los diseños `Cta-*`/`Pln-*`/`Adm-*`.
-export const ACCOUNT_SECTIONS: AccountSection[] = [
+const ACCOUNT_SECTIONS: AccountSection[] = [
   {
     to: '/perfil',
     label: 'Perfil',
@@ -58,7 +58,7 @@ export const ACCOUNT_SECTIONS: AccountSection[] = [
   },
 ]
 
-export function sectionForPath(pathname: string): AccountSection | undefined {
+function sectionForPath(pathname: string): AccountSection | undefined {
   return ACCOUNT_SECTIONS.find((s) => pathname === s.to || pathname.startsWith(`${s.to}/`))
 }
 
