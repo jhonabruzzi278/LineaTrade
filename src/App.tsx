@@ -6,6 +6,7 @@ import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt'
 import { AppLayout } from './components/shell/AppLayout'
+import { AccountLayout } from './components/shell/AccountLayout'
 
 // Cada pantalla se carga bajo demanda. Landing queda en el paquete inicial porque es
 // la primera experiencia pública; el producto privado se descarga después del login.
@@ -82,11 +83,14 @@ export default function App() {
             <Route path="/academia" element={<Academia />} />
             <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
             <Route path="/mas" element={<Mas />} />
-            <Route path="/perfil" element={<Perfil />} />
-            <Route path="/sistema" element={<Sistema />} />
-            <Route path="/configuracion/ia" element={<ConfiguracionIA />} />
-            <Route path="/planes" element={<Planes />} />
-            <Route path="/admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
+            {/* Cuenta: subnav de 200px en escritorio, "← Más" en móvil. */}
+            <Route element={<AccountLayout />}>
+              <Route path="/perfil" element={<Perfil />} />
+              <Route path="/sistema" element={<Sistema />} />
+              <Route path="/configuracion/ia" element={<ConfiguracionIA />} />
+              <Route path="/planes" element={<Planes />} />
+              <Route path="/admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
+            </Route>
           </Route>
 
           <Route path="/herramientas" element={<Navigate to="/mas" replace />} />

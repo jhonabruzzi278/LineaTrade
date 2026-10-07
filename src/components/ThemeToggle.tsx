@@ -1,32 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
-
-type Theme = 'dark' | 'light'
-
-function initialTheme(): Theme {
-  try {
-    const stored = localStorage.getItem('lineatrade:theme')
-    if (stored === 'dark' || stored === 'light') return stored
-  } catch { /* Theme remains usable when browser storage is unavailable. */ }
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-}
+import { applyThemePreference, currentResolvedTheme, type ResolvedTheme } from '../lib/theme'
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(initialTheme)
+  const [theme, setTheme] = useState<ResolvedTheme>(currentResolvedTheme)
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    try { localStorage.setItem('lineatrade:theme', theme) } catch { /* Session-only preference. */ }
-  }, [theme])
-
+  // Solo se guarda una preferencia explícita al hacer clic: al montar no se
+  // escribe nada, así «Sistema» (sin preferencia guardada) sigue siéndolo.
   function toggleTheme() {
-    const root = document.documentElement
-    root.classList.add('theme-switching')
     const next = theme === 'dark' ? 'light' : 'dark'
-    root.dataset.theme = next
-    void document.body.offsetHeight
+    applyThemePreference(next)
     setTheme(next)
-    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')))
   }
 
   return (

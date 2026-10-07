@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAuth } from '../lib/auth'
-import { isPushSupported, requestNotificationPermission, subscribeToPush } from '../lib/pushNotifications'
+import { isPushOptedOut, isPushSupported, requestNotificationPermission, subscribeToPush } from '../lib/pushNotifications'
 
 // No renderiza nada visible. Apenas hay una sesión activa, pide el permiso
 // NATIVO de notificaciones (el del sistema operativo/navegador — sin modal
@@ -22,6 +22,8 @@ export function NotificationPermissionPrompt() {
   useEffect(() => {
     if (!user || !isPushSupported() || processedUserId.current === user.id) return
     processedUserId.current = user.id
+    // Quien apagó el recordatorio desde Perfil no se vuelve a suscribir solo.
+    if (isPushOptedOut(user.id)) return
 
     async function askAndSubscribe() {
       const permission = await requestNotificationPermission()
