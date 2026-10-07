@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Clock3, FlaskConical } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Clock3, FlaskConical } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { academyLessons } from '../data/academy'
 import { useAcademyProgress } from '../hooks/useAcademyProgress'
@@ -12,6 +12,8 @@ export default function AcademyLesson() {
 
   if (!lesson) return <Navigate to="/academia" replace />
   const isComplete = completed.has(lesson.id)
+  const lessonIndex = academyLessons.findIndex((item) => item.id === lesson.id)
+  const nextLesson = academyLessons[lessonIndex + 1]
 
   return (
     <div className="min-h-screen bg-ink">
@@ -27,15 +29,20 @@ export default function AcademyLesson() {
         </header>
 
         <article className="py-9 font-body text-[15px] leading-7 text-text-muted">
-          <p className="text-pretty">Esta lección introduce el concepto dentro del proceso LineaTrade: comprenderlo, observarlo en contexto y convertirlo en evidencia antes de incorporarlo a una estrategia.</p>
+          <p className="text-pretty">{lesson.summary}</p>
           <h2 className="mt-8 font-display text-[19px] font-medium text-text-primary">Objetivo</h2>
-          <p className="mt-3 text-pretty">Al terminar podrás explicar el concepto con tus palabras y reconocer cuándo aplica y cuándo no. LineaTrade no lo convierte en una señal de entrada.</p>
+          <p className="mt-3 text-pretty">{lesson.objective}</p>
+
+          <h2 className="mt-8 font-display text-[19px] font-medium text-text-primary">Ideas clave</h2>
+          <ul className="mt-3 space-y-3 pl-5 marker:text-signal">
+            {lesson.keyPoints.map((point) => <li key={point} className="pl-1 text-pretty">{point}</li>)}
+          </ul>
 
           {lesson.practice && (
             <section className="mt-9 border-l-2 border-signal bg-panel px-5 py-5">
               <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-signal"><FlaskConical className="h-4 w-4" /> Práctica</p>
               <p className="mt-3 text-text-primary">{lesson.practice}</p>
-              <p className="mt-1 text-[13px] text-text-faint">La evidencia práctica se conectará con tu journal en la siguiente fase.</p>
+              <p className="mt-1 text-[13px] text-text-faint">Registra la práctica en tus notas para revisarla después.</p>
             </section>
           )}
         </article>
@@ -44,9 +51,16 @@ export default function AcademyLesson() {
           <p role={syncError ? 'status' : undefined} className="font-body text-[12px] text-text-faint">
             {syncError ? 'Guardado localmente; pendiente de sincronizar.' : user ? 'Tu progreso se guarda en tu cuenta.' : 'Tu progreso queda guardado en este dispositivo.'}
           </p>
-          <button type="button" disabled={savingLessonId === lesson.id} onClick={() => void setLessonCompleted(lesson.id, !isComplete)} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-5 py-3 font-body text-[13px] font-semibold transition-[background-color,transform,opacity] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-ink disabled:cursor-wait disabled:opacity-60 ${isComplete ? 'bg-gain/10 text-gain ring-1 ring-inset ring-gain/30 hover:bg-gain/15' : 'bg-signal text-on-signal hover:bg-signal-dim'}`}>
-            <Check className="h-4 w-4" /> {savingLessonId === lesson.id ? 'Guardando…' : isComplete ? 'Lección completada' : 'Marcar como completada'}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" disabled={savingLessonId === lesson.id} onClick={() => void setLessonCompleted(lesson.id, !isComplete)} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 font-body text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal disabled:cursor-wait disabled:opacity-60 ${isComplete ? 'border-steel/40 bg-steel/10 text-steel hover:bg-steel/15' : 'border-signal bg-signal px-5 text-on-signal hover:bg-signal-dim'}`}>
+              <Check className="h-4 w-4" /> {savingLessonId === lesson.id ? 'Guardando…' : isComplete ? 'Completada' : 'Marcar como completada'}
+            </button>
+            {nextLesson && (
+              <Link to={`/academia/lecciones/${nextLesson.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-hairline px-4 font-body text-[13px] font-semibold text-text-primary hover:bg-panel-2">
+                Siguiente <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            )}
+          </div>
         </footer>
       </main>
     </div>

@@ -5,18 +5,18 @@ type Props = {
 }
 
 export function AcademyProgress({ completed }: Props) {
+  const recommendedModuleId = academyModules.find((module) => module.lessons.some((lesson) => !completed.has(lesson.id)))?.id
   return (
     <ol aria-label="Progreso por módulos" className="grid grid-cols-5 gap-1">
       {academyModules.map((module, index) => {
         const done = module.lessons.filter((lesson) => completed.has(lesson.id)).length
-        const unlocked = index === 0 || academyModules[index - 1].lessons.every((lesson) => completed.has(lesson.id))
-        const active = unlocked && done < module.lessons.length
+        const active = module.id === recommendedModuleId
 
         return (
           <li key={module.id} className="min-w-0">
             <div className="mb-2 flex items-center" aria-hidden="true">
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${done === module.lessons.length ? 'bg-gain' : active ? 'bg-signal' : 'bg-hairline'}`} />
-              {index < academyModules.length - 1 && <span className={`h-px flex-1 ${done === module.lessons.length ? 'bg-gain/60' : 'bg-hairline'}`} />}
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${done === module.lessons.length ? 'bg-steel' : active ? 'bg-signal' : 'bg-hairline'}`} />
+              {index < academyModules.length - 1 && <span className={`h-px flex-1 ${done === module.lessons.length ? 'bg-steel/60' : 'bg-hairline'}`} />}
             </div>
             <p className={`font-mono text-[10px] tabular-nums ${active ? 'text-signal' : 'text-text-faint'}`}>
               {module.number}

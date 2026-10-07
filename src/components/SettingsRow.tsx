@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 // de "Más" en Perfil.tsx, en vez de introducir un segundo estilo de contenedor.
 export function SettingsGroup({ children }: { children: ReactNode }) {
   return (
-    <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
+    <div className="border border-hairline rounded-xl divide-y divide-hairline overflow-hidden bg-panel">
       {children}
     </div>
   )

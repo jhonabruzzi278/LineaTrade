@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Nav } from '../components/Nav'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion'
@@ -55,7 +55,37 @@ function ProductPreview() {
 }
 
 function WordReveal() {
-  return <p className="max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">Una buena sesión empieza con <span className="text-steel">una decisión que puedes explicar.</span></p>
+  const rootRef = useRef<HTMLParagraphElement>(null)
+  const [visibleWords, setVisibleWords] = useState<Set<number>>(() => new Set())
+  const words = [
+    ...'Una buena sesión empieza con'.split(' ').map((word) => ({ word, highlight: false })),
+    ...'una decisión que puedes explicar.'.split(' ').map((word) => ({ word, highlight: true })),
+  ]
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        const index = Number((entry.target as HTMLElement).dataset.wordIndex)
+        setVisibleWords((current) => new Set(current).add(index))
+        observer.unobserve(entry.target)
+      }
+    }, { threshold: 0.5, rootMargin: '0px 0px -12% 0px' })
+    root.querySelectorAll('[data-word-index]').forEach((word) => observer.observe(word))
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <p ref={rootRef} className="max-w-3xl text-balance font-display text-3xl leading-tight tracking-tight sm:text-4xl" aria-label="Una buena sesión empieza con una decisión que puedes explicar.">
+      {words.map(({ word, highlight }, index) => (
+        <span key={`${word}-${index}`} data-word-index={index} className={`inline-block transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${visibleWords.has(index) ? highlight ? 'text-steel' : 'text-text-primary' : highlight ? 'text-steel/30' : 'text-text-faint/35'}`}>
+          {word}{index < words.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </p>
+  )
 }
 
 export default function Landing() {

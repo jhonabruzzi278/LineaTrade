@@ -4,6 +4,7 @@ import { getInitials } from '../components/Avatar'
 import { useAiUsageToday } from '../hooks/useAiUsageToday'
 import { useEntitlements } from '../hooks/useEntitlements'
 import { useAuth } from '../lib/auth'
+import { PageHeader } from '../components/ui/page-header'
 
 interface MenuItem {
   label: string
@@ -28,7 +29,10 @@ function buildGroups(isAdmin: boolean): MenuGroup[] {
         { label: 'Noticias', to: '/noticias', icon: Newspaper },
       ],
     },
-    { title: 'Análisis', items: [{ label: 'IA Trader', to: '/ia-trader', icon: BarChart3 }] },
+    { title: 'Análisis', items: [
+      { label: 'IA Trader', to: '/ia-trader', icon: BarChart3 },
+      { label: 'Simulador de fondeo', to: '/simulador', icon: BarChart3 },
+    ] },
     {
       title: 'Cuenta',
       items: [
@@ -48,7 +52,7 @@ function MenuRow({ item }: { item: MenuItem }) {
   return (
     <Link
       to={item.to}
-      className="flex min-h-14 items-center gap-3.5 border-t border-hairline px-4 font-body text-[15px] font-semibold text-text-primary first:border-t-0"
+      className="flex min-h-14 items-center gap-3.5 border-t border-hairline px-4 font-body text-[15px] font-semibold text-text-primary transition-colors first:border-t-0 hover:bg-panel-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-signal"
     >
       <Icon className="h-[22px] w-[22px] text-steel" aria-hidden="true" />
       {item.label}
@@ -71,8 +75,7 @@ export default function Mas() {
 
   return (
     <main className="mx-auto max-w-2xl px-5 pb-28 pt-6 lg:pb-12 lg:pt-10">
-      <p className="label-mono">menú</p>
-      <h1 className="font-display mt-1 text-[26px] text-text-primary">Más</h1>
+      <PageHeader kicker="Cuenta y herramientas" title="Más" lead="Accesos a aprendizaje, análisis y preferencias de tu cuenta." />
 
       <Link to="/perfil" className="mt-5 flex min-h-[72px] items-center gap-3.5 rounded-xl border border-hairline bg-panel px-4 py-3.5">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-hairline bg-panel-2 font-display text-[16px] text-steel">

@@ -10,6 +10,7 @@ import {
   type NewsCategory,
 } from '../lib/news'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '../components/ui/page-header'
 
 type CategoryFilter = 'all' | NewsCategory
 const CATEGORY_FILTERS: CategoryFilter[] = ['all', 'cripto', 'forex', 'acciones', 'tecnologia', 'futuros', 'general', 'otro']
@@ -65,13 +66,9 @@ export default function Noticias() {
     <div className="min-h-screen">
 
       <main
-        className={cn(
-          'max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-28 lg:pb-10'
-        )}
+        className={cn('mx-auto max-w-6xl px-5 pb-28 pt-6 sm:px-6 lg:pb-12 lg:pt-10')}
       >
-        {/* Header — título compacto alineado a la izquierda, estilo feed de
-            noticias densa (no el masthead editorial centrado anterior). */}
-        <h1 className="font-body text-[28px] font-bold text-text-primary tracking-tight mb-4">Noticias</h1>
+        <PageHeader kicker="Mercado · fuentes externas" title="Noticias" lead="Lee contexto de mercado con fuente y fecha visibles. Cada artículo conserva el enlace a la publicación original." />
 
         {/* Error bloqueante solo si no hay nada que mostrar; con artículos ya
             cargados (cache), un refresh fallido degrada a una nota discreta. */}
@@ -106,17 +103,17 @@ export default function Noticias() {
             scrolleable original; en desktop se envuelven y centran para que
             todas sean visibles y clicables con mouse (el scroll oculto las
             dejaba inalcanzables). Sin bordes ni estilos nuevos. */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 mb-5 -mx-5 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0 lg:overflow-visible lg:flex-wrap lg:justify-center lg:mb-8">
+        <div aria-label="Filtrar noticias por categoría" className="flex items-center gap-2 overflow-x-auto pb-2 mb-5 -mx-5 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0 lg:overflow-visible lg:flex-wrap lg:mb-8">
           {CATEGORY_FILTERS.map((cat) => (
             <button
               key={cat}
               type="button"
               aria-pressed={categoryFilter === cat}
               onClick={() => setCategoryFilter(cat)}
-              className={`shrink-0 font-body text-[13px] px-3.5 py-2 rounded-full transition-colors ${
+              className={`min-h-11 shrink-0 font-body text-[13px] px-4 py-2 rounded-full border transition-colors ${
                 categoryFilter === cat
-                  ? 'bg-panel-2 text-text-primary font-semibold'
-                  : 'text-text-faint hover:text-text-muted'
+                  ? 'bg-signal border-signal text-on-signal font-semibold'
+                  : 'border-hairline bg-panel text-text-faint hover:border-steel/50 hover:text-text-primary'
               }`}
             >
               {cat === 'all' ? 'Todo' : NEWS_CATEGORY_LABELS[cat]}
@@ -137,8 +134,9 @@ export default function Noticias() {
         )}
 
         {!loading && !error && filtered.length === 0 && (
-          <div className="border border-hairline rounded-sm bg-gradient-to-b from-panel-2 to-panel px-6 py-12 text-center shadow-card">
-            <p className="font-body text-[15px] text-text-muted">No hay noticias para este filtro todavía.</p>
+          <div className="border border-dashed border-hairline rounded-xl px-6 py-12 text-center">
+            <p className="font-display text-[17px] text-text-primary">No hay noticias para este filtro</p>
+            <p className="mt-2 font-body text-[13px] text-text-muted">Elige otra categoría para ver publicaciones disponibles.</p>
           </div>
         )}
 
@@ -185,7 +183,7 @@ export default function Noticias() {
             {/* Hero — primer artículo del filtro activo */}
             <Link
               to={`/noticias/${filtered[0].id}`}
-              className="group grid grid-cols-5 gap-8 items-stretch border border-hairline rounded-sm overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card hover:shadow-elevated transition-shadow duration-300 mb-10"
+              className="group grid grid-cols-5 gap-8 items-stretch border border-hairline rounded-xl overflow-hidden bg-panel hover:border-steel/40 transition-colors duration-200 mb-10"
             >
               <div className="col-span-3 relative aspect-[16/9] bg-panel-2 overflow-hidden">
                 {filtered[0].image_url ? (

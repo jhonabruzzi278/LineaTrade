@@ -16,6 +16,7 @@ import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../c
 import { CameraIcon } from '../components/icons/NavIcons'
 import { formatNumber, formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '../components/ui/page-header'
 import type { Database } from '../types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -138,15 +139,14 @@ export default function Perfil() {
   return (
     <div className="min-h-screen">
       <main
-        className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
+        className={cn('mx-auto max-w-5xl px-5 pb-28 pt-6 sm:px-6 lg:pb-12 lg:pt-10')}
       >
+        <PageHeader kicker="Cuenta" title="Tu perfil" lead="Tus datos, actividad y preferencias de LineaTrade." />
         {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie
             propia, como la tarjeta de cuenta de TradingView (avatar, usuario, plan).
             `pl-4` (en vez de `pr-6` simétrico) acerca la foto al borde de la tarjeta;
             `gap-3` (antes `gap-4`) la acerca un poco más al bloque de texto. */}
-        <div className="rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel shadow-card pl-4 pr-6 py-6 mb-6">
+        <div className="rounded-xl border border-hairline bg-panel p-4 sm:p-6 mb-6">
           <div className="flex items-center gap-3">
             <label
               htmlFor="avatar-upload"
@@ -183,7 +183,6 @@ export default function Perfil() {
                 lugar (antes solo aparecía si había display_name, y como fallback
                 del propio h1 si no — dos rutas distintas para el mismo dato). */}
             <div className="min-w-0">
-              <p className="font-mono text-[13px] text-signal mb-1">tu perfil</p>
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h1 className="font-display text-[20px] text-text-primary truncate">
                   {profile?.display_name || 'Tu cuenta'}
@@ -225,8 +224,8 @@ export default function Perfil() {
           <QuickActionTile to="/configuracion/ia" label="Config. de IA" hint="Tu propia API key (BYOK)" />
         </div>
 
-        <h2 className="font-display text-[16px] text-text-primary mb-4">Tus números</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <h2 className="font-display text-[19px] text-text-primary mb-4">Tus números</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
           <MetricCard
             label="Win rate"
             value={formatPercent(stats?.win_rate)}
@@ -255,8 +254,8 @@ export default function Perfil() {
           </p>
         )}
 
-        <h2 className="font-display text-[16px] text-text-primary mb-4">Más</h2>
-        <nav className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card mb-10">
+        <h2 className="font-display text-[19px] text-text-primary mb-4">Cuenta y preferencias</h2>
+        <nav className="border border-hairline rounded-xl divide-y divide-hairline overflow-hidden bg-panel mb-10">
           <ProfileLink to="/planes" label="Plan y límites" hint="Funciones disponibles en tu cuenta" />
           <ProfileLink to="/historial" label="Historial completo" />
           {role === 'superadmin' && <ProfileLink to="/admin" label="Admin" />}
@@ -265,7 +264,7 @@ export default function Perfil() {
         <button
           type="button"
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 font-body text-[14px] font-medium px-5 py-3 rounded-sm border border-loss/40 text-loss transition-colors duration-200 hover:bg-loss/10 hover:border-loss"
+          className="min-h-11 w-full flex items-center justify-center gap-2 font-body text-[14px] font-medium px-5 py-3 rounded-lg border border-hairline text-text-muted transition-colors duration-200 hover:bg-panel-2 hover:text-text-primary"
         >
           <LogOut className="w-4 h-4" />
           Cerrar sesión
@@ -311,7 +310,7 @@ function QuickActionTile({ to, label, hint }: { to: string; label: string; hint:
   return (
     <Link
       to={to}
-      className="group rounded-sm border border-hairline bg-panel-2 px-4 py-4 flex flex-col gap-2 transition-colors hover:border-signal/40 hover:bg-panel-2/70"
+      className="group rounded-xl border border-hairline bg-panel px-4 py-4 flex flex-col gap-2 transition-colors hover:border-signal/40 hover:bg-panel-2/70"
     >
       <span className="font-mono text-[13px] text-text-faint opacity-70 transition-all duration-200 group-hover:opacity-100 group-hover:text-signal group-hover:translate-x-0.5">
         →

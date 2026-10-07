@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '../components/ui/page-header'
+import { Callout } from '../components/ui/callout'
 
 // Proveedores con implementación real en el registry de ambos Edge
 // Functions (ver supabase/functions/_shared/providers/) — no hay check
@@ -91,16 +93,10 @@ export default function ConfiguracionIA() {
   return (
     <div className="min-h-screen">
       <main
-        className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
+        className={cn('mx-auto max-w-3xl px-5 pb-28 pt-6 sm:px-6 lg:pb-12 lg:pt-10')}
       >
-        <p className="font-mono text-[12px] text-signal tracking-wide mb-2">configuración</p>
-        <h1 className="font-display text-[26px] text-text-primary mb-1">Tu propia API key (BYOK)</h1>
-        <p className="font-body text-[14px] text-text-muted mb-8">
-          Con tu propia key no hay límite diario de análisis — el costo lo asumís vos directamente con
-          el proveedor. Sin una key propia, seguís con el tier gratuito (3 análisis por día).
-        </p>
+        <PageHeader kicker="Cuenta · configuración de IA" title="Tu propia API key" lead="Con BYOK, el proveedor te factura directamente. Sin una clave propia, se aplica el límite de uso de tu plan." />
+        <Callout className="mb-7">La clave se cifra al guardarse y no vuelve a mostrarse. LineaTrade la usa para solicitudes de análisis que inicies.</Callout>
 
         {loading ? (
           <p className="font-body text-[14px] text-text-muted">Cargando...</p>

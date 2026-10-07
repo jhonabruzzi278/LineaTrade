@@ -4,8 +4,8 @@ import { BarChart3, GraduationCap, Home, NotebookPen, Newspaper, type LucideIcon
 // escritorio y la barra inferior móvil leen esta misma estructura, así que
 // rutas, etiquetas y estado activo nunca divergen entre las dos.
 //
-// `soon: true` marca pantallas ya diseñadas pero aún sin implementar: no se
-// muestran hasta que existan (quitar la marca al construirlas).
+// `soon: true` reserva un lugar en el modelo para pantallas futuras; se ocultan
+// hasta que exista una experiencia funcional.
 
 export interface NavLeaf {
   label: string
@@ -33,7 +33,7 @@ export const NAV_AREAS: NavArea[] = [
     children: [
       { label: 'Historial', to: '/historial', also: ['/trades'] },
       { label: 'Nuevo trade', to: '/nuevo-trade' },
-      { label: 'Checklist', to: '/checklist', soon: true },
+      { label: 'Checklist', to: '/checklist' },
     ],
   },
   {
@@ -45,7 +45,7 @@ export const NAV_AREAS: NavArea[] = [
       { label: 'Reporte', to: '/reporte' },
       { label: 'Insights', to: '/insights' },
       { label: 'Coach IA', to: '/coach' },
-      { label: 'Simulador de fondeo', to: '/simulador', soon: true },
+      { label: 'Simulador de fondeo', to: '/simulador' },
       { label: 'IA Trader', to: '/ia-trader' },
     ],
   },
@@ -57,7 +57,7 @@ export const NAV_AREAS: NavArea[] = [
     to: '/academia',
     children: [
       { label: 'Aula', to: '/academia', also: ['/academia/lecciones'] },
-      { label: 'Glosario', to: '/academia/glosario', soon: true },
+      { label: 'Glosario', to: '/academia/glosario' },
     ],
   },
 ]

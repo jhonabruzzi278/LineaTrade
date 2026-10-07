@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { formatTradeResult, tradeResultColorClass } from '../../lib/tradeDisplay'
+import { formatTradeMoment, formatRowResult } from '../../lib/tradeRowDisplay'
+import { tradeResultColorClass } from '../../lib/tradeDisplay'
 import type { Database } from '../../types/database'
 
 type Trade = Database['public']['Tables']['trades']['Row'] & {
@@ -70,7 +71,7 @@ export function TradeListRow({ trade, index, showDate = false }: TradeListRowPro
         </div>
         <span className="flex items-center gap-2 shrink-0">
           <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
-            {formatTradeResult(trade)}
+            {formatRowResult(trade)}
           </span>
           <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
             →
@@ -80,7 +81,7 @@ export function TradeListRow({ trade, index, showDate = false }: TradeListRowPro
       <div className="flex items-center gap-2">
         {showDate && (
           <span className="font-mono text-[11px] text-text-faint">
-            {new Date(trade.traded_at).toLocaleDateString('es', { dateStyle: 'medium' })}
+            {formatTradeMoment(trade.traded_at)}
           </span>
         )}
         {showDate && <span className="w-1 h-1 rounded-full bg-hairline shrink-0" aria-hidden="true" />}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, BookOpen, Clock3, Target } from 'lucide-react'
+import { ArrowRight, BookOpen, Clock3, Search, Target } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AcademyModuleRow } from '../components/academy/AcademyModuleRow'
 import { AcademyProgress } from '../components/academy/AcademyProgress'
@@ -23,7 +23,7 @@ export default function Academia() {
             Aprende una idea. Pruébala. Registra evidencia.
           </h1>
           <p className="mt-3 max-w-2xl text-pretty font-body text-[14px] leading-6 text-text-muted">
-            Empieza por el módulo 1. El progreso se desbloquea cuando completas la lección y su práctica.
+            Sigue el orden recomendado o salta a lo que necesites: todas las lecciones están abiertas.
           </p>
         </header>
 
@@ -51,7 +51,7 @@ export default function Academia() {
             </div>
             <div className="text-right">
               <p className="font-mono text-[20px] tabular-nums text-text-primary">{progress}%</p>
-              <p className="font-body text-[11px] text-text-faint">5 módulos · {formatAcademyDuration(academyTotalMinutes)}</p>
+              <p className="font-body text-[11px] text-text-faint">{academyModules.length} módulos · {formatAcademyDuration(academyTotalMinutes)}</p>
             </div>
           </div>
           <div className="mb-5 h-1 overflow-hidden rounded-full bg-hairline" aria-hidden="true">
@@ -69,13 +69,12 @@ export default function Academia() {
             <h2 id="modules-title" className="font-display text-[18px] font-medium text-text-primary">Formación</h2>
           </div>
           <div>
-            {academyModules.map((module, index) => {
-              const unlocked = index === 0 || academyModules[index - 1].lessons.every((lesson) => completed.has(lesson.id))
+            {academyModules.map((module) => {
               return (
                 <AcademyModuleRow
                   key={module.id}
                   module={module}
-                  unlocked={unlocked}
+                  recommended={nextLesson.moduleId === module.id}
                   completed={completed}
                   open={openModuleId === module.id}
                   onToggle={() => setOpenModuleId((current) => current === module.id ? null : module.id)}
@@ -84,6 +83,11 @@ export default function Academia() {
             })}
           </div>
         </section>
+
+        <Link to="/academia/glosario" className="mt-8 flex min-h-16 items-center justify-between gap-4 border-y border-hairline py-4 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal">
+          <span className="flex items-center gap-3"><Search className="h-4 w-4 text-signal" /><span><span className="block font-display text-[16px] text-text-primary">Glosario de trading</span><span className="mt-1 block font-body text-[12px] text-text-faint">Consulta conceptos y abreviaturas del aula.</span></span></span>
+          <ArrowRight className="h-4 w-4 text-text-faint transition-transform group-hover:translate-x-1 group-hover:text-signal" />
+        </Link>
       </main>
     </div>
   )

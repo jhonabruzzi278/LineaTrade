@@ -5,6 +5,7 @@ import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
 import { cn } from '@/lib/utils'
 import type { Database } from '../types/database'
+import { PageHeader } from '../components/ui/page-header'
 
 type SystemMetrics = Database['public']['Functions']['get_system_metrics']['Returns'][number]
 type ProviderConfig = Database['public']['Tables']['ai_provider_config']['Row']
@@ -41,12 +42,9 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen">
       <main
-        className={cn(
-          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
+        className={cn('mx-auto max-w-6xl px-5 pb-28 pt-6 sm:px-6 lg:pb-12 lg:pt-10')}
       >
-        <p className="font-mono text-[13px] text-signal mb-2">solo superadmin</p>
-        <h1 className="font-display text-[28px] text-text-primary mb-8">Panel de sistema</h1>
+        <PageHeader kicker="Administración · superadmin" title="Panel de sistema" lead="Métricas de uso, proveedores y salud operativa de la plataforma." />
 
         {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
         {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
@@ -507,7 +505,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mb-10">
       <p className="font-mono text-[11px] text-text-faint uppercase tracking-wide mb-3">{title}</p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{children}</div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{children}</div>
     </div>
   )
 }

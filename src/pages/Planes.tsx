@@ -5,6 +5,7 @@ import { useEntitlements } from '../hooks/useEntitlements'
 import { useAuth } from '../lib/auth'
 import { cn } from '../lib/utils'
 import { supabase } from '../lib/supabase'
+import { PageHeader } from '../components/ui/page-header'
 
 const planLabels: Record<string, string> = { free: 'Free', pro: 'Pro', byok: 'BYOK' }
 const featureLabels: Record<string, string> = {
@@ -45,11 +46,7 @@ export default function Planes() {
   return (
     <div className="min-h-screen bg-ink">
       <main className={cn('mx-auto max-w-5xl px-5 pb-28 pt-8 sm:px-6 lg:pb-12 lg:pt-10')}>
-        <header className="max-w-2xl border-b border-hairline pb-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-signal">Cuenta y límites</p>
-          <h1 className="mt-3 text-balance font-display text-[30px] font-medium tracking-[-0.03em] text-text-primary sm:text-[36px]">Tu plan LineaTrade</h1>
-          <p className="mt-3 text-pretty font-body text-[14px] leading-6 text-text-muted">Tus permisos se calculan en el servidor y se aplican igual en web, PWA y aplicación móvil.</p>
-        </header>
+        <PageHeader kicker="Cuenta · plan" title="Tu plan LineaTrade" lead="Tus permisos se calculan en el servidor y se aplican igual en web, PWA y aplicación móvil." />
 
         <section aria-labelledby="current-plan" className="grid gap-8 border-b border-hairline py-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <div>

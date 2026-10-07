@@ -4,6 +4,8 @@ import { StrategiesSection } from '../components/sistema/StrategiesSection'
 import { ObjectivesSection } from '../components/sistema/ObjectivesSection'
 import { useAuth } from '../lib/auth'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '../components/ui/page-header'
+import { Tabs } from '../components/ui/tabs'
 
 type Tab = 'reglas' | 'estrategias' | 'objetivos'
 
@@ -24,29 +26,11 @@ export default function Sistema() {
   return (
     <div className="min-h-screen">
       <main
-        className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
+        className={cn('mx-auto max-w-5xl px-5 pb-28 pt-6 sm:px-6 lg:pb-12 lg:pt-10')}
       >
-        <p className="font-mono text-[13px] text-signal mb-2">tu sistema</p>
-        <h1 className="font-display text-[28px] text-text-primary mb-8">Reglas, estrategias y objetivos</h1>
+        <PageHeader kicker="Cuenta · mi sistema" title="Tu proceso operativo" lead="Define reglas, estrategias y objetivos que puedas revisar después de cada sesión." />
 
-        <div className="flex gap-2 mb-8 border-b border-hairline">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`font-body text-[13px] px-4 py-3 border-b-2 -mb-px transition-colors ${
-                tab === t.id
-                  ? 'border-signal text-text-primary'
-                  : 'border-transparent text-text-muted hover:text-text-primary'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <Tabs label="Secciones de mi sistema" items={TABS.map((t) => ({ value: t.id, label: t.label }))} value={tab} onChange={setTab} className="mb-7 w-full sm:w-auto" />
 
         {tab === 'reglas' && <RulesSection userId={user.id} />}
         {tab === 'estrategias' && <StrategiesSection userId={user.id} />}

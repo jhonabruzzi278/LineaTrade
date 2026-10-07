@@ -1,19 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Download } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Field } from '../components/ui/field'
+import { PageHeader } from '../components/ui/page-header'
+import { Segmented } from '../components/ui/segmented'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { tradesToCsv, downloadCsv } from '../lib/tradeExport'
 import { useToast } from '../lib/toast'
-import { cn } from '@/lib/utils'
 import type { Database } from '../types/database'
 
 type TradeRow = Database['public']['Tables']['trades']['Row'] & {
   instruments: Pick<Database['public']['Tables']['instruments']['Row'], 'symbol' | 'market'> | null
 }
 type StatusFilter = 'all' | 'open' | 'closed'
-const STATUS_FILTERS: StatusFilter[] = ['all', 'open', 'closed']
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'open', label: 'Abiertos' },
+  { value: 'closed', label: 'Cerrados' },
+]
 
 export default function Historial() {
   const { user } = useAuth()
@@ -29,11 +38,8 @@ export default function Historial() {
     let cancelled = false
 
     async function load() {
-      // A diferencia de Dashboard, acá SÍ se traen las operaciones de práctica —
-      // Historial es el registro completo de lo que hiciste, backtesting incluido
-      // (TradeListRow ya las marca con el badge "práctica"). Lo que sí queda
-      // protegido es el win rate de abajo, calculado aparte solo sobre trades
-      // reales — nunca debe inflarse/desinflarse con operaciones ficticias.
+      // Historial incluye también las operaciones de práctica; la tasa que se
+      // resume arriba sigue excluyendo backtesting para no mezclar resultados.
       const { data, error: fetchError } = await supabase
         .from('trades')
         .select('*, instruments(symbol, market)')
@@ -49,24 +55,21 @@ export default function Historial() {
     }
 
     void load()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [user])
 
   const filtered = useMemo(() => {
     const query = search.trim().toUpperCase()
     return trades.filter((trade) => {
       if (statusFilter !== 'all' && trade.status !== statusFilter) return false
-      if (query && !(trade.instruments?.symbol ?? '').includes(query)) return false
-      return true
+      return !query || (trade.instruments?.symbol ?? '').toUpperCase().includes(query)
     })
   }, [trades, search, statusFilter])
 
   const winRate = useMemo(() => {
-    const closed = trades.filter((t) => t.status === 'closed' && !t.is_backtest)
+    const closed = trades.filter((trade) => trade.status === 'closed' && !trade.is_backtest)
     if (closed.length === 0) return null
-    const wins = closed.filter((t) => (t.pnl_amount ?? 0) > 0).length
+    const wins = closed.filter((trade) => (trade.pnl_amount ?? 0) > 0).length
     return Math.round((wins / closed.length) * 100)
   }, [trades])
 
@@ -78,92 +81,54 @@ export default function Historial() {
   }
 
   return (
-    <div className="min-h-screen">
-      <main
-        className={cn(
-          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
-      >
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div>
-            <p className="font-mono text-[13px] text-signal mb-2">registro completo</p>
-            <h1 className="font-display text-[28px] text-text-primary">Historial</h1>
-          </div>
-          {!loading && filtered.length > 0 && (
-            <button
-              type="button"
-              onClick={handleExport}
-              className="font-body text-[13px] px-3 py-2 rounded-sm border border-hairline text-text-muted hover:border-text-faint hover:text-text-primary transition-colors whitespace-nowrap mt-1"
-            >
-              Exportar CSV
-            </button>
-          )}
-        </div>
-        <p className="font-mono text-[12px] text-text-faint mb-8">
-          {trades.length} trade{trades.length === 1 ? '' : 's'}
-          {winRate != null && ` · ${winRate}% win rate`}
-        </p>
+    <main className="mx-auto max-w-6xl px-5 pb-28 pt-6 lg:pb-12">
+      <PageHeader
+        kicker="Registro completo"
+        title="Historial"
+        lead={`${trades.length} ${trades.length === 1 ? 'trade' : 'trades'}${winRate == null ? '' : ` · ${winRate}% win rate`}`}
+        actions={!loading && filtered.length > 0 ? (
+          <Button type="button" variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4" aria-hidden="true" />Exportar CSV
+          </Button>
+        ) : undefined}
+      />
 
-        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
+      {error && <p role="alert" className="mb-5 rounded-lg border border-loss/30 bg-loss/10 px-4 py-3 font-body text-[14px] text-loss">{error}</p>}
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por símbolo..."
-            className="flex-1 bg-panel border border-hairline rounded-sm px-4 py-2.5 font-body text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-          />
-          <div className="relative flex w-full sm:w-56 rounded-sm border border-hairline bg-panel">
-            <div
-              className="absolute top-[3px] bottom-[3px] rounded-sm bg-signal/15 border border-signal/40 transition-all duration-300 ease-out"
-              style={{
-                left: `calc(${STATUS_FILTERS.indexOf(statusFilter)} * 33.3333% + 3px)`,
-                width: 'calc(33.3333% - 6px)',
-              }}
-              aria-hidden="true"
-            />
-            {STATUS_FILTERS.map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setStatusFilter(status)}
-                className={`relative z-10 flex-1 font-mono text-[12px] px-3 py-2.5 text-center transition-colors ${
-                  statusFilter === status ? 'text-signal' : 'text-text-muted hover:text-text-primary'
-                }`}
-              >
-                {status === 'all' ? 'todos' : status}
-              </button>
-            ))}
-          </div>
-        </div>
+      <section aria-label="Filtros del historial" className="mb-5 grid gap-3 sm:grid-cols-[minmax(220px,1fr)_minmax(260px,340px)] sm:items-end">
+        <Field
+          id="trade-search"
+          label="Buscar instrumento"
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Símbolo, por ejemplo NQ"
+        />
+        <Segmented label="Filtrar por estado" options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
+      </section>
 
-        {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
+      {loading && <p className="font-body text-[14px] text-text-faint">Cargando historial…</p>}
 
-        {!loading && filtered.length === 0 && (
-          <div className="border border-hairline rounded-sm bg-gradient-to-b from-panel-2 to-panel px-6 py-10 text-center shadow-card">
-            <p className="font-body text-[15px] text-text-muted mb-4">
-              {trades.length === 0 ? 'Aún no tienes trades registrados.' : 'Nada coincide con ese filtro.'}
-            </p>
-            {trades.length === 0 && (
-              <Link
-                to="/nuevo-trade"
-                className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim"
-              >
-                Registrar mi primer trade
-              </Link>
-            )}
-          </div>
-        )}
+      {!loading && filtered.length === 0 && (
+        <Card tone="dashed" className="py-8">
+          <p className="font-display text-[17px] text-text-primary">
+            {trades.length === 0 ? 'Aún no tienes trades registrados.' : 'No encontramos operaciones con esos filtros.'}
+          </p>
+          <p className="mt-1 font-body text-[13px] text-text-faint">
+            {trades.length === 0 ? 'Tu historial empieza cuando registras la primera operación.' : 'Prueba otro símbolo o cambia el estado seleccionado.'}
+          </p>
+          {trades.length === 0 && <Button asChild variant="cta" className="mt-4"><Link to="/nuevo-trade">Registrar mi primer trade</Link></Button>}
+        </Card>
+      )}
 
-        {!loading && filtered.length > 0 && (
-          <div className="border border-hairline rounded-sm divide-y divide-hairline overflow-hidden bg-gradient-to-b from-panel-2 to-panel shadow-card">
-            {filtered.map((trade, index) => (
-              <TradeListRow key={trade.id} trade={trade} index={index} showDate />
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
+      {!loading && filtered.length > 0 && (
+        <>
+          <p className="mb-2 font-mono text-[11px] text-text-faint" aria-live="polite">{filtered.length} {filtered.length === 1 ? 'resultado' : 'resultados'}</p>
+          <Card as="section" className="divide-y divide-hairline overflow-hidden p-0" aria-label="Operaciones del historial">
+            {filtered.map((trade, index) => <TradeListRow key={trade.id} trade={trade} index={index} showDate />)}
+          </Card>
+        </>
+      )}
+    </main>
   )
 }

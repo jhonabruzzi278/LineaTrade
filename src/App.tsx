@@ -19,6 +19,7 @@ const Onboarding = lazy(() => import('./pages/Onboarding'))
 const NuevoTrade = lazy(() => import('./pages/NuevoTrade'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Historial = lazy(() => import('./pages/Historial'))
+const Checklist = lazy(() => import('./pages/Checklist'))
 const TradeDetail = lazy(() => import('./pages/TradeDetail'))
 const ConfiguracionIA = lazy(() => import('./pages/ConfiguracionIA'))
 const AdminPanel = lazy(() => import('./pages/AdminPanel'))
@@ -30,10 +31,12 @@ const IaTrader = lazy(() => import('./pages/IaTrader'))
 const EliminarCuenta = lazy(() => import('./pages/EliminarCuenta'))
 const Coach = lazy(() => import('./pages/Coach'))
 const Reporte = lazy(() => import('./pages/Reporte'))
+const Simulador = lazy(() => import('./pages/Simulador'))
 const Mas = lazy(() => import('./pages/Mas'))
 const Insights = lazy(() => import('./pages/Insights'))
 const Academia = lazy(() => import('./pages/Academia'))
-const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
+  const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
+  const Glosario = lazy(() => import('./pages/Glosario'))
 const Planes = lazy(() => import('./pages/Planes'))
 
 function RouteFallback() {
@@ -75,12 +78,15 @@ export default function App() {
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/historial" element={<Historial />} />
+            <Route path="/checklist" element={<Checklist />} />
             <Route path="/trades/:id" element={<TradeDetail />} />
             <Route path="/reporte" element={<Reporte />} />
+            <Route path="/simulador" element={<Simulador />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/noticias" element={<Noticias />} />
-            <Route path="/academia" element={<Academia />} />
-            <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
+              <Route path="/academia" element={<Academia />} />
+              <Route path="/academia/glosario" element={<Glosario />} />
+              <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
             <Route path="/mas" element={<Mas />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/sistema" element={<Sistema />} />

@@ -1,8 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Nav } from '../components/Nav'
+import { BenefitsAside } from '../components/auth/AuthAsides'
+import { AuthError } from '../components/auth/AuthError'
+import { AuthActions, AuthIntro, AuthLayout } from '../components/auth/AuthLayout'
+import { ConfirmationSteps, MailSentMark, ResendButton } from '../components/auth/MailSent'
+import { PasswordField } from '../components/auth/PasswordField'
+import { Button } from '../components/ui/button'
+import { Field } from '../components/ui/field'
+import { PASSWORD_MIN_LENGTH } from '../lib/passwordStrength'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+
+const ERROR_ID = 'signup-error'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
@@ -14,8 +23,8 @@ export default function Signup() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password.length < 8) {
-      setError('La contraseña necesita al menos 8 caracteres.')
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(`La contraseña necesita al menos ${PASSWORD_MIN_LENGTH} caracteres.`)
       return
     }
     setLoading(true)
@@ -28,93 +37,93 @@ export default function Signup() {
     setSubmitted(true)
   }
 
+  async function resendConfirmation(): Promise<string | null> {
+    const { error: resendError } = await supabase.auth.resend({ type: 'signup', email })
+    return resendError ? getErrorMessage(resendError) : null
+  }
+
   if (submitted) {
     return (
-      <div className="min-h-screen">
-        <Nav />
-        <main className="relative max-w-md mx-auto px-6 pt-24">
-          <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated text-center">
-            <p className="font-mono text-[13px] text-signal mb-4">cuenta creada</p>
-            <h1 className="font-display text-[26px] text-text-primary mb-3">
-              Revisa tu correo
-            </h1>
-            <p className="font-body text-[15px] text-text-muted leading-relaxed">
-              Te enviamos un enlace de confirmación a <span className="text-text-primary">{email}</span>.
-              Confírmalo para completar tu perfil y registrar tu primer trade.
-            </p>
-          </div>
-        </main>
-      </div>
+      <AuthLayout aside={<BenefitsAside />}>
+        <div className="flex flex-1 flex-col gap-7 pt-16 lg:flex-none lg:pb-7 lg:pt-0">
+          <AuthIntro
+            icon={<MailSentMark />}
+            eyebrow="Cuenta creada"
+            title="Revisa tu correo"
+            description={
+              <>
+                Te enviamos un enlace de confirmación a <b className="break-all text-text-primary">{email}</b>.
+              </>
+            }
+          />
+          <ConfirmationSteps />
+        </div>
+        <AuthActions>
+          <p className="text-center font-body text-[14px] text-text-faint">¿No llegó? Revisa la carpeta de spam o</p>
+          <ResendButton onResend={resendConfirmation} />
+          <Link to="/login" className="self-center p-2.5 font-body text-[14px] font-semibold text-steel hover:underline">
+            Volver a ingresar
+          </Link>
+        </AuthActions>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="min-h-screen">
-      <Nav />
-      <main className="relative max-w-md mx-auto px-6 pt-20">
-        <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated">
-        <p className="font-mono text-[13px] text-signal mb-4">entrada 000</p>
-        <h1 className="font-display text-[30px] text-text-primary mb-2">Crear cuenta</h1>
-        <p className="font-body text-[15px] text-text-muted mb-8">
-          Registro gratuito. Sin plan de pago, sin suscripción.
-        </p>
+    <AuthLayout aside={<BenefitsAside />} back={{ to: '/', label: 'Volver al inicio' }}>
+      <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 pt-2 lg:flex-none lg:pt-0">
+        <AuthIntro
+          eyebrow="Paso 1 de 2 · cuenta"
+          title="Crea tu cuenta"
+          description="Plan gratuito. Sin tarjeta y sin conectar tu bróker."
+        />
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="email" className="font-body text-[13px] text-text-muted block mb-2">
-              Correo electrónico
-            </label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nombre@correo.com"
-              className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-            />
-          </div>
+        <Field
+          id="email"
+          label="Correo"
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="nombre@correo.com"
+        />
 
-          <div>
-            <label htmlFor="password" className="font-body text-[13px] text-text-muted block mb-2">
-              Contraseña
-            </label>
-            <input
-              id="password"
-              type="password"
-              name="new-password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
-              className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-            />
-          </div>
+        <PasswordField
+          id="password"
+          label="Contraseña"
+          name="new-password"
+          autoComplete="new-password"
+          required
+          showStrength
+          value={password}
+          onValueChange={setPassword}
+          placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`}
+          errorId={error ? ERROR_ID : undefined}
+        />
 
-          {error && (
-            <p className="font-body text-[13px] text-loss">{error}</p>
-          )}
+        <AuthError id={ERROR_ID} message={error} />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
-          >
+        <AuthActions>
+          <p className="font-body text-[12px] leading-relaxed text-text-faint">
+            Al crear tu cuenta aceptas la{' '}
+            <Link to="/privacidad" className="font-semibold text-steel hover:underline">
+              política de privacidad
+            </Link>
+            . LineaTrade es una herramienta educativa y no entrega asesoría financiera.
+          </p>
+          <Button type="submit" variant="cta" size="lg" disabled={loading} className="w-full">
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-          </button>
-        </form>
-        </div>
-
-        <p className="font-body text-[14px] text-text-muted mt-6 text-center">
-          ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-signal hover:text-signal-dim transition-colors">
-            Ingresa aquí
-          </Link>
-        </p>
-      </main>
-    </div>
+          </Button>
+          <p className="text-center font-body text-[15px] text-text-faint">
+            ¿Ya tienes cuenta?{' '}
+            <Link to="/login" className="font-bold text-steel hover:underline">
+              Ingresa aquí
+            </Link>
+          </p>
+        </AuthActions>
+      </form>
+    </AuthLayout>
   )
 }

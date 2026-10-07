@@ -1,31 +1,25 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { AIAnalysisPanel } from '../components/AIAnalysisPanel'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { FIELD_CLASS } from '../components/ui/field'
+import { Tag as UiTag } from '../components/ui/tag'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
-import { formatDateOnly } from '../lib/tradeDisplay'
-import { cn } from '@/lib/utils'
-import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
+import { formatDateOnly, formatSigned, tradeResultColorClass } from '../lib/tradeDisplay'
+import { formatDuration, formatRowResult, formatTradeMoment } from '../lib/tradeRowDisplay'
 import { OrderTicketFields, emptyOrderTicket, hasOrderTicketData, type OrderTicketData } from '../components/trade/OrderTicketFields'
 import type { Database } from '../types/database'
 
 type Trade = Database['public']['Tables']['trades']['Row'] & {
   instruments: Pick<Database['public']['Tables']['instruments']['Row'], 'symbol' | 'market'> | null
 }
-type Thread = Database['public']['Tables']['trade_threads']['Row']
-type TradeImage = Database['public']['Tables']['trade_images']['Row'] & { url: string | null }
 type TradeOrder = Database['public']['Tables']['trade_orders']['Row']
-type LatestAnalysis = { responseText: string; createdAt: string }
 
 const PRICE_TYPE_LABELS: Record<string, string> = { market: 'Market', limit: 'Limit' }
-
-const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
-  before: 'Antes',
-  during: 'Durante',
-  after: 'Después',
-}
 
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>()
@@ -33,18 +27,11 @@ export default function TradeDetail() {
   const { showToast } = useToast()
   const [trade, setTrade] = useState<Trade | null>(null)
   const [stopLossChanges, setStopLossChanges] = useState<number | null>(null)
-  const [threads, setThreads] = useState<Thread[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [exitPrice, setExitPrice] = useState('')
   const [closing, setClosing] = useState(false)
   const [closeError, setCloseError] = useState<string | null>(null)
-  const [images, setImages] = useState<TradeImage[]>([])
-  const [uploadStage, setUploadStage] = useState<ImageStage>('before')
-  const [uploading, setUploading] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
-  const [latestAnalysis, setLatestAnalysis] = useState<LatestAnalysis | null>(null)
   const [orderTickets, setOrderTickets] = useState<TradeOrder[]>([])
   const [closeOrderTicket, setCloseOrderTicket] = useState<OrderTicketData>(emptyOrderTicket)
 
@@ -53,22 +40,13 @@ export default function TradeDetail() {
     let cancelled = false
 
     async function load() {
-      const [tradeRes, historyRes, threadsRes, imagesRes, analysisRes, ordersRes] = await Promise.all([
+      const [tradeRes, historyRes, ordersRes] = await Promise.all([
         supabase.from('trades').select('*, instruments(symbol, market)').eq('id', id!).maybeSingle(),
         supabase
           .from('trade_history')
           .select('id', { count: 'exact', head: true })
           .eq('trade_id', id!)
           .eq('field_name', 'stop_loss'),
-        supabase.from('trade_threads').select('*').eq('trade_id', id!).order('created_at', { ascending: true }),
-        supabase.from('trade_images').select('*').eq('trade_id', id!).order('created_at', { ascending: true }),
-        supabase
-          .from('ai_analysis')
-          .select('response_text, created_at')
-          .eq('trade_id', id!)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         supabase.from('trade_orders').select('*').eq('trade_id', id!),
       ])
       if (cancelled) return
@@ -80,21 +58,7 @@ export default function TradeDetail() {
       }
       setTrade(tradeRes.data as Trade)
       setStopLossChanges(historyRes.count ?? 0)
-      if (threadsRes.error) {
-        setError(getErrorMessage(threadsRes.error))
-      } else {
-        setThreads(threadsRes.data ?? [])
-      }
-      if (analysisRes.data) {
-        setLatestAnalysis({ responseText: analysisRes.data.response_text, createdAt: analysisRes.data.created_at })
-      }
       setOrderTickets(ordersRes.data ?? [])
-      if (imagesRes.data) {
-        const withUrls = await Promise.all(
-          imagesRes.data.map(async (img) => ({ ...img, url: await getSignedImageUrl(img.storage_path) })),
-        )
-        if (!cancelled) setImages(withUrls)
-      }
       setLoading(false)
     }
 
@@ -103,28 +67,6 @@ export default function TradeDetail() {
       cancelled = true
     }
   }, [id])
-
-  async function handleAddComment(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!user || !trade) return
-    const form = e.currentTarget
-    const input = form.elements.namedItem('content') as HTMLTextAreaElement
-    const content = input.value.trim()
-    if (!content) return
-
-    const { data, error: insertError } = await supabase
-      .from('trade_threads')
-      .insert({ trade_id: trade.id, user_id: user.id, content })
-      .select('*')
-      .single()
-    if (insertError) {
-      setError(getErrorMessage(insertError))
-      return
-    }
-    setThreads((prev) => [...prev, data])
-    input.value = ''
-    showToast('Nota agregada.', 'success')
-  }
 
   async function handleCloseTrade(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -176,124 +118,113 @@ export default function TradeDetail() {
     showToast('Trade cerrado.', 'success')
   }
 
-  async function handleUploadImage(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = '' // permite volver a elegir el mismo archivo si falla
-    if (!file || !user || !trade) return
-
-    setUploading(true)
-    setImageError(null)
-    try {
-      const row = await uploadTradeImage(file, user.id, trade.id, uploadStage)
-      const url = await getSignedImageUrl(row.storage_path)
-      setImages((prev) => [...prev, { ...row, url }])
-      showToast('Imagen subida.', 'success')
-    } catch (uploadErr: unknown) {
-      setImageError(getErrorMessage(uploadErr))
-    } finally {
-      setUploading(false)
-    }
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <main className="max-w-3xl mx-auto px-6 py-10">
-          <p className="font-body text-[14px] text-text-muted">Cargando...</p>
-        </main>
-      </div>
+      <main className="mx-auto max-w-6xl px-5 pb-28 pt-6 lg:pb-12">
+        <Card tone="dashed" className="animate-pulse py-8 font-body text-[14px] text-text-faint">Cargando detalle del trade…</Card>
+      </main>
     )
   }
 
   if (notFound || !trade) {
     return (
-      <div className="min-h-screen">
-        <main className="max-w-3xl mx-auto px-6 py-10 text-center">
-          <p className="font-body text-[15px] text-text-muted mb-4">
-            No encontramos ese trade — o no te pertenece.
-          </p>
-          <Link to="/historial" className="text-signal hover:text-signal-dim transition-colors">
-            Volver al historial
-          </Link>
-        </main>
-      </div>
+      <main className="mx-auto max-w-6xl px-5 pb-28 pt-6 lg:pb-12">
+        <Card tone="dashed" className="text-center">
+          <p className="font-display text-[18px] text-text-primary">No encontramos ese trade</p>
+          <p className="mt-1 font-body text-[13px] text-text-faint">Puede que se haya eliminado o que no tengas acceso.</p>
+          <Button asChild variant="outline" className="mt-4"><Link to="/historial"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Volver al historial</Link></Button>
+        </Card>
+      </main>
     )
   }
 
   const stopLossMismatch =
     stopLossChanges != null && trade.moved_stop_loss === false && stopLossChanges > 0
 
-  return (
-    <div className="min-h-screen">
-      <main
-        className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
-      >
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="font-display text-[26px] text-text-primary">
-            {trade.instruments?.symbol ?? '—'}
-          </h1>
-          <span
-            className={`font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-              trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
-            }`}
-          >
-            {trade.side}
-          </span>
-          <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
-          {trade.pnl_amount != null && (
-            <span
-              className={`font-mono text-[13px] ml-auto ${trade.pnl_amount >= 0 ? 'text-gain' : 'text-loss'}`}
-            >
-              {trade.pnl_amount >= 0 ? '+' : ''}
-              {trade.pnl_amount}
-              {trade.pnl_r != null && ` (${trade.pnl_r >= 0 ? '+' : ''}${trade.pnl_r}R)`}
-            </span>
-          )}
-        </div>
-        <p className="font-mono text-[12px] text-text-faint mb-8">
-          {new Date(trade.traded_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}
-        </p>
+  const plannedRisk = trade.stop_loss == null ? null : Math.abs(trade.entry_price - trade.stop_loss)
+  const plannedReward = trade.take_profit == null ? null : Math.abs(trade.take_profit - trade.entry_price)
+  const plannedRR = plannedRisk && plannedReward != null ? plannedReward / plannedRisk : null
 
-        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
+  return (
+      <main className="mx-auto max-w-6xl px-5 pb-28 pt-5 lg:pb-12 lg:pt-7">
+        <Link to="/historial" className="mb-4 inline-flex min-h-11 items-center gap-1 rounded-lg pr-2 font-body text-[13px] font-semibold text-text-faint hover:text-text-primary">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />Historial
+        </Link>
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="label-mono">Detalle del trade</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+              <h1 className="font-display text-[28px] leading-tight text-text-primary sm:text-[34px]">{trade.instruments?.symbol ?? 'Trade'}</h1>
+              <UiTag tone={trade.side === 'long' ? 'gain' : 'loss'}>{trade.side}</UiTag>
+              <UiTag>{trade.status === 'open' ? 'Abierto' : 'Cerrado'}</UiTag>
+              {trade.is_backtest && <UiTag tone="brand">Práctica</UiTag>}
+            </div>
+            <p className="mt-2 font-mono text-[11px] text-text-faint">
+              {formatTradeMoment(trade.traded_at)}{trade.instruments?.market ? ` · ${trade.instruments.market}` : ''}
+            </p>
+          </div>
+        </header>
+
+        {trade.status === 'closed' && (
+          <section aria-label="Resultado del trade" className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Card className="p-4">
+              <p className="label-mono">Resultado</p>
+              <p className={`num mt-2 text-[24px] font-semibold ${tradeResultColorClass(trade)}`}>{formatRowResult(trade)}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="label-mono">Ganancia neta</p>
+              <p className={`num mt-2 text-[24px] font-semibold ${trade.pnl_amount == null ? 'text-text-faint' : trade.pnl_amount >= 0 ? 'text-gain' : 'text-loss'}`}>{formatSigned(trade.pnl_amount)}</p>
+              <p className="mt-1 font-body text-[11px] text-text-faint">después de comisiones</p>
+            </Card>
+            <Card className="p-4">
+              <p className="label-mono">R:R planificado</p>
+              <p className="num mt-2 text-[24px] font-semibold text-text-primary">{plannedRR == null ? '—' : `${plannedRR.toFixed(1)}:1`}</p>
+              <p className="mt-1 font-body text-[11px] text-text-faint">según stop y objetivo</p>
+            </Card>
+            <Card className="p-4">
+              <p className="label-mono">Duración</p>
+              <p className="num mt-2 text-[24px] font-semibold text-text-primary">{formatDuration(trade.duration_minutes) ?? '—'}</p>
+              <p className="mt-1 font-body text-[11px] text-text-faint">de entrada a cierre</p>
+            </Card>
+          </section>
+        )}
+
+        <PriceMap trade={trade} />
 
         {trade.status === 'open' && (
-          <div className="border border-hairline rounded-sm bg-panel px-5 py-4 mb-8">
-            <p className="font-mono text-[12px] text-text-faint tracking-wide mb-3">cerrar trade</p>
-            <form onSubmit={(e) => void handleCloseTrade(e)} className="flex items-end gap-3">
-              <div className="flex-1">
-                <label htmlFor="exit-price" className="font-body text-[13px] text-text-muted block mb-2">
+          <Card as="section" className="mb-5 border-signal/35">
+            <p className="label-mono text-steel">Cerrar trade</p>
+            <form onSubmit={(e) => void handleCloseTrade(e)} className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <label htmlFor="exit-price" className="mb-1.5 block font-body text-[12px] font-semibold text-text-faint">
                   Precio de salida
                 </label>
                 <input
                   id="exit-price"
                   type="number"
                   step="0.001"
+                  inputMode="decimal"
+                  required
                   value={exitPrice}
                   onChange={(e) => setExitPrice(e.target.value)}
                   placeholder="0.000"
-                  className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
+                  className={FIELD_CLASS}
                 />
               </div>
-              <button
-                type="submit"
-                disabled={closing}
-                className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
-              >
+              <Button type="submit" variant="cta" size="lg" disabled={closing} className="w-full sm:w-auto">
                 {closing ? 'Cerrando...' : 'Cerrar trade'}
-              </button>
+              </Button>
             </form>
             {!trade.stop_loss && (
-              <p className="font-mono text-[11px] text-text-faint mt-3">
+              <p className="mt-3 font-body text-[12px] text-text-faint">
                 sin stop loss definido — el resultado en R no se podrá calcular
               </p>
             )}
-            {closeError && <p className="font-body text-[13px] text-loss mt-3">{closeError}</p>}
+            {closeError && <p role="alert" className="mt-3 font-body text-[13px] text-loss">{closeError}</p>}
             <div className="mt-4">
               <OrderTicketFields data={closeOrderTicket} onChange={setCloseOrderTicket} />
             </div>
-          </div>
+          </Card>
         )}
 
         <Section title="Datos técnicos">
@@ -401,10 +332,6 @@ export default function TradeDetail() {
           )}
         </Section>
 
-        <Section title="Análisis de IA">
-          <AIAnalysisPanel tradeId={trade.id} initialAnalysis={latestAnalysis} />
-        </Section>
-
         {(trade.main_mistake || trade.what_to_repeat || trade.what_to_avoid || trade.lesson_learned) && (
           <Section title="Aprendizaje">
             <Field label="Error principal" value={trade.main_mistake} block />
@@ -414,106 +341,58 @@ export default function TradeDetail() {
           </Section>
         )}
 
-        <Section title="Hilo de seguimiento">
-          <div className="mb-6">
-            {images.length > 0 && (
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {images.map((img) => (
-                  <a
-                    key={img.id}
-                    href={img.url ?? undefined}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative aspect-square rounded-sm overflow-hidden border border-hairline block"
-                  >
-                    {img.url ? (
-                      <img
-                        src={img.url}
-                        alt={`Captura del trade — ${IMAGE_STAGE_LABELS[img.stage]}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-panel-2 flex items-center justify-center">
-                        <span className="font-mono text-[10px] text-text-faint">error</span>
-                      </div>
-                    )}
-                    <span className="absolute bottom-0 inset-x-0 bg-ink/80 font-mono text-[10px] text-text-primary text-center py-1">
-                      {IMAGE_STAGE_LABELS[img.stage]}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex gap-1.5">
-                {(Object.keys(IMAGE_STAGE_LABELS) as ImageStage[]).map((stage) => (
-                  <button
-                    key={stage}
-                    type="button"
-                    onClick={() => setUploadStage(stage)}
-                    className={`font-mono text-[11px] px-2.5 py-1.5 rounded-sm border transition-colors ${
-                      uploadStage === stage
-                        ? 'border-signal text-signal'
-                        : 'border-hairline text-text-muted hover:border-text-faint'
-                    }`}
-                  >
-                    {IMAGE_STAGE_LABELS[stage]}
-                  </button>
-                ))}
-              </div>
-              <label
-                className={`font-body text-[13px] px-4 py-2 rounded-sm border border-hairline text-text-muted hover:border-text-faint transition-colors cursor-pointer ${
-                  uploading ? 'opacity-40 pointer-events-none' : ''
-                }`}
-              >
-                {uploading ? 'Subiendo...' : `+ Imagen (${IMAGE_STAGE_LABELS[uploadStage].toLowerCase()})`}
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => void handleUploadImage(e)} />
-              </label>
-            </div>
-            {imageError && <p className="font-body text-[13px] text-loss mt-2">{imageError}</p>}
-          </div>
-
-          <div className="space-y-3 mb-4">
-            {threads.length === 0 && (
-              <p className="font-body text-[13px] text-text-faint">Sin notas todavía.</p>
-            )}
-            {threads.map((thread) => (
-              <div key={thread.id} className="border border-hairline rounded-sm bg-panel px-4 py-3">
-                <p className="font-body text-[14px] text-text-primary">{thread.content}</p>
-                <p className="font-mono text-[11px] text-text-faint mt-1">
-                  {new Date(thread.created_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}
-                  {thread.ai_generated && ' · IA'}
-                </p>
-              </div>
-            ))}
-          </div>
-          <form onSubmit={(e) => void handleAddComment(e)} className="flex gap-3">
-            <textarea
-              name="content"
-              rows={2}
-              placeholder="Agregar una nota de seguimiento..."
-              className="flex-1 bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors resize-none"
-            />
-            <button
-              type="submit"
-              className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors self-end"
-            >
-              Agregar
-            </button>
-          </form>
-        </Section>
       </main>
-    </div>
   )
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="py-6 border-t border-hairline first:border-t-0 first:pt-0">
-      <h2 className="font-display text-[16px] text-text-primary mb-4">{title}</h2>
+    <Card as="section" className="space-y-4">
+      <h2 className="font-display text-[17px] leading-tight text-text-primary">{title}</h2>
       {children}
-    </div>
+    </Card>
+  )
+}
+
+function PriceMap({ trade }: { trade: Trade }) {
+  const levels = [
+    { label: 'Stop loss', value: trade.stop_loss, kind: 'stop' as const },
+    { label: 'Entrada', value: trade.entry_price, kind: 'entry' as const },
+    { label: 'Salida', value: trade.exit_price, kind: 'exit' as const },
+    { label: 'Take profit', value: trade.take_profit, kind: 'target' as const },
+  ].filter((level): level is { label: string; value: number; kind: 'stop' | 'entry' | 'exit' | 'target' } => level.value != null)
+
+  if (levels.length < 2) return null
+  const min = Math.min(...levels.map((level) => level.value))
+  const max = Math.max(...levels.map((level) => level.value))
+  const span = max - min || 1
+  const ordered = [...levels].sort((a, b) => b.value - a.value)
+
+  return (
+    <Card as="section" aria-label="Mapa de precio" className="mb-5">
+      <p className="font-display text-[17px] text-text-primary">Mapa de precio</p>
+      <svg className="mt-4 h-10 w-full" viewBox="0 0 360 40" role="img" aria-label="Ubicación de entrada, stop, salida y objetivo" preserveAspectRatio="none">
+        <line x1="10" y1="20" x2="350" y2="20" stroke="var(--color-hairline)" strokeWidth="2" />
+        {levels.map((level) => {
+          const x = 10 + ((level.value - min) / span) * 340
+          const dashed = level.kind === 'stop' || level.kind === 'target'
+          return (
+            <g key={level.kind}>
+              <line x1={x} y1="7" x2={x} y2="33" stroke="var(--color-steel)" strokeWidth="2" strokeDasharray={dashed ? '3 2' : undefined} />
+              <circle cx={x} cy="20" r={level.kind === 'exit' ? 5 : 4} fill={level.kind === 'exit' ? 'var(--color-signal)' : 'var(--color-panel)'} stroke="var(--color-steel)" strokeWidth="2" />
+            </g>
+          )
+        })}
+      </svg>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+        {ordered.map((level) => (
+          <div key={level.kind} className="flex items-start justify-between gap-2">
+            <p className="font-body text-[11px] text-text-faint">{level.label}</p>
+            <p className="num text-[11px] text-text-primary">{level.value}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
   )
 }
 
@@ -529,16 +408,12 @@ function Field({
   if (value == null || value === '') return null
   return (
     <div className={block ? 'mb-4 last:mb-0' : ''}>
-      <p className="font-mono text-[11px] text-text-faint tracking-wide mb-1">{label}</p>
-      <p className="font-body text-[14px] text-text-primary">{value}</p>
+      <p className="label-mono mb-1">{label}</p>
+      <p className="font-body text-[14px] leading-relaxed text-text-primary">{value}</p>
     </div>
   )
 }
 
 function Tag({ label }: { label: string }) {
-  return (
-    <span className="font-mono text-[11px] px-2 py-1 rounded-sm border border-hairline text-text-muted">
-      {label}
-    </span>
-  )
+  return <UiTag>{label}</UiTag>
 }
