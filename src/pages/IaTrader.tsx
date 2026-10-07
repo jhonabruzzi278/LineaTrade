@@ -1,41 +1,60 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { WizardLayout } from '../components/WizardLayout'
-import { QuizStep } from '../components/traderQuiz/QuizStep'
+import { BrandMark } from '../components/shell/BrandMark'
+import { PlanActions } from '../components/traderQuiz/PlanActions'
 import { PlanReport } from '../components/traderQuiz/PlanReport'
-import { useWizard } from '../hooks/useWizard'
-import { traderQuizBlocks, traderQuizQuestions } from '../data/traderQuiz'
+import { QuizPanel } from '../components/traderQuiz/QuizPanel'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { PageHeader } from '../components/ui/page-header'
 import { computeTraderPlan, type TraderPlan } from '../lib/traderPlanEngine'
+import { saveRuleDrafts } from '../lib/traderPlanRulesApi'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { loadAndClearQuizAnswers, saveQuizAnswers } from '../lib/traderQuizStorage'
 import { buildTraderPackage, downloadBlob } from '../lib/traderPackage'
-import { cn } from '@/lib/utils'
 import type { Json } from '../types/database'
 
-const QUESTION_IDS = traderQuizQuestions.map((q) => q.id)
-
 type Phase = 'loading' | 'quiz' | 'result'
+type Notice = { tone: 'info' | 'error'; text: string; sistemaLink?: boolean }
 
-// Ruta pública (ver App.tsx — NO está envuelta en <ProtectedRoute>): el test y
-// el cálculo del plan funcionan sin sesión. Solo lo que requiere persistencia
-// (guardar el plan, saltarse el test la próxima vez, descargar el paquete)
-// está condicionado a `user`. Sin sesión se muestra un teaser con el plan
-// parcialmente tapado — ver PlanReport's prop `blurred`.
+// Ruta pública (ver App.tsx: sin <ProtectedRoute>): el cuestionario y el cálculo del
+// plan funcionan sin sesión. Solo lo que necesita persistencia (guardar el plan,
+// crear reglas, descargar el paquete) depende de `user`. Sin sesión se ve el plan
+// con lo esencial en claro y el resto difuminado — ver PlanReport `blurred`.
 export default function IaTrader() {
   const { user, loading: authLoading } = useAuth()
-  const wizard = useWizard(QUESTION_IDS)
   const [phase, setPhase] = useState<Phase>('loading')
   const [plan, setPlan] = useState<TraderPlan | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [quizAttempt, setQuizAttempt] = useState(0)
   const [downloading, setDownloading] = useState(false)
-  const [downloadNotice, setDownloadNotice] = useState<string | null>(null)
+  const [creatingRules, setCreatingRules] = useState(false)
+  const [notice, setNotice] = useState<Notice | null>(null)
 
   useEffect(() => {
     if (authLoading) return
     let cancelled = false
+
+    async function persistPlan(userId: string, answers: Record<string, string>): Promise<boolean> {
+      const computedPlan = computeTraderPlan(answers)
+      setSaving(true)
+      setError(null)
+      const { error: insertError } = await supabase.from('trader_plans').insert({
+        user_id: userId,
+        answers: answers as unknown as Json,
+        plan: computedPlan as unknown as Json,
+      })
+      setSaving(false)
+      if (insertError) {
+        setError(getErrorMessage(insertError))
+        return false
+      }
+      setPlan(computedPlan)
+      return true
+    }
 
     async function init() {
       if (!user) {
@@ -61,9 +80,8 @@ export default function IaTrader() {
         return
       }
 
-      // Login.tsx redirige acá cuando detecta respuestas pendientes de un
-      // teaser público completado antes de registrarse — las consumimos una
-      // sola vez (loadAndClearQuizAnswers las borra) para no repetir el quiz.
+      // Login.tsx redirige acá cuando detecta respuestas pendientes de un teaser público
+      // completado antes de registrarse: se consumen una sola vez para no repetir el test.
       const pendingAnswers = loadAndClearQuizAnswers()
       if (!pendingAnswers) {
         setPhase('quiz')
@@ -74,38 +92,16 @@ export default function IaTrader() {
       setPhase(succeeded ? 'result' : 'quiz')
     }
 
-    async function persistPlan(userId: string, answers: Record<string, string>): Promise<boolean> {
-      const computedPlan = computeTraderPlan(answers)
-      setSaving(true)
-      setError(null)
-      const { error: insertError } = await supabase.from('trader_plans').insert({
-        user_id: userId,
-        answers: answers as unknown as Json,
-        plan: computedPlan as unknown as Json,
-      })
-      setSaving(false)
-      if (insertError) {
-        setError(getErrorMessage(insertError))
-        return false
-      }
-      setPlan(computedPlan)
-      return true
-    }
-
     void init()
     return () => {
       cancelled = true
     }
   }, [user, authLoading])
 
-  const currentQuestion = traderQuizQuestions[wizard.stepIndex]
-  const currentBlock = traderQuizBlocks.find((b) => b.id === currentQuestion.blockId)
-  const isAnswered = Boolean(wizard.answers[currentQuestion.id])
-
-  async function finishQuiz() {
-    const computedPlan = computeTraderPlan(wizard.answers)
+  async function finishQuiz(answers: Record<string, string>) {
+    const computedPlan = computeTraderPlan(answers)
     if (!user) {
-      saveQuizAnswers(wizard.answers)
+      saveQuizAnswers(answers)
       setPlan(computedPlan)
       setPhase('result')
       return
@@ -114,7 +110,7 @@ export default function IaTrader() {
     setError(null)
     const { error: insertError } = await supabase.from('trader_plans').insert({
       user_id: user.id,
-      answers: wizard.answers,
+      answers: answers as unknown as Json,
       plan: computedPlan as unknown as Json,
     })
     setSaving(false)
@@ -123,124 +119,139 @@ export default function IaTrader() {
       return
     }
     setPlan(computedPlan)
+    setNotice(null)
     setPhase('result')
-  }
-
-  function handleNext() {
-    if (wizard.isLastStep) {
-      void finishQuiz()
-      return
-    }
-    wizard.goNext()
   }
 
   function retakeQuiz() {
     setPlan(null)
+    setNotice(null)
+    setError(null)
+    setQuizAttempt((n) => n + 1)
     setPhase('quiz')
+  }
+
+  async function handleCreateRules() {
+    if (!plan || !user) return
+    setCreatingRules(true)
+    setNotice(null)
+    try {
+      const { created, skipped } = await saveRuleDrafts(user.id, plan)
+      if (created === 0) {
+        setNotice({ tone: 'info', text: 'Esas reglas ya estaban en Sistema; no se duplicó ninguna.', sistemaLink: true })
+      } else {
+        const extra = skipped > 0 ? ` ${skipped} ya existían y se omitieron.` : ''
+        setNotice({ tone: 'info', text: `Se crearon ${created} ${created === 1 ? 'regla desactivada' : 'reglas desactivadas'}.${extra}`, sistemaLink: true })
+      }
+    } catch (err) {
+      setNotice({ tone: 'error', text: getErrorMessage(err) })
+    } finally {
+      setCreatingRules(false)
+    }
   }
 
   async function handleDownload() {
     if (!plan) return
     setDownloading(true)
-    setDownloadNotice(null)
+    setNotice(null)
     try {
       const { blob, filename, includedCsv } = await buildTraderPackage(plan)
       downloadBlob(filename, blob)
-      setDownloadNotice(
-        includedCsv
-          ? 'Tu paquete está listo. Abre el .zip, pega el contenido de LEEME.md en tu chat de IA favorito, adjunta el CSV de precios incluido, y pídele que evalúe tu plan contra ese historial.'
-          : 'Tu paquete está listo con tu plan y el prompt para tu IA. Todavía no tenemos una fuente de precios gratuita para esta categoría de instrumento — exporta tú el histórico (por ejemplo desde TradingView) y adjúntalo junto con LEEME.md antes de pedirle el backtest a tu IA.',
-      )
+      setNotice({
+        tone: 'info',
+        text: includedCsv
+          ? 'Tu paquete está listo. Abre el .zip, pega el contenido de LEEME.md en tu chat de IA favorito, adjunta el CSV de precios incluido y pídele que evalúe tu plan contra ese historial.'
+          : 'Tu paquete está listo con tu plan y el prompt para tu IA. Todavía no tenemos una fuente de precios gratuita para esta categoría de instrumento: exporta tú el histórico (por ejemplo desde TradingView) y adjúntalo junto con LEEME.md antes de pedirle el backtest a tu IA.',
+      })
     } catch (err) {
-      setDownloadNotice(getErrorMessage(err))
+      setNotice({ tone: 'error', text: getErrorMessage(err) })
     } finally {
       setDownloading(false)
     }
   }
 
-  if (phase === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="font-body text-[14px] text-text-muted">Cargando...</p>
-      </div>
-    )
-  }
-
-  if (phase === 'quiz') {
-    return (
-      <WizardLayout
-        stepLabel={currentBlock ? currentBlock.title : `pregunta ${wizard.stepIndex + 1}`}
-        progressPercent={wizard.progressPercent}
-        onBack={!wizard.isFirstStep ? wizard.goBack : undefined}
-        onNext={handleNext}
-        nextDisabled={!isAnswered || saving}
-        nextLabel={saving ? 'Calculando...' : wizard.isLastStep ? 'Ver mi plan' : 'Continuar'}
-      >
-        <p className="font-mono text-[12px] text-text-faint mb-2">
-          pregunta {wizard.stepIndex + 1} de {QUESTION_IDS.length}
-        </p>
-        <h1 className="font-display text-[24px] text-text-primary mb-8">{currentQuestion.title}</h1>
-        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
-        <QuizStep
-          question={currentQuestion}
-          selectedValue={wizard.answers[currentQuestion.id]}
-          onSelect={(value) => wizard.setAnswer(currentQuestion.id, value)}
-        />
-      </WizardLayout>
-    )
-  }
-
-  if (!plan) return null // guard defensivo — no debería alcanzarse
+  const isPublic = !authLoading && !user
 
   return (
-    <div className="min-h-screen">
-      <main
-        className={cn(
-          'max-w-xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
-      >
-        <p className="font-mono text-[13px] text-signal mb-2">tu plan de trading</p>
-        <h1 className="font-display text-[28px] text-text-primary mb-8">Convierte la IA en tu trader</h1>
-        {error && <p className="font-body text-[13px] text-loss mb-6">{error}</p>}
+    <main className="mx-auto max-w-6xl px-5 pb-28 pt-4 lg:pb-12 lg:pt-6">
+      {isPublic && (
+        <div className="mb-3 flex min-h-12 items-center justify-between lg:mb-5">
+          <BrandMark to="/" />
+          <Link to="/login" className="inline-flex min-h-11 items-center px-3 font-body text-[14px] font-bold text-steel">
+            Ingresar
+          </Link>
+        </div>
+      )}
 
-        <PlanReport plan={plan} blurred={!user} />
+      {phase === 'loading' && (
+        <div className="space-y-3" aria-busy="true" aria-label="Cargando">
+          <div className="h-8 w-40 animate-pulse rounded bg-panel" />
+          <div className="h-72 animate-pulse rounded-xl border border-hairline bg-panel" />
+        </div>
+      )}
 
-        {user ? (
-          <div className="mt-8">
-            {downloadNotice && (
-              <p className="font-body text-[13px] text-text-muted mb-4 border-l-2 border-signal pl-3">
-                {downloadNotice}
-              </p>
+      {phase === 'quiz' && (
+        <>
+          <div className="hidden lg:block">
+            <PageHeader
+              kicker="análisis"
+              title="IA Trader"
+              lead="Responde cinco bloques y obtén un plan de trading hecho para ti. Se calcula con reglas, no con un modelo de lenguaje: las mismas respuestas dan siempre el mismo plan."
+            />
+          </div>
+          <QuizPanel key={quizAttempt} onFinish={(answers) => void finishQuiz(answers)} saving={saving} error={error} />
+        </>
+      )}
+
+      {phase === 'result' && plan && (
+        <>
+          <PageHeader
+            kicker="análisis · IA Trader"
+            title="Tu plan"
+            lead="Tu plan, calculado con tus respuestas. Es un punto de partida, no una promesa de resultados ni un consejo financiero."
+          />
+          {error && (
+            <p role="alert" className="mb-4 font-body text-[13px] text-loss">
+              {error}
+            </p>
+          )}
+          <div className="lg:grid lg:max-w-[1040px] lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
+            <PlanReport
+              plan={plan}
+              blurred={isPublic}
+              overlay={
+                isPublic ? (
+                  <Card className="max-w-sm text-center shadow-elevated">
+                    <h2 className="font-display text-[17px] leading-snug text-text-primary">Crea tu cuenta gratis para ver tu plan completo</h2>
+                    <p className="mt-2 font-body text-[13px] leading-relaxed text-text-faint">Riesgo, qué esperar, rutina y señales de alerta. Tus respuestas se guardan.</p>
+                    <Button asChild variant="cta" size="lg" className="mt-4 w-full">
+                      <Link to="/registro">Crear mi cuenta</Link>
+                    </Button>
+                    <Link to="/login" className="mt-2 inline-flex min-h-11 items-center font-body text-[14px] font-bold text-steel">
+                      Ya tengo cuenta
+                    </Link>
+                  </Card>
+                ) : undefined
+              }
+            />
+            {user && (
+              <div className="mt-4 lg:mt-0">
+                <PlanActions
+                  onCreateRules={() => void handleCreateRules()}
+                  creatingRules={creatingRules}
+                  onDownload={() => void handleDownload()}
+                  downloading={downloading}
+                  onRetake={retakeQuiz}
+                  notice={notice}
+                />
+              </div>
             )}
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => void handleDownload()}
-                disabled={downloading}
-                className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
-              >
-                {downloading ? 'Preparando paquete...' : 'Descargar paquete para tu IA'}
-              </button>
-              <button
-                type="button"
-                onClick={retakeQuiz}
-                className="font-body text-[13px] px-4 py-2.5 rounded-sm border border-hairline text-text-muted hover:border-text-faint hover:text-text-primary transition-colors"
-              >
-                Rehacer test
-              </button>
-            </div>
           </div>
-        ) : (
-          <div className="mt-8">
-            <Link
-              to="/registro"
-              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim"
-            >
-              Regístrate gratis para tu plan completo
-            </Link>
-          </div>
-        )}
-      </main>
-    </div>
+          <p className="mt-5 max-w-xl font-body text-[12px] leading-relaxed text-text-faint">
+            Plan calculado con reglas, sin modelo de lenguaje. No es consejo financiero.
+          </p>
+        </>
+      )}
+    </main>
   )
 }

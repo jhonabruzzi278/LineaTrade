@@ -15,8 +15,12 @@ export async function listConversations(userId: string): Promise<CoachConversati
   return data
 }
 
-export async function createConversation(userId: string): Promise<CoachConversation> {
-  const { data, error } = await supabase.from('ai_coach_conversations').insert({ user_id: userId }).select().single()
+export async function createConversation(userId: string, title?: string): Promise<CoachConversation> {
+  const { data, error } = await supabase
+    .from('ai_coach_conversations')
+    .insert({ user_id: userId, title: title ?? null })
+    .select()
+    .single()
   if (error) throw error
   return data
 }

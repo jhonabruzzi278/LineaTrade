@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { SourceAvatar } from '../components/SourceAvatar'
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Share2 } from 'lucide-react'
+import { NewsThumb } from '../components/news/NewsThumb'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Tag } from '../components/ui/tag'
 import { useToast } from '../lib/toast'
 import {
   getNewsArticleById,
@@ -8,47 +12,34 @@ import {
   getRelatedArticles,
   getArticleBody,
   getCachedArticleBody,
-  timeAgo,
   formatPublished,
-  formatListTimestamp,
   splitIntoParagraphs,
   NEWS_CATEGORY_LABELS,
   BODY_LICENSE_LABELS,
   type NewsArticle,
   type ArticleBody,
 } from '../lib/news'
+import { formatRelativeTime, splitIntoKeyPoints } from '../lib/newsView'
+import { cn } from '@/lib/utils'
 
-// Umbral en px para que un touchmove horizontal cuente como swipe de
-// navegación en vez de un scroll/tap accidental.
+// Umbral en px para que un movimiento horizontal cuente como swipe de navegación
+// y no como un scroll o un toque accidental.
 const SWIPE_THRESHOLD_PX = 60
 
-// Lector full-screen, estilo "una noticia a la vez" (swipe horizontal entre
-// notas, scroll vertical dentro de cada una) — a pedido explícito del
-// usuario, inspirado en apps de noticias tipo TikTok/Apple News. Por eso NO
-// renderiza <AppHeader/>/<AppFloatingNav/>: es una toma de pantalla completa,
-// modo foco, mismo criterio que <WizardLayout/> en Onboarding/NuevoTrade (ver
-// CLAUDE.md) — la navegación global no tiene sentido acá, la salida es el
-// breadcrumb "Noticias" propio de esta pantalla.
-//
-// 2026-07-21 — el contenido ahora va más allá del summary del feed: para
-// fuentes `fair-use-reprint` (ver supabase/functions/_shared/newsTypes.ts),
-// fetch-article-body scrapea sólo h1 + primer párrafo (texto plano) del
-// sitio propio de la fuente. Para `rss-snippet-only` (paywalls, ToS
-// restrictivos, o agregadores que no controlan el dominio destino) sigue
-// solo con el summary del feed. Deliberadamente NO hay un tier de "cuerpo
-// completo" — este producto nunca republica el artículo entero. El CTA
-// externo "Leer la nota completa en {fuente}" permanece SIEMPRE — es el
-// salvavidas legal para ambos tiers.
+const ICON_BUTTON =
+  'inline-flex h-11 w-11 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-panel hover:text-text-primary disabled:pointer-events-none disabled:opacity-30'
+
+// Lector de una nota. Nunca republica el artículo completo: muestra el resumen del feed
+// y, para fuentes `fair-use-reprint`, solo el primer párrafo que entrega el Edge Function
+// fetch-article-body (texto plano, jamás HTML de terceros). El enlace «Leer la nota
+// completa» a la fuente es siempre parte de la pantalla: es la vía legítima al texto íntegro.
 export default function NoticiaDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [article, setArticle] = useState<NewsArticle | null>(null)
   const [related, setRelated] = useState<NewsArticle[]>([])
-  const [adjacent, setAdjacent] = useState<{ prevId: string | null; nextId: string | null }>({
-    prevId: null,
-    nextId: null,
-  })
+  const [adjacent, setAdjacent] = useState<{ prevId: string | null; nextId: string | null }>({ prevId: null, nextId: null })
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [body, setBody] = useState<ArticleBody | null>(null)
@@ -56,13 +47,17 @@ export default function NoticiaDetail() {
   const [bodyReason, setBodyReason] = useState<string | null>(null)
   const [bodyError, setBodyError] = useState<string | null>(null)
   const touchStartX = useRef<number | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
 
     async function load() {
+      setLoading(true)
+      setNotFound(false)
+      setBody(null)
+      setBodyReason(null)
+      setBodyError(null)
       const found = await getNewsArticleById(id!)
       if (cancelled) return
       if (!found) {
@@ -76,9 +71,7 @@ export default function NoticiaDetail() {
       const relatedArticles = await getRelatedArticles(found.category, found.id)
       if (!cancelled) setRelated(relatedArticles)
 
-      // Lazy load del cuerpo — nunca bloquea el render principal (título,
-      // imagen, summary siempre están primero). Si ya hay body cacheado
-      // en memoria lo usamos al instante, si no invocamos fetch-article-body.
+      // Carga diferida del cuerpo: nunca bloquea el título ni el resumen.
       const cachedBody = getCachedArticleBody(found.id)
       if (cachedBody) {
         setBody(cachedBody.body)
@@ -103,11 +96,9 @@ export default function NoticiaDetail() {
     }
   }, [id])
 
-  // Volver arriba al cambiar de nota (swipe o flechas) — sin esto, pasar de
-  // una noticia larga (scrolleada hasta el final) a la siguiente la abre a
-  // mitad de página en vez de por el título.
+  // Al pasar a otra nota, volver arriba en lugar de abrirla a media página.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0 })
+    window.scrollTo({ top: 0 })
   }, [id])
 
   async function handleShare() {
@@ -116,18 +107,19 @@ export default function NoticiaDetail() {
       try {
         await navigator.share({ title: article?.title, url: shareUrl })
       } catch {
-        // Usuario canceló el share sheet — no es un error, no hace falta feedback.
+        // El usuario canceló el menú de compartir: no es un error.
       }
       return
     }
-    await navigator.clipboard.writeText(shareUrl)
-    showToast('Link copiado.', 'success')
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      showToast('Enlace copiado.', 'success')
+    } catch {
+      showToast('No se pudo copiar el enlace.', 'error')
+    }
   }
 
-  // Swipe horizontal para pasar a la noticia anterior/siguiente dentro del
-  // mismo orden en que aparecen en /noticias (ver getAdjacentArticleIds en
-  // lib/news.ts) — silencioso si no hay vecino de ese lado (llegada directa
-  // sin pasar por la lista, o extremo del listado).
+  // Swipe horizontal entre notas, en el mismo orden de /noticias (ver getAdjacentArticleIds).
   function handleTouchStart(e: TouchEvent) {
     touchStartX.current = e.touches[0].clientX
   }
@@ -140,319 +132,158 @@ export default function NoticiaDetail() {
     if (targetId) navigate(`/noticias/${targetId}`)
   }
 
-  if (loading) {
+  const backLink = (
+    <Link to="/noticias" className="inline-flex min-h-11 items-center gap-1.5 font-body text-[14px] font-semibold text-text-faint hover:text-text-primary">
+      <ArrowLeft size={16} aria-hidden="true" />
+      Noticias
+    </Link>
+  )
+
+  if (loading && !article) {
     return (
-      <div className="fixed inset-0 h-[100dvh] w-full flex items-center justify-center">
-        <p className="font-body text-[14px] text-text-muted">Cargando...</p>
-      </div>
+      <main className="mx-auto max-w-6xl px-5 pb-28 pt-4 lg:pb-12" aria-busy="true" aria-label="Cargando noticia">
+        {backLink}
+        <div className="mt-4 max-w-[720px] animate-pulse space-y-4">
+          <div className="h-3 w-48 rounded bg-panel" />
+          <div className="h-8 w-full rounded bg-panel" />
+          <div className="h-8 w-2/3 rounded bg-panel" />
+          <div className="h-[120px] rounded-xl bg-panel" />
+        </div>
+      </main>
     )
   }
 
   if (notFound || !article) {
     return (
-      <div className="fixed inset-0 h-[100dvh] w-full flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <main className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 pb-28 pt-24 text-center lg:pb-12">
         <p className="font-body text-[15px] text-text-muted">No encontramos esta noticia.</p>
-        <Link to="/noticias" className="font-body text-[14px] text-signal hover:text-signal-dim transition-colors">
-          Volver a Noticias
-        </Link>
-      </div>
+        <Button asChild variant="outline">
+          <Link to="/noticias">Volver a Noticias</Link>
+        </Button>
+      </main>
     )
   }
 
-  return (
-    <div className="fixed inset-0 h-[100dvh] w-full flex flex-col overflow-hidden">
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto overscroll-contain px-6 pt-7 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* max-w-2xl — sin esto, en desktop el título/párrafos/imagen se
-            estiran al ancho completo del viewport (líneas de +150 caracteres,
-            imagen desproporcionada). Este ancho es el de lectura editorial
-            estándar (~65-75 caracteres por línea a este tamaño de fuente),
-            deliberadamente más angosto que el max-w-5xl que usan las páginas
-            con grillas/cards del resto de la app — acá es una sola columna
-            de texto corrido, no un layout multi-columna. */}
-        <div className="max-w-2xl mx-auto">
-        {/* "‹ ›" navegan a la nota anterior/siguiente en el mismo orden del
-            listado (ver getAdjacentArticleIds) — el gesto principal es el
-            swipe horizontal sobre todo el contenido (handleTouchStart/End
-            acá arriba), esto es el equivalente clicable/con teclado para
-            quien no está en touch. Deshabilitado (no placeholder vacío)
-            cuando no hay vecino de ese lado. */}
-        <div className="flex items-center justify-between mb-6">
-          <Link
-            to="/noticias"
-            className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors"
-          >
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-              <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Noticias
-          </Link>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={!adjacent.prevId}
-              onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)}
-              aria-label="Noticia anterior"
-              title="Noticia anterior"
-              className="w-8 h-8 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 1 3 7l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              disabled={!adjacent.nextId}
-              onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)}
-              aria-label="Siguiente noticia"
-              title="Siguiente noticia"
-              className="w-8 h-8 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M5 1 11 7l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
+  const keyPoints = article.summary ? splitIntoKeyPoints(article.summary) : []
+  const showReprint = Boolean(body && body.body_text && body.content_license === 'fair-use-reprint')
+  const showSummary = (!body || body.content_license === 'rss-snippet-only') && Boolean(article.summary)
 
-        {/* Masthead de fuente — logo + nombre, como el crédito de agencia
-            (Reuters, etc.) en la parte superior de una nota. El botón de
-            compartir vive acá (no abajo, junto al CTA) para que el CTA de
-            "leer completa" pueda ocupar todo el ancho como acción principal. */}
-        <div className="flex items-center justify-between gap-2 mb-5">
-          <div className="flex items-center gap-2 min-w-0">
-            <SourceAvatar name={article.source_name} size="md" />
-            <span className="font-mono text-[13px] font-bold text-text-primary uppercase tracking-wide truncate">
-              {article.source_name}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleShare()}
-            aria-label="Compartir"
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full border border-hairline text-text-muted hover:text-text-primary hover:border-text-faint transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
-            </svg>
+  return (
+    <main className="mx-auto max-w-6xl px-5 pb-28 pt-2 lg:pb-12 lg:pt-6" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <div className="flex items-center justify-between">
+        {backLink}
+        <div className="flex items-center">
+          <button type="button" disabled={!adjacent.prevId} onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)} aria-label="Noticia anterior" title="Noticia anterior" className={ICON_BUTTON}>
+            <ChevronLeft size={20} aria-hidden="true" />
+          </button>
+          <button type="button" disabled={!adjacent.nextId} onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)} aria-label="Noticia siguiente" title="Noticia siguiente" className={ICON_BUTTON}>
+            <ChevronRight size={20} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => void handleShare()} aria-label="Compartir" title="Compartir" className={ICON_BUTTON}>
+            <Share2 size={18} aria-hidden="true" />
           </button>
         </div>
+      </div>
 
-        <h1 className="font-body text-[26px] md:text-[30px] font-bold text-text-primary leading-[1.25] mb-3">
-          {article.title}
-        </h1>
+      <div className="mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-12">
+        <article className="min-w-0 lg:max-w-[720px]">
+          <p className="num flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-faint lg:text-[12px]">
+            <b className="text-[10px] font-semibold uppercase tracking-[0.1em] text-steel">{NEWS_CATEGORY_LABELS[article.category]}</b>
+            <span title={formatPublished(article.published_at)}>
+              {article.source_name} · {formatRelativeTime(article.published_at)}
+            </span>
+          </p>
+          <h1 className="font-display mt-3 text-[26px] leading-[1.15] text-text-primary lg:text-[38px] lg:leading-[1.12]">{article.title}</h1>
 
-        <div className="flex flex-wrap items-center gap-2 mb-7">
-          <span className="font-mono text-[12px] text-text-faint" title={formatPublished(article.published_at)}>
-            {formatListTimestamp(article.published_at)} · {timeAgo(article.published_at)}
-          </span>
-          <span className="w-1 h-1 rounded-full bg-hairline" />
-          <span className="font-mono text-[11px] px-2 py-0.5 rounded-sm border border-hairline text-text-muted">
-            {NEWS_CATEGORY_LABELS[article.category]}
-          </span>
-        </div>
+          <NewsThumb
+            imageUrl={article.image_url}
+            sourceName={article.source_name}
+            showSource
+            eager
+            className="mt-[18px] h-[120px] rounded-xl lg:mt-[22px] lg:h-auto lg:max-h-[170px] lg:aspect-[21/8]"
+          />
 
-        {article.image_url && (
-          <div className="relative w-full aspect-[16/9] rounded-sm overflow-hidden border border-hairline bg-panel-2 mb-7">
-            <img
-              src={article.image_url}
-              alt=""
-              className="w-full h-full object-cover"
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-            />
-          </div>
-        )}
-
-        {/* Cuerpo de lectura — 2 modes según tier de licencia del body
-            (deliberadamente sólo 2, nunca cuerpo completo — ver el
-            comentario de LicenseTier en supabase/functions/_shared/newsTypes.ts):
-            1. fair-use-reprint: renderizamos body_text como párrafos (sólo
-               h1 + primer párrafo del original, texto plano, defendible fair
-               use). Atribución + CTA externo obligatorio. El frontend NUNCA
-               decide qué tier toca — lo dicta el Edge Function según
-               NEWS_FEEDS. body_text es siempre texto plano, nunca HTML del
-               sitio scrapeado — no hay dangerouslySetInnerHTML en esta
-               página ni en ninguna otra: contenido de terceros no confiable
-               nunca se inyecta como HTML crudo.
-            2. rss-snippet-only o body null todavía no scrapeado: cae al
-               `summary` del feed (mismo render de antes, splitIntoParagraphs).
-               Pre-fetch on-demand si fetch-article-body todavía no hizo
-               pre-warm del top (raro: el detalle abre desde /noticias donde
-               fetch-news ya corrió).
-            Si bodyLoading está activo (primer detalle sin cache), mostramos
-            el summary sin esperar — el cuerpo scrapeado se "swap-in" cuando
-            llega, sin saltos visuales porque el bloque ocupa similar height. */}
-        {body && body.body_text && body.content_license === 'fair-use-reprint' && (
-          <>
-            <div className="flex items-center gap-2 mb-4 font-mono text-[10px] uppercase tracking-wider text-text-faint">
-              <span className="px-2 py-1 rounded-sm border border-hairline">{BODY_LICENSE_LABELS[body.content_license]}</span>
-              <span>vía {article.source_name}</span>
-            </div>
-            <div className="space-y-4 mb-4">
-              {splitIntoParagraphs(body.body_text).map((paragraph, i) => (
-                <p key={i} className="font-body text-[16px] text-text-muted leading-[1.7]">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-            <p className="font-mono text-[11px] text-text-faint mb-8 italic">
-              Extracto atribuido a {article.source_name}. Nota completa debajo.
-            </p>
-          </>
-        )}
-
-        {(!body || (body.content_license === 'rss-snippet-only')) && article.summary && (
-          <>
-            {bodyReason === 'snippet-only' && (
-              <div className="flex items-center gap-2 mb-3 font-mono text-[10px] uppercase tracking-wider text-text-faint">
-                <span className="px-2 py-1 rounded-sm border border-hairline">Solo resumen del feed</span>
-                <span>vía {article.source_name}</span>
+          {/* Cuerpo: extracto atribuido (fair-use-reprint) o, si no, el resumen del feed. */}
+          {showReprint && body?.body_text && (
+            <>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <Tag>{BODY_LICENSE_LABELS[body.content_license]}</Tag>
+                <span className="num text-[11px] text-text-faint">vía {article.source_name}</span>
               </div>
-            )}
-            <div className="space-y-4 mb-8">
-              {splitIntoParagraphs(article.summary).map((paragraph, i) => (
-                <p key={i} className="font-body text-[16px] text-text-muted leading-[1.7]">
-                  {paragraph}
-                </p>
-              ))}
+              <div className="mt-3 space-y-4">
+                {splitIntoParagraphs(body.body_text).map((paragraph, i) => (
+                  <p key={i} className="font-body text-[16px] leading-[1.7] text-text-muted lg:text-[17px]">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </>
+          )}
+
+          {showSummary && article.summary && (
+            <div className="mt-5">
+              {bodyReason === 'snippet-only' && (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Tag>{BODY_LICENSE_LABELS['rss-snippet-only']}</Tag>
+                  <span className="num text-[11px] text-text-faint">vía {article.source_name}</span>
+                </div>
+              )}
+              <div className="space-y-4">
+                {splitIntoParagraphs(article.summary).map((paragraph, i) => (
+                  <p key={i} className="font-body text-[16px] leading-[1.7] text-text-muted lg:text-[17px]">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
             </div>
-          </>
-        )}
+          )}
 
-        {bodyLoading && !body && article.summary && (
-          <p className="font-mono text-[11px] text-text-faint mb-4 animate-pulse">
-            Cargando cuerpo…
-          </p>
-        )}
+          {bodyLoading && !body && <p className="num mt-3 animate-pulse text-[11px] text-text-faint">Cargando extracto…</p>}
+          {bodyError && <p className="mt-3 font-body text-[12px] text-text-faint">No se pudo cargar el extracto: se muestra el resumen del feed.</p>}
 
-        {bodyError && (
-          <p className="font-mono text-[11px] text-loss/70 mb-6">
-            No se pudo cargar el cuerpo completo — mostrando el resumen.
-          </p>
-        )}
+          {keyPoints.length > 0 && (
+            <Card as="section" aria-labelledby="key-points" className="mt-5 px-[18px] py-4 lg:mt-[26px] lg:px-6 lg:py-5">
+              <h2 id="key-points" className="label-mono !text-spark">
+                Puntos clave
+              </h2>
+              <ul className="mt-3 list-disc space-y-2 pl-[18px] font-body text-[15px] leading-relaxed text-text-primary marker:text-text-faint lg:space-y-2.5 lg:text-[16px]">
+                {keyPoints.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+              <p className="mt-3 font-body text-[11px] text-text-faint lg:text-[12px]">Resumen de las primeras frases de la nota. No es una síntesis hecha por IA.</p>
+            </Card>
+          )}
 
-        <a
-          href={article.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 font-body text-[15px] px-5 py-4 rounded-sm cta font-semibold transition-all duration-200 hover:bg-signal-dim mb-10"
-        >
-          Leer la nota completa en {article.source_name}
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M3 11 11 3M11 3H5M11 3v6"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </a>
+          <Button asChild variant="cta" size="lg" className="mt-5 w-full whitespace-normal py-2 text-center lg:mt-6">
+            <a href={article.url} target="_blank" rel="noopener noreferrer">
+              Leer la nota completa en {article.source_name}
+              <ExternalLink size={16} aria-hidden="true" />
+            </a>
+          </Button>
+        </article>
 
         {related.length > 0 && (
-          <>
-            <div className="border-t border-hairline pt-8 mb-5">
-              <p className="font-mono text-[11px] text-text-faint uppercase tracking-wider">
-                Más de {NEWS_CATEGORY_LABELS[article.category]}
-              </p>
-            </div>
-            <div className="space-y-5">
+          <aside aria-label={`Más de ${NEWS_CATEGORY_LABELS[article.category]}`} className={cn('mt-8 lg:sticky lg:top-6 lg:mt-0')}>
+            <p className="label-mono">Más de {NEWS_CATEGORY_LABELS[article.category]}</p>
+            <ul className="mt-2 divide-y divide-hairline">
               {related.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/noticias/${item.id}`}
-                  className="group flex items-center gap-4 p-2 -m-2 rounded-sm transition-colors hover:bg-panel-2/50"
-                >
-                  <div className="relative w-20 h-20 shrink-0 rounded-sm overflow-hidden border border-hairline bg-panel-2">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="font-mono text-[9px] text-text-faint">{item.source_name}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 font-mono text-[11px] text-text-faint mb-1">
-                      <SourceAvatar name={item.source_name} />
-                      {item.source_name} · {timeAgo(item.published_at)}
-                    </p>
-                    <h3 className="font-serif text-[15px] font-bold text-text-primary leading-[1.3] line-clamp-2 group-hover:text-signal transition-colors">
-                      {item.title}
-                    </h3>
-                  </div>
-                </Link>
+                <li key={item.id}>
+                  <Link to={`/noticias/${item.id}`} className="group flex items-center gap-3.5 py-3.5">
+                    <NewsThumb imageUrl={item.image_url} sourceName={item.source_name} className="h-14 w-14 shrink-0 rounded-lg" />
+                    <div className="min-w-0">
+                      <h3 className="line-clamp-3 font-body text-[14px] font-bold leading-[1.35] text-text-primary group-hover:text-steel">{item.title}</h3>
+                      <p className="num mt-1.5 text-[11px] text-text-faint">
+                        {item.source_name} · {formatRelativeTime(item.published_at)}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
               ))}
-            </div>
-          </>
+            </ul>
+          </aside>
         )}
-
-        <div className="h-6" />
-        </div>
       </div>
-
-      {/* Barra inferior fija — controles siempre accesibles aunque el
-          contenido de arriba (largo, en artículos con mucho `summary`) esté
-          scrolleado lejos del breadcrumb. `env(safe-area-inset-bottom)`
-          mismo criterio que <AppFloatingNav/> para no quedar debajo de la
-          gesture bar en la PWA/TWA instalada. */}
-      <div
-        className="shrink-0 border-t border-hairline bg-panel/95 backdrop-blur-md px-5 py-3"
-        style={{ paddingBottom: 'max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom)))' }}
-      >
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link
-            to="/noticias"
-            className="inline-flex items-center gap-1.5 font-mono text-[12px] text-text-faint hover:text-signal transition-colors"
-          >
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-              <path d="M13 7H1M7 1 1 7l6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Noticias
-          </Link>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={!adjacent.prevId}
-              onClick={() => adjacent.prevId && navigate(`/noticias/${adjacent.prevId}`)}
-              aria-label="Noticia anterior"
-              title="Noticia anterior"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-                <path d="M9 1 3 7l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              disabled={!adjacent.nextId}
-              onClick={() => adjacent.nextId && navigate(`/noticias/${adjacent.nextId}`)}
-              aria-label="Siguiente noticia"
-              title="Siguiente noticia"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-text-faint transition-colors hover:text-text-primary hover:bg-panel-2 disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-                <path d="M5 1 11 7l-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </main>
   )
 }
