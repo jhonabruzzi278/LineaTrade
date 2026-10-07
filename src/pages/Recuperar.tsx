@@ -1,8 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Nav } from '../components/Nav'
+import { KeyRound } from 'lucide-react'
+import { PromiseAside } from '../components/auth/AuthAsides'
+import { AuthError } from '../components/auth/AuthError'
+import { AuthActions, AuthIntro, AuthLayout } from '../components/auth/AuthLayout'
+import { MailSentMark } from '../components/auth/MailSent'
+import { Button } from '../components/ui/button'
+import { Field } from '../components/ui/field'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
+
+const ERROR_ID = 'recuperar-error'
 
 export default function Recuperar() {
   const [email, setEmail] = useState('')
@@ -29,74 +37,72 @@ export default function Recuperar() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen">
-        <Nav />
-        <main className="relative max-w-md mx-auto px-6 pt-24">
-          <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated text-center">
-            <p className="font-mono text-[13px] text-signal mb-4">enlace enviado</p>
-            <h1 className="font-display text-[26px] text-text-primary mb-3">Revisa tu correo</h1>
-            <p className="font-body text-[15px] text-text-muted leading-relaxed">
-              Si existe una cuenta asociada a{' '}
-              <span className="text-text-primary">{email}</span>, te enviamos un enlace para
-              restablecer tu contraseña. Revisa también la carpeta de spam.
-            </p>
-            <p className="font-body text-[14px] text-text-muted mt-8 text-center">
-              <Link to="/login" className="text-signal hover:text-signal-dim transition-colors">
-                Volver a ingresar
-              </Link>
-            </p>
-          </div>
-        </main>
-      </div>
+      <AuthLayout aside={<PromiseAside />}>
+        <div className="flex flex-1 flex-col pt-16 lg:flex-none lg:pb-8 lg:pt-0">
+          <AuthIntro
+            icon={<MailSentMark />}
+            eyebrow="Enlace enviado"
+            title="Revisa tu correo"
+            description={
+              <>
+                Si existe una cuenta asociada a <b className="break-all text-text-primary">{email}</b>, te enviamos un enlace para
+                restablecer tu contraseña. Revisa también la carpeta de spam.
+              </>
+            }
+          />
+        </div>
+        <AuthActions>
+          <Button asChild variant="outline" size="lg" className="w-full">
+            <Link to="/login">Volver a ingresar</Link>
+          </Button>
+        </AuthActions>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="min-h-screen">
-      <Nav />
-      <main className="relative max-w-md mx-auto px-6 pt-20">
-        <div className="relative rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel p-8 shadow-elevated">
-        <p className="font-mono text-[13px] text-signal mb-4">recuperación</p>
-        <h1 className="font-display text-[30px] text-text-primary mb-2">Recuperar contraseña</h1>
-        <p className="font-body text-[15px] text-text-muted mb-8">
-          Ingresa tu correo y te enviaremos un enlace para restablecerla.
-        </p>
+    <AuthLayout aside={<PromiseAside />} back={{ to: '/login', label: 'Volver a ingresar', title: 'Ingresar' }}>
+      <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5 pt-6 lg:flex-none lg:pt-0">
+        <AuthIntro
+          iconMobileOnly
+          icon={
+            <span className="flex h-[52px] w-[52px] items-center justify-center rounded-xl border border-hairline bg-panel-2 text-spark">
+              <KeyRound size={26} aria-hidden="true" />
+            </span>
+          }
+          eyebrow="Recuperación"
+          title="Recupera tu contraseña"
+          description="Ingresa tu correo y te enviaremos un enlace para crear una nueva."
+        />
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="email" className="font-body text-[13px] text-text-muted block mb-2">
-              Correo electrónico
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nombre@correo.com"
-              className="w-full bg-ink/50 border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-            />
-          </div>
+        <Field
+          id="email"
+          label="Correo"
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="nombre@correo.com"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? ERROR_ID : undefined}
+        />
 
-          {error && <p className="font-body text-[13px] text-loss">{error}</p>}
+        <AuthError id={ERROR_ID} message={error} />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
-          >
+        <AuthActions>
+          <Button type="submit" variant="cta" size="lg" disabled={loading} className="w-full">
             {loading ? 'Enviando...' : 'Enviar enlace'}
-          </button>
-        </form>
-        </div>
-
-        <p className="font-body text-[14px] text-text-muted mt-6 text-center">
-          ¿Recordaste tu contraseña?{' '}
-          <Link to="/login" className="text-signal hover:text-signal-dim transition-colors">
-            Ingresa aquí
-          </Link>
-        </p>
-      </main>
-    </div>
+          </Button>
+          <p className="text-center font-body text-[15px] text-text-faint">
+            ¿La recordaste?{' '}
+            <Link to="/login" className="font-bold text-steel hover:underline">
+              Ingresa
+            </Link>
+          </p>
+        </AuthActions>
+      </form>
+    </AuthLayout>
   )
 }
