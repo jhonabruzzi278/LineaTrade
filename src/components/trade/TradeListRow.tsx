@@ -1,91 +1,117 @@
 import { Link } from 'react-router-dom'
-import { formatTradeResult, tradeResultColorClass } from '../../lib/tradeDisplay'
+import { Tag } from '../ui/tag'
+import { tradeResultColorClass } from '../../lib/tradeDisplay'
+import { formatRowResult, formatTradeMoment } from '../../lib/tradeRowDisplay'
+import { cn } from '@/lib/utils'
 import type { Database } from '../../types/database'
 
-type Trade = Database['public']['Tables']['trades']['Row'] & {
+export type TradeListItem = Database['public']['Tables']['trades']['Row'] & {
   instruments: Pick<Database['public']['Tables']['instruments']['Row'], 'symbol' | 'market'> | null
+  strategies?: Pick<Database['public']['Tables']['strategies']['Row'], 'name'> | null
 }
 
-// Fila compartida por Dashboard ("Últimos trades") e Historial (lista completa) — antes
-// cada pantalla tenía su propia copia casi idéntica de este markup. El riel de color a la
-// izquierda (gain/loss según `side`) es la única pieza nueva de jerarquía: reusa el mismo
-// par semántico que ya pinta el badge y el resultado, no introduce un tercer significado.
+// Fila compartida por Inicio ("Actividad reciente") e Historial. En móvil son dos
+// líneas con un riel de color a la izquierda según el lado (long = ganancia, short
+// = pérdida: dirección, no resultado); en escritorio (lg) es una fila de tabla con
+// columnas. El color del resultado, en cambio, sí es P&L.
 //
-// La entrada escalonada (`reveal-up` + delay por índice) solo se aplica a las primeras
-// filas — más allá de eso el delay se vuelve ruido, no pulido, en una lista larga como la
-// de Historial sin límite de resultados.
+// La entrada escalonada solo se aplica a las primeras filas: más allá, el retraso
+// es ruido en una lista larga.
 const STAGGER_LIMIT = 12
 const STAGGER_STEP_SECONDS = 0.04
 
-const RAIL_CLASS: Record<Trade['side'], string> = {
-  long: 'bg-gain/50 group-hover:bg-gain',
-  short: 'bg-loss/50 group-hover:bg-loss',
+const RAIL_CLASS: Record<TradeListItem['side'], string> = {
+  long: 'bg-gain',
+  short: 'bg-loss',
 }
+
+const SIDE_LABEL: Record<TradeListItem['side'], string> = { long: 'LONG', short: 'SHORT' }
+
+// Plantillas de columnas de la tabla de escritorio: Inicio (5) e Historial (6).
+const GRID_HOME = 'lg:grid-cols-[1fr_0.7fr_1fr_1.3fr_0.8fr]'
+const GRID_HISTORY = 'lg:grid-cols-[1.1fr_0.7fr_1.1fr_1.4fr_0.8fr_0.9fr]'
 
 interface TradeListRowProps {
-  trade: Trade
+  trade: TradeListItem
   index: number
-  showDate?: boolean
+  /** Historial agrega la columna «Estado» en la tabla de escritorio. */
+  showStatus?: boolean
 }
 
-export function TradeListRow({ trade, index, showDate = false }: TradeListRowProps) {
+export function TradeTableHeader({ showStatus = false }: { showStatus?: boolean }) {
+  return (
+    <div
+      className={cn(
+        'label-mono hidden items-center border-b border-hairline bg-ink/40 px-5 py-3 lg:grid',
+        showStatus ? GRID_HISTORY : GRID_HOME,
+      )}
+    >
+      <span>Instrumento</span>
+      <span>Lado</span>
+      <span>Fecha</span>
+      <span>Estrategia</span>
+      {showStatus && <span>Estado</span>}
+      <span className="text-right">Resultado</span>
+    </div>
+  )
+}
+
+export function TradeListRow({ trade, index, showStatus = false }: TradeListRowProps) {
   const isStaggered = index < STAGGER_LIMIT
+  const symbol = trade.instruments?.symbol ?? '—'
+  const moment = formatTradeMoment(trade.traded_at)
+  const result = formatRowResult(trade)
+  const resultClass = tradeResultColorClass(trade)
+  const strategy = trade.strategies?.name ?? null
+  const isOpen = trade.status === 'open'
 
   return (
     <Link
       to={`/trades/${trade.id}`}
-      className={`group relative flex flex-col gap-1.5 pl-5 pr-5 py-4 transition-colors hover:bg-panel-2/70 ${
-        isStaggered ? 'reveal-up' : ''
-      }`}
+      className={cn(
+        'group relative block px-5 py-3.5 transition-colors hover:bg-panel-2/60 lg:grid lg:min-h-[52px] lg:items-center lg:py-0',
+        showStatus ? GRID_HISTORY : GRID_HOME,
+        isStaggered && 'reveal-up',
+      )}
       style={isStaggered ? { animationDelay: `${index * STAGGER_STEP_SECONDS}s` } : undefined}
     >
       <span
-        className={`absolute left-0 top-0 bottom-0 w-[3px] transition-colors duration-200 ${RAIL_CLASS[trade.side]}`}
+        className={cn('absolute bottom-3 left-0 top-3 w-[3px] rounded-r-sm lg:hidden', RAIL_CLASS[trade.side])}
         aria-hidden="true"
       />
-      {/* Fila principal: símbolo + side a la izquierda, resultado a la derecha.
-          Antes esta fila también cargaba fecha y estado inline — en mobile
-          angosto ese grupo izquierdo se quedaba sin espacio y sus hijos (sin
-          truncate ni wrap propios) se desbordaban encima del resultado a la
-          derecha, produciendo texto superpuesto e ilegible. Ahora la fila
-          principal solo tiene lo esencial (siempre cabe), y fecha/estado bajan
-          a una segunda línea propia que no compite por el mismo ancho. */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-display text-[15px] text-text-primary tracking-tight truncate">
-            {trade.instruments?.symbol ?? '—'}
-          </span>
-          <span
-            className={`shrink-0 font-mono text-[11px] px-2 py-0.5 rounded-sm border ${
-              trade.side === 'long' ? 'border-gain/40 text-gain' : 'border-loss/40 text-loss'
-            }`}
-          >
-            {trade.side}
-          </span>
-          {trade.is_backtest && (
-            <span className="shrink-0 font-mono text-[11px] px-2 py-0.5 rounded-sm border border-signal/30 text-signal">
-              práctica
-            </span>
-          )}
+
+      {/* Móvil: línea 1 = símbolo + etiquetas / resultado; línea 2 = fecha / estado. */}
+      <div className="lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate font-body text-[16px] font-bold text-text-primary">{symbol}</span>
+            <Tag tone={trade.side === 'long' ? 'gain' : 'loss'}>{SIDE_LABEL[trade.side]}</Tag>
+            {trade.is_backtest && <Tag>Práctica</Tag>}
+          </div>
+          <span className={cn('num shrink-0 text-[15px]', resultClass)}>{result}</span>
         </div>
-        <span className="flex items-center gap-2 shrink-0">
-          <span className={`font-mono text-[13px] tabular-nums ${tradeResultColorClass(trade)}`}>
-            {formatTradeResult(trade)}
-          </span>
-          <span className="font-mono text-[13px] text-text-faint opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-signal">
-            →
-          </span>
+        <div className="mt-1.5 flex items-center justify-between gap-3 font-body text-[12px] text-text-faint">
+          <span className="num">{moment}</span>
+          {isOpen ? <Tag tone="brand">Abierto</Tag> : <span>cerrado</span>}
+        </div>
+      </div>
+
+      {/* Escritorio: fila de tabla. */}
+      <span className="hidden min-w-0 items-center gap-2 font-body text-[14px] font-bold text-text-primary lg:flex">
+        <span className="truncate">{symbol}</span>
+        {trade.is_backtest && <Tag>Práctica</Tag>}
+      </span>
+      <span className="num hidden text-[14px] text-text-faint lg:block">{trade.side}</span>
+      <span className="num hidden text-[14px] text-text-faint lg:block">{moment}</span>
+      <span className={cn('hidden truncate font-body text-[14px] lg:block', strategy ? 'text-text-faint' : 'text-text-faint/70')}>
+        {strategy ?? 'Sin estrategia'}
+      </span>
+      {showStatus && (
+        <span className="hidden font-body text-[14px] text-text-faint lg:block">
+          {isOpen ? <Tag tone="brand">Abierto</Tag> : 'cerrado'}
         </span>
-      </div>
-      <div className="flex items-center gap-2">
-        {showDate && (
-          <span className="font-mono text-[11px] text-text-faint">
-            {new Date(trade.traded_at).toLocaleDateString('es', { dateStyle: 'medium' })}
-          </span>
-        )}
-        {showDate && <span className="w-1 h-1 rounded-full bg-hairline shrink-0" aria-hidden="true" />}
-        <span className="font-mono text-[11px] text-text-faint">{trade.status}</span>
-      </div>
+      )}
+      <span className={cn('num hidden text-right text-[14px] lg:block', resultClass)}>{result}</span>
     </Link>
   )
 }
