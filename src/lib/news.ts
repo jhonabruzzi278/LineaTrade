@@ -102,7 +102,7 @@ export async function fetchNews(): Promise<FetchNewsResult> {
   if (error) {
     return { ok: false, message: await getFunctionErrorMessage(error) }
   }
-  if (!data) {
+  if (!data || !Array.isArray(data.articles)) {
     return { ok: false, message: 'El Edge Function no devolvió datos.' }
   }
 
