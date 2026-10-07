@@ -1,198 +1,208 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { SettingsGroup, SettingsRow } from '../components/SettingsRow'
+import { useCallback, useEffect, useState } from 'react'
+import { AccountRow, AccountSection } from '../components/account/AccountSection'
+import { ByokForm } from '../components/ia/ByokForm'
+import { Button } from '../components/ui/button'
+import { Callout } from '../components/ui/callout'
+import { Card } from '../components/ui/card'
+import { ProgressBar } from '../components/ui/progress-bar'
+import { Tag } from '../components/ui/tag'
+import { findProvider, modelHasVision } from '../data/aiProviders'
+import { useAiUsageToday } from '../hooks/useAiUsageToday'
+import { useEntitlements } from '../hooks/useEntitlements'
+import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
-import { cn } from '@/lib/utils'
+import type { Database } from '../types/database'
 
-// Proveedores con implementación real en el registry de ambos Edge
-// Functions (ver supabase/functions/_shared/providers/) — no hay check
-// constraint en user_ai_settings.byok_provider (columna text libre), así que
-// antes este selector ofrecía 4 proveedores más (anthropic/gemini/deepseek/
-// openrouter) que el PRD menciona pero nadie implementó nunca: elegirlos
-// guardaba la key igual, y recién al usarla en un análisis se veía un 501
-// "no implementado" — un half-finished selector, no un bug de guardado.
-// Recortado a los dos que realmente funcionan hoy. El self-hosted (Ollama/LM
-// Studio) queda fuera de alcance aparte: un Edge Function en la nube no
-// puede alcanzar un servidor en localhost del usuario.
-const BYOK_PROVIDERS = ['groq', 'openai'] as const
+type ByokStatus = Database['public']['Functions']['get_byok_status']['Returns'][number]
 
-type ByokStatus = {
-  byok_provider: string
-  byok_model: string | null
-  is_configured: boolean
-  use_own_key: boolean
-  updated_at: string
+const SECURITY_NOTE =
+  'Tu clave se guarda cifrada y no se vuelve a mostrar. Solo se usa para tus propias solicitudes, y el costo lo paga tu proveedor.'
+
+function formatUpdatedAt(value: string): string {
+  return new Date(value).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+// Uso de la IA de LineaTrade (tier gratuito): cupo diario real del servidor.
+function UsageCard({ userId }: { userId: string }) {
+  const { planKey, byFeature, loading } = useEntitlements(userId)
+  const used = useAiUsageToday(userId)
+  const ai = byFeature.get('ai_actions')
+  const daily = ai?.period === 'day' && ai.hardLimit !== null
+  const limit = ai?.hardLimit ?? 0
+
+  return (
+    <Card as="section" aria-label="Tu uso hoy" className="lg:px-6 lg:py-[22px]">
+      <p className="label-mono">Tu uso hoy</p>
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3.5">
+        <div>
+          <p className="flex items-center gap-2.5 font-body text-[16px] font-bold text-text-primary">
+            IA de LineaTrade <Tag tone="brand">{planKey === 'free' ? 'Gratis' : planKey === 'pro' ? 'Pro' : 'Incluida'}</Tag>
+          </p>
+          {loading ? (
+            <p className="num mt-1 text-[12px] text-text-faint">Consultando…</p>
+          ) : daily && used !== null ? (
+            <p className="num mt-1 text-[12px] text-text-faint">
+              {used} de {limit} usos hoy
+            </p>
+          ) : ai?.hardLimit != null ? (
+            <p className="num mt-1 text-[12px] text-text-faint">{ai.hardLimit} usos por mes</p>
+          ) : null}
+        </div>
+      </div>
+      {daily && used !== null && (
+        <ProgressBar className="mt-3.5" value={limit > 0 ? (used / limit) * 100 : 0} label={`${used} de ${limit} usos de IA hoy`} />
+      )}
+      <p className="mt-3.5 font-body text-[14px] leading-relaxed text-text-muted">
+        Se usa en el Coach, los Insights y la lectura de capturas.
+        {daily ? ' Los usos se renuevan cada día.' : ''}
+      </p>
+    </Card>
+  )
 }
 
 export default function ConfiguracionIA() {
+  const { user } = useAuth()
   const { showToast } = useToast()
   const [status, setStatus] = useState<ByokStatus | null>(null)
-  const [provider, setProvider] = useState<string>(BYOK_PROVIDERS[0])
-  const [model, setModel] = useState('')
-  const [apiKey, setApiKey] = useState('')
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [replacing, setReplacing] = useState(false)
+  const [disabling, setDisabling] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function loadStatus() {
+  const loadStatus = useCallback(async () => {
     const { data, error: statusError } = await supabase.rpc('get_byok_status')
-    if (statusError) {
-      setError(getErrorMessage(statusError))
-    } else {
-      const row = data?.[0] ?? null
-      setStatus(row)
-      if (row?.byok_provider) setProvider(row.byok_provider)
-      if (row?.byok_model) setModel(row.byok_model)
+    if (statusError) setError(getErrorMessage(statusError))
+    else {
+      setError(null)
+      setStatus(data?.[0] ?? null)
     }
     setLoading(false)
-  }
+  }, [])
 
   useEffect(() => {
     void loadStatus()
-  }, [])
-
-  async function handleSave(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!apiKey.trim() || !model.trim()) {
-      setError('Ingresa el modelo y una API key.')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const { error: saveError } = await supabase.rpc('set_byok_api_key', {
-      p_provider: provider,
-      p_api_key: apiKey.trim(),
-      p_model: model.trim(),
-    })
-    setSaving(false)
-    if (saveError) {
-      setError(getErrorMessage(saveError))
-      return
-    }
-    setApiKey('') // nunca se re-muestra la key ingresada
-    showToast('Key guardada — LineaTrade la va a usar para tus próximos análisis.', 'success')
-    void loadStatus()
-  }
+  }, [loadStatus])
 
   async function handleDisable() {
-    setSaving(true)
-    setError(null)
+    setDisabling(true)
     const { error: disableError } = await supabase.rpc('disable_byok')
-    setSaving(false)
+    setDisabling(false)
     if (disableError) {
       setError(getErrorMessage(disableError))
       return
     }
-    showToast('Volviste al tier gratuito.', 'success')
+    showToast('Volviste a la IA gratuita.', 'success')
+    setReplacing(false)
     void loadStatus()
   }
 
+  function handleSaved() {
+    showToast('Clave guardada. LineaTrade la usará en tus próximos análisis.', 'success')
+    setReplacing(false)
+    setLoading(true)
+    void loadStatus()
+  }
+
+  if (!user) return null
+
+  if (loading) {
+    return (
+      <div role="status" aria-label="Cargando" className="flex flex-col gap-3">
+        <div className="h-28 animate-pulse rounded-xl bg-panel" />
+        <div className="h-64 animate-pulse rounded-xl bg-panel" />
+      </div>
+    )
+  }
+
+  const usingOwnKey = Boolean(status?.is_configured && status.use_own_key)
+  const providerLabel = status ? (findProvider(status.byok_provider)?.label ?? status.byok_provider) : ''
+  const vision = status ? modelHasVision(status.byok_provider, status.byok_model) : null
+
   return (
-    <div className="min-h-screen">
-      <main
-        className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
-        )}
-      >
-        <p className="font-mono text-[12px] text-signal tracking-wide mb-2">configuración</p>
-        <h1 className="font-display text-[26px] text-text-primary mb-1">Tu propia API key (BYOK)</h1>
-        <p className="font-body text-[14px] text-text-muted mb-8">
-          Con tu propia key no hay límite diario de análisis — el costo lo asumís vos directamente con
-          el proveedor. Sin una key propia, seguís con el tier gratuito (3 análisis por día).
+    <>
+      {error && (
+        <p role="alert" className="font-body text-[13px] text-loss">
+          {error}
         </p>
+      )}
 
-        {loading ? (
-          <p className="font-body text-[14px] text-text-muted">Cargando...</p>
-        ) : (
-          <>
-            {status?.is_configured && (
-              <div className="mb-6">
-                <p className="font-mono text-[11px] tracking-wide text-text-faint uppercase mb-2 px-1">Estado</p>
-                <SettingsGroup>
-                  <SettingsRow
-                    title={`${status.use_own_key ? 'Usando tu key' : 'Key configurada, pero desactivada'} — ${status.byok_provider}${status.byok_model ? ` · ${status.byok_model}` : ''}`}
-                    description={`Actualizada el ${new Date(status.updated_at).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}`}
-                    right={
-                      status.use_own_key ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleDisable()}
-                          disabled={saving}
-                          className="font-body text-[12.5px] text-text-faint hover:text-text-muted transition-colors whitespace-nowrap"
-                        >
-                          Volver al gratuito
-                        </button>
-                      ) : undefined
-                    }
-                  />
-                </SettingsGroup>
+      {usingOwnKey && status ? (
+        <>
+          <Card as="section" aria-label="Estado de tu clave" className="lg:px-6 lg:py-[22px]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2.5 font-body text-[16px] font-bold text-text-primary">
+                  Usando tu propia clave <Tag tone="brand">Activa</Tag>
+                </p>
+                <p className="num mt-1 text-[12px] text-text-faint">
+                  {providerLabel} · {status.byok_model}
+                </p>
               </div>
+              <span className="num text-[12px] text-text-faint">Actualizada {formatUpdatedAt(status.updated_at)}</span>
+            </div>
+            <p className="mt-3.5 font-body text-[14px] leading-relaxed text-text-muted">
+              Sin el límite diario de LineaTrade. El costo de cada uso lo cobra tu proveedor.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {vision === true && <Tag tone="brand">Visión</Tag>}
+              {vision === false && <Tag tone="spark">Sin visión</Tag>}
+            </div>
+            {vision === false && (
+              <p className="mt-2 font-body text-[12px] text-text-faint">
+                Este modelo no lee imágenes: la lectura de capturas de trades no funcionará con él.
+              </p>
             )}
+          </Card>
 
-            <form onSubmit={(e) => void handleSave(e)}>
-              <p className="font-mono text-[11px] tracking-wide text-text-faint uppercase mb-2 px-1">Nueva key</p>
-              <SettingsGroup>
-                <SettingsRow
-                  title="Proveedor"
-                  description="Elegí a quién pertenece la API key que vas a guardar."
-                  right={
-                    <select
-                      id="provider"
-                      value={provider}
-                      onChange={(e) => setProvider(e.target.value)}
-                      className="bg-ink border border-hairline rounded-sm pl-3 pr-8 py-2 font-body text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-                    >
-                      {BYOK_PROVIDERS.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
+          <AccountSection title="Tu clave">
+            {replacing ? (
+              <ByokForm
+                initialProvider={status.byok_provider}
+                initialModel={status.byok_model}
+                submitLabel="Guardar clave nueva"
+                onSaved={handleSaved}
+                onCancel={() => setReplacing(false)}
+              />
+            ) : (
+              <>
+                <AccountRow
+                  title="Reemplazar la clave o cambiar de modelo"
+                  description="Pega una clave nueva y elige el modelo; la anterior deja de usarse."
+                  control={
+                    <Button type="button" variant="outline" onClick={() => setReplacing(true)}>
+                      Reemplazar clave
+                    </Button>
                   }
                 />
-                <SettingsRow
-                  title="Modelo"
-                  description="Tiene que soportar tanto texto (análisis) como visión (lectura de fotos de trades) — se usa para ambas cosas."
-                  footer={
-                    <input
-                      id="model"
-                      type="text"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      placeholder="ej. gpt-4o-mini, openai/gpt-oss-20b"
-                      className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-                    />
+                <AccountRow
+                  title="Volver a la IA gratuita"
+                  description="Desactiva tu clave. Vuelves al límite diario de LineaTrade."
+                  control={
+                    <Button type="button" variant="danger" disabled={disabling} onClick={() => void handleDisable()}>
+                      {disabling ? 'Desactivando…' : 'Desactivar mi clave'}
+                    </Button>
                   }
                 />
-                <SettingsRow
-                  title="API key"
-                  description="Nunca se muestra de nuevo una vez guardada — solo se cifra y se guarda."
-                  footer={
-                    <input
-                      id="api-key"
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="sk-..."
-                      autoComplete="off"
-                      className="w-full bg-ink border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-                    />
-                  }
-                />
-              </SettingsGroup>
-              {error && <p className="font-body text-[13px] text-loss mt-4">{error}</p>}
-              <button
-                type="submit"
-                disabled={saving}
-                className="mt-5 font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
-              >
-                {saving ? 'Guardando...' : 'Guardar key'}
-              </button>
-            </form>
-          </>
-        )}
-      </main>
-    </div>
+              </>
+            )}
+          </AccountSection>
+        </>
+      ) : (
+        <>
+          <UsageCard userId={user.id} />
+          <AccountSection title="Usa tu propia clave">
+            <p className="-mt-1 mb-4 font-body text-[14px] leading-relaxed text-text-muted">
+              Sin el límite diario de LineaTrade. Tú eliges el proveedor y el modelo.
+              {status?.is_configured && ' Tienes una clave guardada pero desactivada: para volver a usarla, pégala de nuevo.'}
+            </p>
+            <ByokForm initialProvider={status?.byok_provider} initialModel={status?.byok_model} submitLabel="Guardar clave" onSaved={handleSaved} />
+          </AccountSection>
+        </>
+      )}
+
+      <Callout>{SECURITY_NOTE}</Callout>
+    </>
   )
 }
