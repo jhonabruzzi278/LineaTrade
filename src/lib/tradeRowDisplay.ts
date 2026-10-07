@@ -57,3 +57,36 @@ export function formatDuration(minutes: number | null | undefined): string | nul
   if (rest === 0) return `${hours} h`
   return `${hours} h ${rest} min`
 }
+
+const MARKET_LABELS: Record<string, string> = {
+  stock: 'Acciones',
+  options: 'Opciones',
+  forex: 'Forex',
+  crypto: 'Cripto',
+  futures: 'Futuros',
+  index: 'Índices',
+  cfd: 'CFD',
+}
+
+/** Nombre en español del mercado de un instrumento; devuelve el valor tal cual si no se conoce. */
+export function marketLabel(market: string | null | undefined): string | null {
+  if (!market) return null
+  return MARKET_LABELS[market] ?? market
+}
+
+export interface PlannedRisk {
+  /** Distancia de entrada a stop, en unidades de precio. */
+  riskDistance: number
+  /** Relación beneficio/riesgo planificada; null sin take profit. */
+  rewardRisk: number | null
+}
+
+// Riesgo planificado según lo que el usuario escribió (entrada, stop, take profit):
+// aritmética directa de sus propios datos, no una métrica del backend.
+export function plannedRisk(entry: number, stop: number | null, takeProfit: number | null): PlannedRisk | null {
+  if (stop == null) return null
+  const riskDistance = Math.abs(entry - stop)
+  if (riskDistance === 0) return null
+  const rewardRisk = takeProfit != null ? Math.abs(takeProfit - entry) / riskDistance : null
+  return { riskDistance, rewardRisk }
+}

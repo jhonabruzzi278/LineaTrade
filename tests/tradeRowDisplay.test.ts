@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, formatR, formatRowResult, formatSignedFixed, formatTradeMoment } from '../src/lib/tradeRowDisplay'
+import { formatDuration, formatR, formatRowResult, formatSignedFixed, formatTradeMoment, marketLabel, plannedRisk } from '../src/lib/tradeRowDisplay'
 
 describe('tradeRowDisplay', () => {
   it('formatea números con signo tipográfico y decimales fijos', () => {
@@ -28,5 +28,17 @@ describe('tradeRowDisplay', () => {
     expect(formatDuration(38)).toBe('38 min')
     expect(formatDuration(120)).toBe('2 h')
     expect(formatDuration(null)).toBeNull()
+  })
+
+  it('traduce el mercado y calcula el riesgo planificado', () => {
+    expect(marketLabel('futures')).toBe('Futuros')
+    expect(marketLabel(null)).toBeNull()
+    expect(marketLabel('otro')).toBe('otro')
+    const risk = plannedRisk(20418.25, 20439.25, 20370)
+    expect(risk?.riskDistance).toBeCloseTo(21)
+    expect(risk?.rewardRisk).toBeCloseTo(2.3, 1)
+    expect(plannedRisk(100, null, 120)).toBeNull()
+    expect(plannedRisk(100, 100, 120)).toBeNull()
+    expect(plannedRisk(100, 95, null)?.rewardRisk).toBeNull()
   })
 })

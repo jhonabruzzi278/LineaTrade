@@ -11,6 +11,7 @@ import { TradeListRow, TradeTableHeader, type TradeListItem } from '../component
 import { Button, buttonVariants } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Segmented } from '../components/ui/segmented'
+import { SparkButton } from '../components/ui/spark-button'
 import { useAuth } from '../lib/auth'
 import {
   computeDashboardStats,
@@ -334,9 +335,6 @@ const FIRST_STEPS = [
   { title: 'Ciérralo y mira tus métricas' },
 ]
 
-const SPARK_BUTTON =
-  'inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[10px] border-2 border-ink bg-spark px-6 font-body text-[15px] font-extrabold text-on-spark whitespace-nowrap'
-
 function HomeEmpty({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-4 lg:gap-5">
@@ -364,11 +362,13 @@ function HomeEmpty({ userId }: { userId: string }) {
             ))}
           </ol>
         </div>
-        <Link to="/nuevo-trade" className={cn(SPARK_BUTTON, 'mt-3 w-full lg:mt-0 lg:w-auto')}>
-          <Plus className="h-[18px] w-[18px]" strokeWidth={2.8} aria-hidden="true" />
-          <span className="lg:hidden">Registrar mi primer trade</span>
-          <span className="hidden lg:inline">Registrar trade</span>
-        </Link>
+        <SparkButton asChild className="mt-3 w-full lg:mt-0 lg:w-auto">
+          <Link to="/nuevo-trade">
+            <Plus className="h-[18px] w-[18px]" strokeWidth={2.8} aria-hidden="true" />
+            <span className="lg:hidden">Registrar mi primer trade</span>
+            <span className="hidden lg:inline">Registrar trade</span>
+          </Link>
+        </SparkButton>
       </Card>
 
       <section aria-label="Resumen del periodo" className="flex flex-col gap-2 lg:gap-3">
