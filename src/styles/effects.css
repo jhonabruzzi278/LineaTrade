@@ -3,7 +3,7 @@
    absolute/fixed, no participan del flujo normal). Las animaciones de estos
    efectos viven en animations.css (aura-drift), no acá. */
 
-/* Resplandor ámbar atmosférico, ubicado absolutamente detrás de contenido.
+/* Resplandor azul atmosférico, ubicado absolutamente detrás de contenido.
    Ver src/components/AuraBackground.tsx para el fondo animado de toda la
    app; este par de clases también se reusa suelto en algunas tarjetas
    puntuales (ver Landing.tsx, sección #descargar). */
@@ -12,7 +12,7 @@
   pointer-events: none;
   border-radius: 9999px;
   filter: blur(72px);
-  background: radial-gradient(circle, rgba(201, 156, 84, 0.16) 0%, rgba(201, 156, 84, 0) 70%);
+  background: radial-gradient(circle, rgba(61, 91, 255, 0.12) 0%, rgba(61, 91, 255, 0) 70%);
 }
 
 .steel-aura {
@@ -20,7 +20,7 @@
   pointer-events: none;
   border-radius: 9999px;
   filter: blur(80px);
-  background: radial-gradient(circle, rgba(91, 122, 153, 0.14) 0%, rgba(91, 122, 153, 0) 70%);
+  background: radial-gradient(circle, rgba(125, 149, 255, 0.08) 0%, rgba(125, 149, 255, 0) 70%);
 }
 
 /* Grano fino — overlay posicionado absolutamente dentro de un panel para

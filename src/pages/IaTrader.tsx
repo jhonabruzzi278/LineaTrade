@@ -223,7 +223,7 @@ export default function IaTrader() {
                 type="button"
                 onClick={() => void handleDownload()}
                 disabled={downloading}
-                className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
               >
                 {downloading ? 'Preparando paquete...' : 'Descargar paquete para tu IA'}
               </button>
@@ -240,7 +240,7 @@ export default function IaTrader() {
           <div className="mt-8">
             <Link
               to="/registro"
-              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5"
+              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim"
             >
               Regístrate gratis para tu plan completo
             </Link>

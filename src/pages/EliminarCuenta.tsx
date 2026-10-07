@@ -111,7 +111,7 @@ export default function EliminarCuenta() {
             <button
               type="submit"
               disabled={loggingIn}
-              className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loggingIn ? 'Ingresando...' : 'Ingresar'}
             </button>

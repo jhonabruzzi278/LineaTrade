@@ -42,7 +42,7 @@ export default function Academia() {
               <span className="inline-flex items-center gap-1.5"><Target className="h-3.5 w-3.5" /> {nextLesson.practice ?? 'Concepto base'}</span>
             </div>
           </div>
-          <Link to={`/academia/lecciones/${nextLesson.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-signal px-5 py-3 font-body text-[13px] font-semibold text-ink transition-[background-color,transform] duration-150 hover:bg-signal-dim active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-ink">
+          <Link to={`/academia/lecciones/${nextLesson.id}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-signal px-5 py-3 font-body text-[13px] font-semibold text-on-signal transition-[background-color,transform] duration-150 hover:bg-signal-dim active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-ink">
             {completedCount ? 'Continuar lección' : 'Comenzar'}
             <ArrowRight className="h-4 w-4" />
           </Link>

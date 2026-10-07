@@ -154,7 +154,7 @@ export default function Historial() {
             {trades.length === 0 && (
               <Link
                 to="/nuevo-trade"
-                className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5"
+                className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim"
               >
                 Registrar mi primer trade
               </Link>

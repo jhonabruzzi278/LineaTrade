@@ -45,8 +45,8 @@ export default defineConfig({
         short_name: 'LineaTrade',
         description:
           'LineaTrade convierte tu disciplina de trading en evidencia. Registra tus operaciones y descubre patrones objetivos en tu comportamiento.',
-        theme_color: '#0A0D12',
-        background_color: '#0A0D12',
+        theme_color: '#0B0E13',
+        background_color: '#0B0E13',
         display: 'standalone',
         orientation: 'portrait',
         // La landing ("/") es para visitas de navegador / marketing. La app

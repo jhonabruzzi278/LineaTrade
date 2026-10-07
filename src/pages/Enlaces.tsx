@@ -45,7 +45,7 @@ function LinkTile({ icon, label, sublabel, emphasized, children }: TileProps) {
     <div className={`${base} ${tone}`}>
       <span
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-sm ${
-          emphasized ? 'bg-signal text-ink' : 'bg-panel-2 text-signal'
+          emphasized ? 'bg-signal text-on-signal' : 'bg-panel-2 text-signal'
         }`}
       >
         {icon}

@@ -142,7 +142,7 @@ export function RulesSection({ userId }: { userId: string }) {
         <button
           type="submit"
           disabled={saving || !title.trim()}
-          className="font-body text-[13px] px-4 py-2 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="font-body text-[13px] px-4 py-2 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {saving ? 'Guardando...' : '+ Agregar regla'}
         </button>

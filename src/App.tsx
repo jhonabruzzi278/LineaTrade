@@ -5,7 +5,6 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt'
-import { AuraBackground } from './components/AuraBackground'
 import { SidebarProvider } from './lib/sidebar'
 
 // Cada pantalla se carga bajo demanda. Landing queda en el paquete inicial porque es
@@ -49,7 +48,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <SidebarProvider>
-        <AuraBackground />
         <PwaUpdatePrompt />
         <NotificationPermissionPrompt />
         <Suspense fallback={<RouteFallback />}>

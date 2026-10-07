@@ -43,7 +43,7 @@ export default function ActualizarPassword() {
             </p>
             <Link
               to="/login"
-              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow hover:-translate-y-0.5 mt-8"
+              className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim mt-8"
             >
               Ir a ingresar
             </Link>
@@ -83,7 +83,7 @@ export default function ActualizarPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium transition-all duration-200 hover:bg-signal-dim hover:shadow-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
+            className="w-full font-body text-[14px] px-5 py-3 rounded-sm cta font-medium transition-all duration-200 hover:bg-signal-dim disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal disabled:hover:shadow-none"
           >
             {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>

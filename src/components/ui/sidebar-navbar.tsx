@@ -34,7 +34,7 @@ function SidebarLink({ item, showLabel }: { item: FloatingNavItem; showLabel: bo
           'relative flex items-center rounded-sm transition-colors duration-200',
           showLabel ? 'gap-3 px-3 py-2.5' : 'justify-center w-11 h-11 rounded-full mx-auto',
           item.emphasized
-            ? 'bg-signal text-ink hover:bg-signal-dim'
+            ? 'bg-signal text-on-signal hover:bg-signal-dim'
             : isActive
               ? 'text-signal bg-signal/10'
               : 'text-text-faint hover:text-text-primary hover:bg-panel/70',

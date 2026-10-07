@@ -10,6 +10,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Títulos con Archivo en su ancho expandido: es la voz visual de la marca.
+   Sin capa a propósito, así gana sobre font-medium/font-semibold de utilities. */
+.font-display {
+  font-stretch: 115%;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
 html {
   scroll-behavior: smooth;
   color-scheme: dark;
@@ -36,10 +44,8 @@ html[data-theme='light'] {
   transition-duration: 150ms;
 }
 .landing-page a[class*='bg-signal'], .landing-nav a[class*='bg-signal'] {
-  color: var(--color-ink);
+  color: var(--color-on-signal);
 }
-:root[data-theme='light'] .landing-page a[class*='bg-signal'],
-:root[data-theme='light'] .landing-nav a[class*='bg-signal'] { color: white; }
 .landing-page a[class*='rounded-full']:active { transform: scale(0.96); }
 
 @media (prefers-reduced-motion: reduce) {

@@ -104,7 +104,7 @@ export const FloatingNav = ({
             cn(
               'relative flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-200',
               navItem.emphasized
-                ? 'bg-signal text-ink hover:bg-signal-dim'
+                ? 'bg-signal text-on-signal hover:bg-signal-dim'
                 : isActive
                   ? 'text-signal bg-signal/10'
                   : 'text-text-faint hover:text-text-primary hover:bg-panel/70',

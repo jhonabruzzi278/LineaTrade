@@ -239,7 +239,7 @@ function OnboardingComplete() {
         </p>
         <Link
           to="/dashboard"
-          className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mt-8"
+          className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors mt-8"
         >
           Ir a mi Dashboard
         </Link>

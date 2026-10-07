@@ -191,7 +191,7 @@ export default function ConfiguracionIA() {
               <button
                 type="submit"
                 disabled={saving}
-                className="mt-5 font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+                className="mt-5 font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
               >
                 {saving ? 'Guardando...' : 'Guardar key'}
               </button>

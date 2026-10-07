@@ -17,7 +17,7 @@ export function Avatar({ size = 'sm', active = false }: { size?: 'sm' | 'lg'; ac
     <Link
       to="/perfil"
       aria-label="Ir a tu perfil"
-      className={`shrink-0 ${dimensions} rounded-full bg-panel-2 border overflow-hidden flex items-center justify-center font-mono text-signal transition-all duration-200 hover:border-signal/60 hover:shadow-glow ${
+      className={`shrink-0 ${dimensions} rounded-full bg-panel-2 border overflow-hidden flex items-center justify-center font-mono text-signal transition-all duration-200 hover:border-signal/60 ${
         active ? 'border-signal ring-2 ring-signal/40' : 'border-hairline'
       }`}
     >

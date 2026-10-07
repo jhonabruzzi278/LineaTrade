@@ -287,7 +287,7 @@ export default function TradeDetail() {
               <button
                 type="submit"
                 disabled={closing}
-                className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+                className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
               >
                 {closing ? 'Cerrando...' : 'Cerrar trade'}
               </button>
@@ -505,7 +505,7 @@ export default function TradeDetail() {
             />
             <button
               type="submit"
-              className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors self-end"
+              className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors self-end"
             >
               Agregar
             </button>

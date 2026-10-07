@@ -6,8 +6,10 @@
      tokens.css     → @theme: colores, tipografía, sombras (design tokens)
      base.css       → resets a nivel de <body>/<html>, selección, foco
      animations.css → todas las @keyframes + sus clases utility
+     components.css → piezas repetidas (.cta, .label-mono, .num)
      effects.css    → auras/grano — efectos visuales decorativos */
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/animations.css";
+@import "./styles/components.css";
 @import "./styles/effects.css";

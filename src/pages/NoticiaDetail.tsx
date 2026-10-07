@@ -344,7 +344,7 @@ export default function NoticiaDetail() {
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 font-body text-[15px] px-5 py-4 rounded-sm bg-signal text-ink font-semibold transition-all duration-200 hover:bg-signal-dim hover:shadow-glow mb-10"
+          className="flex items-center justify-center gap-2 font-body text-[15px] px-5 py-4 rounded-sm cta font-semibold transition-all duration-200 hover:bg-signal-dim mb-10"
         >
           Leer la nota completa en {article.source_name}
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

@@ -172,7 +172,7 @@ export function InsightsSection({ compact = false }: { compact?: boolean }) {
           type="button"
           onClick={() => void handleGenerate()}
           disabled={loading || quotaExhausted || initializing}
-          className="font-body text-[13px] px-4 py-2.5 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+          className="font-body text-[13px] px-4 py-2.5 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
         >
           {loading ? 'Analizando...' : insights ? 'Regenerar insights' : 'Generar insights'}
         </button>

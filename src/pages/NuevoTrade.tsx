@@ -432,7 +432,7 @@ function NuevoTradeComplete({ symbol }: { symbol: string }) {
         <h1 className="font-display text-[26px] text-text-primary mb-3">{title}</h1>
         <Link
           to="/dashboard"
-          className="inline-block font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mt-8"
+          className="inline-block font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors mt-8"
         >
           Ir al Dashboard
         </Link>

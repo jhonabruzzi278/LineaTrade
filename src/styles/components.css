@@ -1,0 +1,44 @@
+/* Piezas de interfaz del sistema visual que se repiten en toda la app. Viven
+   en @layer components para que las utilities de Tailwind puedan ajustarlas
+   puntualmente (padding, ancho, etc.) sin pelear con la especificidad. */
+@layer components {
+  /* Acción principal: azul de marca, borde de tinta y sombra dura. Es el único
+     lugar donde aparece la sombra amarilla; nunca más de una por pantalla. */
+  .cta {
+    background-color: var(--color-signal);
+    color: var(--color-on-signal);
+    border: 2px solid var(--color-ink);
+    box-shadow: var(--shadow-pop);
+    font-weight: 800;
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 150ms ease;
+  }
+  .cta:hover:not(:disabled) {
+    background-color: var(--color-signal-dim);
+  }
+  .cta:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--color-pop);
+  }
+  .cta:disabled,
+  .cta[aria-disabled='true'] {
+    opacity: 0.5;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* Etiqueta en mayúsculas con tipografía mono: encabezados de sección,
+     metadatos y rótulos de métricas. */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+
+  /* Cifras tabulares: que los números no "bailen" al cambiar. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}

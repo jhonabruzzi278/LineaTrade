@@ -89,7 +89,7 @@ export default function Planes() {
               <h2 id="upgrade-title" className="mt-2 font-display text-[22px] font-medium text-text-primary">Pro amplía análisis, insights y alertas</h2>
               <p className="mt-3 max-w-xl font-body text-[13px] leading-6 text-text-muted">La estructura de permisos ya está activa. El pago se habilitará después de conectar Flow y verificar compra, renovación, cancelación y fallo de pago.</p>
             </div>
-            <button type="button" disabled={loading || startingCheckout || planKey !== 'free'} onClick={() => void startSubscription()} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-signal px-5 py-3 font-body text-[13px] font-semibold text-ink transition-[background-color,transform,opacity] duration-150 hover:bg-signal-dim active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-panel disabled:text-text-faint disabled:opacity-70">
+            <button type="button" disabled={loading || startingCheckout || planKey !== 'free'} onClick={() => void startSubscription()} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-signal px-5 py-3 font-body text-[13px] font-semibold text-on-signal transition-[background-color,transform,opacity] duration-150 hover:bg-signal-dim active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-panel disabled:text-text-faint disabled:opacity-70">
               {startingCheckout ? 'Abriendo Flow…' : planKey === 'free' ? 'Probar Pro 31 días' : 'Plan Pro activo'}
             </button>
           </div>

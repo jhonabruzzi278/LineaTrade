@@ -186,7 +186,7 @@ export default function Coach() {
             <button
               type="button"
               onClick={() => void handleNewConversation()}
-              className="w-full flex items-center justify-center gap-2 font-body text-[14px] px-5 py-4 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors mb-6"
+              className="w-full flex items-center justify-center gap-2 font-body text-[14px] px-5 py-4 rounded-sm cta font-medium hover:bg-signal-dim transition-colors mb-6"
             >
               <Plus size={16} />
               Nueva conversación
@@ -268,7 +268,7 @@ export default function Coach() {
                   onClick={() => void handleSend()}
                   disabled={sending || !draft.trim() || quotaExhausted}
                   aria-label="Enviar mensaje"
-                  className="p-2.5 rounded-sm bg-signal text-ink hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                  className="p-2.5 rounded-sm cta hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                 >
                   <Send size={16} />
                 </button>

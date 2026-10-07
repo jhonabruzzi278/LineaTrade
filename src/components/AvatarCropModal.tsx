@@ -67,7 +67,7 @@ export function AvatarCropModal({ imageSrc, saving, onCancel, onConfirm }: Avata
             type="button"
             onClick={() => croppedArea && onConfirm(croppedArea)}
             disabled={saving || !croppedArea}
-            className="flex-1 font-body text-[13px] font-medium px-4 py-2.5 rounded-sm bg-signal text-ink transition-colors hover:bg-signal-dim disabled:opacity-50"
+            className="flex-1 font-body text-[13px] font-medium px-4 py-2.5 rounded-sm cta transition-colors hover:bg-signal-dim disabled:opacity-50"
           >
             {saving ? 'Guardando…' : 'Guardar'}
           </button>

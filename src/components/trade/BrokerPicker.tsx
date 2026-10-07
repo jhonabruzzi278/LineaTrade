@@ -82,7 +82,7 @@ export function BrokerPicker({ value, onSelect }: BrokerPickerProps) {
             onClick={() => setCategory(filter)}
             className={`font-mono text-[11px] tracking-wide px-3 py-1.5 rounded-sm border transition-colors ${
               category === filter
-                ? 'border-signal bg-signal text-ink'
+                ? 'border-signal bg-signal text-on-signal'
                 : 'border-hairline text-text-muted hover:border-text-faint'
             }`}
           >
@@ -146,7 +146,7 @@ function BrokerCard({
       <span
         className={`shrink-0 w-8 h-8 rounded-sm border flex items-center justify-center font-mono text-[11px] transition-colors ${
           selected
-            ? 'bg-signal border-signal text-ink font-medium'
+            ? 'bg-signal border-signal text-on-signal font-medium'
             : 'bg-panel-2 border-hairline text-signal'
         }`}
       >

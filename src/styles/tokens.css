@@ -1,41 +1,45 @@
 /* Design tokens — la única fuente de verdad de color/tipografía/sombra del
    proyecto. Nunca hardcodear un hex en un componente: agregar o reusar un
-   token acá (ver CLAUDE.md "Design system"). */
-@theme {
-  --color-ink: #0D1215;
-  --color-panel: #151C20;
-  --color-panel-2: #1C252A;
-  --color-hairline: #2B363B;
-  --color-signal: #F06455;
-  --color-signal-dim: #D95547;
-  --color-steel: #53B8A9;
-  --color-text-primary: #F4F2EC;
-  --color-text-muted: #A6AFB0;
-  --color-text-faint: #929FA3;
+   token acá (ver CLAUDE.md "Design system").
 
-  /* Semantic P&L pair — deliberadamente separado de --color-signal (el acento
-     ámbar de marca usado en CTAs/links/focus). Los traders leen verde=gain/
-     rojo=loss al instante en cualquier plataforma que ya usan (TradingView,
-     Binance, brokers); reusar el acento de marca para "gain" pelearía contra
-     ese instinto. Los valores matchean la convención saturada verde/rojo de
-     UIs de trading oscuras estilo Binance/Bybit en vez de la paleta editorial
-     más apagada — es el único lugar del producto donde debe sentirse como los
-     terminales que los traders ya usan. Ambos pasan WCAG AA (>4.5:1) contra
-     --color-ink. */
+   Sistema visual "Fusión" (rediseño 2026-10): estructura de una mesa de trabajo
+   sobria, calma de una interfaz clara y carácter de bloques con sombra dura.
+   - Azul de marca para acciones y foco; amarillo solo como acento (sombra dura,
+     etiquetas de práctica, avisos).
+   - Verde/rojo se reservan para ganancia/pérdida (P&L) y dirección del trade.
+   - Tres familias: Archivo expandido (títulos y cifras grandes), Figtree
+     (texto) y Geist Mono (etiquetas, cifras tabulares). */
+@theme {
+  --color-ink: #0B0E13;
+  --color-panel: #12171F;
+  --color-panel-2: #161C27;
+  --color-hairline: #222934;
+  --color-signal: #3D5BFF;
+  --color-signal-dim: #2F49D6;
+  /* Variante clara de la marca para texto/enlaces sobre fondo oscuro. */
+  --color-steel: #7D95FF;
+  --color-text-primary: #F2F4F7;
+  --color-text-muted: #C9D0D9;
+  --color-text-faint: #929CAA;
+
+  /* Texto sobre superficies de acción (azul de marca) y sobre el amarillo. */
+  --color-on-signal: #FFFFFF;
+  --color-spark: #FFC83D;
+  --color-on-spark: #0B0E13;
+  /* Color de la sombra dura de los botones primarios (amarillo en oscuro,
+     tinta en claro). */
+  --color-pop: #FFC83D;
+
+  /* Par semántico de P&L — deliberadamente separado del azul de marca: los
+     traders leen verde=ganancia / rojo=pérdida al instante en cualquier
+     plataforma que ya usan. Ambos pasan WCAG AA contra --color-ink. */
   --color-gain: #3CCB7F;
   --color-gain-dim: #2DAF69;
   --color-loss: #F25F64;
   --color-loss-dim: #D94B50;
 
-  /* shadcn/ui token bridge — agregado 2026-07-20 junto con components/ui/
-     (Radix + class-variance-authority). Deliberadamente NO la paleta
-     zinc/slate default de shadcn: cada nombre semántico de abajo está
-     aliaseado a un token de marca que ya existía, así que un componente
-     shadcn recién copiado queda on-brand al pegarlo, sin ningún edit de color
-     a nivel de componente. Este es el único y exclusivo sistema de color —
-     son alias, no una segunda paleta. No agregar acá un hex crudo nuevo;
-     apuntar a un --color-* ya existente arriba. Ver
-     docs/lineatrade-design-system.md §3.5. */
+  /* shadcn/ui token bridge: alias de los tokens de marca, no una segunda
+     paleta. Un componente shadcn copiado queda on-brand sin tocar colores. */
   --color-background: var(--color-ink);
   --color-foreground: var(--color-text-primary);
   --color-card: var(--color-panel);
@@ -43,7 +47,7 @@
   --color-popover: var(--color-panel-2);
   --color-popover-foreground: var(--color-text-primary);
   --color-primary: var(--color-signal);
-  --color-primary-foreground: var(--color-ink);
+  --color-primary-foreground: var(--color-on-signal);
   --color-secondary: var(--color-panel-2);
   --color-secondary-foreground: var(--color-text-primary);
   --color-muted: var(--color-panel-2);
@@ -56,35 +60,50 @@
   --color-input: var(--color-hairline);
   --color-ring: var(--color-signal);
 
-  --font-display: "Manrope", sans-serif;
-  --font-body: "Manrope", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Archivo", sans-serif;
+  --font-body: "Figtree", sans-serif;
+  --font-mono: "Geist Mono", monospace;
   --font-serif: "Merriweather", Georgia, serif;
 
-  /* Profundidad — las tarjetas oscuras se leen en capas via un borde superior
-     iluminado + una sombra proyectada suave. Se consumen como utilities de
-     Tailwind: shadow-card / shadow-elevated / shadow-glow. */
+  /* Radios del sistema: botones/campos 10, tarjetas 12, chips completos. Se
+     redefinen los de Tailwind para que `rounded-sm` (usado en toda la app)
+     tome el radio del rediseño sin tocar cada componente. */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Profundidad: las tarjetas se leen en capas con un borde superior
+     iluminado y una sombra suave. Utilities: shadow-card / shadow-elevated /
+     shadow-glow. `shadow-pop` es la sombra dura de marca de los CTA. */
   --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 24px -14px rgba(0, 0, 0, 0.75);
   --shadow-elevated: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 42px -18px rgba(0, 0, 0, 0.85);
-  --shadow-glow: 0 8px 30px -10px rgba(245, 165, 36, 0.34);
+  --shadow-glow: 0 8px 30px -10px rgba(61, 91, 255, 0.4);
+  --shadow-pop: 3px 3px 0 var(--color-pop);
+  --shadow-pop-lg: 4px 4px 0 var(--color-pop);
 }
 
 :root[data-theme='light'] {
-  --color-ink: #F4F1EA;
+  --color-ink: #F4F5F7;
   --color-panel: #FFFFFF;
-  --color-panel-2: #EAE6DE;
-  --color-hairline: #D5D0C7;
-  --color-signal: #D84F42;
-  --color-signal-dim: #BE4035;
-  --color-steel: #247F75;
-  --color-text-primary: #172025;
-  --color-text-muted: #566368;
-  --color-text-faint: #626F73;
-  --color-gain: #148455;
-  --color-gain-dim: #106D47;
-  --color-loss: #C83E47;
-  --color-loss-dim: #A9323A;
-  --shadow-card: 0 0 0 1px rgba(23, 32, 37, 0.06), 0 8px 24px -18px rgba(23, 32, 37, 0.24);
-  --shadow-elevated: 0 0 0 1px rgba(23, 32, 37, 0.08), 0 20px 48px -24px rgba(23, 32, 37, 0.28);
-  --shadow-glow: 0 10px 30px -16px rgba(216, 79, 66, 0.35);
+  --color-panel-2: #EBEEF3;
+  --color-hairline: #E3E6EB;
+  --color-signal: #2B4BEE;
+  --color-signal-dim: #1C36C2;
+  --color-steel: #2B4BEE;
+  --color-text-primary: #0F1B2D;
+  --color-text-muted: #3E4A5C;
+  --color-text-faint: #5B6576;
+  --color-on-signal: #FFFFFF;
+  --color-spark: #FFD23F;
+  --color-on-spark: #0F1B2D;
+  --color-pop: #0F1B2D;
+  --color-gain: #12805C;
+  --color-gain-dim: #0E6A4C;
+  --color-loss: #C8323B;
+  --color-loss-dim: #A9282F;
+  --color-destructive-foreground: #FFFFFF;
+  --shadow-card: 0 0 0 1px rgba(15, 27, 45, 0.04), 0 8px 22px -16px rgba(15, 27, 45, 0.25);
+  --shadow-elevated: 0 0 0 1px rgba(15, 27, 45, 0.06), 0 20px 48px -24px rgba(15, 27, 45, 0.28);
+  --shadow-glow: 0 10px 30px -16px rgba(43, 75, 238, 0.35);
 }

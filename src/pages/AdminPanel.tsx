@@ -284,7 +284,7 @@ function ProviderConfigSection() {
               <button
                 type="submit"
                 disabled={saving || !apiKey.trim()}
-                className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+                className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
               >
                 {saving ? 'Guardando...' : 'Guardar key'}
               </button>
@@ -375,7 +375,7 @@ function RateLimitSection() {
           <button
             type="submit"
             disabled={saving || !dailyLimit.trim() || Number(dailyLimit) === config?.free_tier_daily_limit}
-            className="font-body text-[14px] px-5 py-3 rounded-sm bg-signal text-ink font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
+            className="font-body text-[14px] px-5 py-3 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-signal"
           >
             {saving ? 'Guardando...' : 'Guardar límite'}
           </button>

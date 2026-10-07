@@ -89,7 +89,7 @@ export default function Dashboard() {
           </div>
           <Link
             to="/nuevo-trade"
-            className="hidden sm:inline-flex items-center gap-2 shrink-0 rounded-sm bg-signal px-4 py-3 font-body text-[13px] font-medium text-ink transition-all hover:bg-signal-dim hover:-translate-y-0.5 hover:shadow-glow"
+            className="hidden sm:inline-flex items-center gap-2 shrink-0 rounded-sm bg-signal px-4 py-3 font-body text-[13px] font-medium text-on-signal transition-all hover:bg-signal-dim hover:-translate-y-0.5 hover:shadow-glow"
           >
             <Plus className="h-4 w-4" />
             Registrar trade

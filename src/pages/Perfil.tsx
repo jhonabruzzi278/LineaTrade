@@ -167,7 +167,7 @@ export default function Perfil() {
                   getInitials(user?.email)
                 )}
               </span>
-              <span className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-signal border-2 border-ink flex items-center justify-center text-ink">
+              <span className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-signal border-2 border-ink flex items-center justify-center text-on-signal">
                 {photoUploading ? (
                   <span className="w-3.5 h-3.5 border-2 border-ink/40 border-t-ink rounded-full animate-spin" aria-hidden="true" />
                 ) : (
