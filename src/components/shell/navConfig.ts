@@ -57,7 +57,7 @@ export const NAV_AREAS: NavArea[] = [
     to: '/academia',
     children: [
       { label: 'Aula', to: '/academia', also: ['/academia/lecciones'] },
-      { label: 'Glosario', to: '/academia/glosario', soon: true },
+      { label: 'Glosario', to: '/academia/glosario' },
     ],
   },
 ]

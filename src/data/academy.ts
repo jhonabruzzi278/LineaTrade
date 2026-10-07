@@ -3,6 +3,8 @@ export type AcademyLesson = {
   title: string
   durationMinutes: number
   practice?: string
+  /** Marca "NUEVO" en el aula (lecciones añadidas en el último rediseño). */
+  isNew?: boolean
 }
 
 export type AcademyModule = {
@@ -11,16 +13,22 @@ export type AcademyModule = {
   title: string
   description: string
   durationMinutes: number
+  isNew?: boolean
   lessons: AcademyLesson[]
 }
 
-export const academyModules: AcademyModule[] = [
+type ModuleDraft = Omit<AcademyModule, 'durationMinutes'>
+
+// Los IDs de lección son la clave del progreso guardado (localStorage y tabla
+// academy_lesson_progress): nunca renombrar uno existente; las lecciones nuevas
+// llevan IDs nuevos. Todas las lecciones están abiertas: el orden es una
+// recomendación, no un bloqueo.
+const moduleDrafts: ModuleDraft[] = [
   {
     id: 'fundamentos',
     number: '01',
     title: 'Fundamentos del proceso',
     description: 'El mercado de futuros, el contrato y las reglas que protegen tu cuenta.',
-    durationMinutes: 46,
     lessons: [
       { id: 'bienvenida', title: 'Bienvenido a LineaTrade', durationMinutes: 6 },
       { id: 'futuros-indices', title: 'NQ, MNQ, ES y MES', durationMinutes: 10 },
@@ -34,21 +42,48 @@ export const academyModules: AcademyModule[] = [
     number: '02',
     title: 'Prepara tu mesa de trabajo',
     description: 'Configura gráficos, calendario, horarios y una rutina pre-market repetible.',
-    durationMinutes: 48,
     lessons: [
       { id: 'workspace', title: 'Un workspace sin ruido', durationMinutes: 8 },
       { id: 'contratos', title: 'Contratos y rollover', durationMinutes: 10 },
       { id: 'calendario', title: 'Calendario económico', durationMinutes: 9, practice: 'Marca una ventana de noticias' },
       { id: 'niveles', title: 'Niveles de referencia', durationMinutes: 11 },
       { id: 'rutina', title: 'Tu rutina pre-market', durationMinutes: 10, practice: 'Completa una sesión' },
+      {
+        id: 'primer-trade-papermoney',
+        title: 'Tu primer trade en papermoney',
+        durationMinutes: 14,
+        practice: 'Haz tu primer trade demo hoy',
+        isNew: true,
+      },
+    ],
+  },
+  {
+    id: 'riesgo-fondeo',
+    number: '03',
+    title: 'Riesgo y cuentas de fondeo',
+    description:
+      'Drawdown, límites diarios y reglas de las evaluaciones. Recomendado antes de pagar una cuenta de fondeo.',
+    isNew: true,
+    lessons: [
+      { id: 'que-es-drawdown', title: 'Qué es el drawdown', durationMinutes: 9 },
+      {
+        id: 'trailing-eod-estatico',
+        title: 'Trailing, EOD y estático',
+        durationMinutes: 12,
+        practice: 'Simula tu drawdown con tus propios trades',
+      },
+      { id: 'limite-diario-objetivo', title: 'Límite diario y objetivo', durationMinutes: 9 },
+      { id: 'consistencia-dias-minimos', title: 'Consistencia y días mínimos', durationMinutes: 9 },
+      { id: 'tamano-posicion', title: 'Tamaño de posición', durationMinutes: 10 },
+      { id: 'como-funciona-evaluacion', title: 'Cómo funciona una evaluación', durationMinutes: 9 },
+      { id: 'elegir-firma', title: 'Elegir una firma sin sesgo', durationMinutes: 9 },
     ],
   },
   {
     id: 'estructura',
-    number: '03',
+    number: '04',
     title: 'Estructura del mercado',
     description: 'Contexto mensual, semanal y diario antes de buscar una ejecución.',
-    durationMinutes: 61,
     lessons: [
       { id: 'estructura-base', title: 'Estructura y desplazamiento', durationMinutes: 10 },
       { id: 'bias-htf', title: 'Bias de temporalidad alta', durationMinutes: 11, practice: 'Registra tres contextos' },
@@ -60,10 +95,9 @@ export const academyModules: AcademyModule[] = [
   },
   {
     id: 'liquidez',
-    number: '04',
+    number: '05',
     title: 'Liquidez y zonas',
     description: 'Identifica zonas como evidencia; nunca como una señal automática.',
-    durationMinutes: 57,
     lessons: [
       { id: 'liquidez-base', title: 'Dónde descansa la liquidez', durationMinutes: 11 },
       { id: 'sweeps', title: 'Sweeps e invalidación', durationMinutes: 12 },
@@ -74,10 +108,9 @@ export const academyModules: AcademyModule[] = [
   },
   {
     id: 'ejecucion',
-    number: '05',
+    number: '06',
     title: 'Ejecución y revisión',
     description: 'Convierte condiciones en un setup medible y revisa la calidad de la decisión.',
-    durationMinutes: 62,
     lessons: [
       { id: 'setup', title: 'Anatomía de un setup', durationMinutes: 10 },
       { id: 'compliance', title: 'Strategy Compliance', durationMinutes: 9, practice: 'Configura un modelo' },
@@ -89,11 +122,38 @@ export const academyModules: AcademyModule[] = [
   },
 ]
 
-export const academyLessons = academyModules.flatMap((module) =>
-  module.lessons.map((lesson) => ({ ...lesson, moduleId: module.id, moduleTitle: module.title })),
+export const academyModules: AcademyModule[] = moduleDrafts.map((draft) => ({
+  ...draft,
+  durationMinutes: draft.lessons.reduce((total, lesson) => total + lesson.durationMinutes, 0),
+}))
+
+export type AcademyLessonRef = AcademyLesson & {
+  moduleId: string
+  moduleTitle: string
+  moduleNumber: string
+  /** Posición (desde 0) dentro de su módulo. */
+  indexInModule: number
+  moduleLessonCount: number
+}
+
+export const academyLessons: AcademyLessonRef[] = academyModules.flatMap((module) =>
+  module.lessons.map((lesson, indexInModule) => ({
+    ...lesson,
+    moduleId: module.id,
+    moduleTitle: module.title,
+    moduleNumber: module.number,
+    indexInModule,
+    moduleLessonCount: module.lessons.length,
+  })),
 )
 
 export const academyTotalMinutes = academyModules.reduce((total, module) => total + module.durationMinutes, 0)
+
+/** Lección que sigue en el orden recomendado (cruza de módulo), o `null` si es la última. */
+export function getNextAcademyLesson(lessonId: string): AcademyLessonRef | null {
+  const index = academyLessons.findIndex((lesson) => lesson.id === lessonId)
+  return index >= 0 ? (academyLessons[index + 1] ?? null) : null
+}
 
 export function formatAcademyDuration(minutes: number) {
   const hours = Math.floor(minutes / 60)
