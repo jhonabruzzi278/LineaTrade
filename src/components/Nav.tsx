@@ -1,45 +1,80 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
+import { BrandMark } from './shell/BrandMark'
 import { ThemeToggle } from './ThemeToggle'
+import { buttonVariants } from './ui/button'
 
+const SECTION_LINKS = [
+  { href: '#como-funciona', label: 'Cómo funciona' },
+  { href: '#academia', label: 'Academia' },
+  { href: '#planes', label: 'Planes' },
+] as const
+
+const SECTION_LINK_CLASS = 'inline-flex min-h-11 items-center px-1 font-body text-[14px] font-medium text-text-faint transition-colors hover:text-text-primary'
+
+// Encabezado de las páginas públicas (landing, privacidad, eliminar cuenta).
+// Escritorio: marca, secciones de la landing, ingresar y crear cuenta. Móvil:
+// marca, ingresar y un menú desplegable con las secciones.
 export function Nav() {
+  const [menuOpen, setMenuOpen] = useState(false)
+  // Fuera de la landing las secciones viven en "/", no en la página actual.
+  const anchorBase = useLocation().pathname === '/' ? '' : '/'
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [menuOpen])
+
   return (
-    <header className="landing-nav sticky top-0 z-30 px-3 pt-3 sm:px-4 sm:pt-4">
-      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-hairline bg-ink/85 px-4 py-2 backdrop-blur-xl sm:px-6">
-        <Link to="/" className="group flex items-center gap-2.5">
-          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-            <path
-              d="M2 14 L7 8 L11 12 L18 4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-signal transition-[stroke-width] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:[stroke-width:2]"
-            />
-          </svg>
-          <span className="font-display text-[15px] tracking-tight text-text-primary">
-            lineatrade
-          </span>
-        </Link>
-        <nav aria-label="Navegación principal" className="flex items-center gap-1 sm:gap-4">
-          <a href="#como-funciona" className="hidden min-h-11 items-center text-sm text-text-muted hover:text-text-primary lg:inline-flex">Plataforma</a>
-          <a href="#academia" className="hidden min-h-11 items-center text-sm text-text-muted hover:text-text-primary lg:inline-flex">Academia</a>
-          <a href="#planes" className="hidden min-h-11 items-center text-sm text-text-muted hover:text-text-primary lg:inline-flex">Planes</a>
+    <header className="landing-nav sticky top-0 z-30 border-b border-hairline bg-ink/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 lg:h-[72px] lg:px-10">
+        <BrandMark to="/" />
+        <nav aria-label="Secciones" className="hidden items-center gap-6 lg:flex">
+          {SECTION_LINKS.map((link) => (
+            <a key={link.href} href={anchorBase + link.href} className={SECTION_LINK_CLASS}>{link.label}</a>
+          ))}
+        </nav>
+        <div className="flex items-center gap-1 lg:gap-2.5">
           <ThemeToggle />
-          <Link
-            to="/login"
-            className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-text-muted transition-colors duration-150 hover:text-text-primary"
-          >
+          <Link to="/login" className="inline-flex min-h-11 items-center px-2.5 font-body text-[14px] font-semibold text-text-primary hover:text-steel">
             Ingresar
           </Link>
-          <Link
-            to="/registro"
-            className="hidden min-h-11 items-center rounded-full bg-signal px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-signal-dim active:scale-[0.96] sm:inline-flex"
-          >
+          <Link to="/registro" className={`${buttonVariants({ variant: 'default', size: 'default' })} hidden lg:inline-flex`}>
             Crear cuenta
           </Link>
-        </nav>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="menu-publico"
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            className="flex h-11 w-11 items-center justify-center rounded-[10px] text-text-primary hover:bg-panel lg:hidden"
+          >
+            {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+          </button>
+        </div>
       </div>
+      {menuOpen && (
+        <nav id="menu-publico" aria-label="Menú" className="border-t border-hairline bg-ink px-5 pb-5 pt-2 lg:hidden">
+          <ul className="flex flex-col">
+            {SECTION_LINKS.map((link) => (
+              <li key={link.href}>
+                <a href={anchorBase + link.href} onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center border-b border-hairline font-body text-[15px] font-semibold text-text-primary">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <Link to="/registro" className={`${buttonVariants({ variant: 'default', size: 'lg' })} mt-4 w-full`}>
+            Crear cuenta gratis
+          </Link>
+        </nav>
+      )}
     </header>
   )
 }
