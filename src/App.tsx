@@ -34,6 +34,7 @@ const Mas = lazy(() => import('./pages/Mas'))
 const Insights = lazy(() => import('./pages/Insights'))
 const Academia = lazy(() => import('./pages/Academia'))
 const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
+const Glosario = lazy(() => import('./pages/Glosario'))
 const Planes = lazy(() => import('./pages/Planes'))
 
 function RouteFallback() {
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/noticias" element={<Noticias />} />
             <Route path="/academia" element={<Academia />} />
             <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
+            <Route path="/academia/glosario" element={<Glosario />} />
             <Route path="/mas" element={<Mas />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/sistema" element={<Sistema />} />
