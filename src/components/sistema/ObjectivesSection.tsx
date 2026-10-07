@@ -1,113 +1,66 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { AccountRow, AccountSection } from '../account/AccountSection'
+import { Button } from '../ui/button'
+import { Field } from '../ui/field'
+import { IconButton } from '../ui/icon-button'
+import { ProgressBar } from '../ui/progress-bar'
+import { SelectField } from '../ui/select-field'
+import { Sheet } from '../ui/sheet'
+import { Tag } from '../ui/tag'
+import { EmptyList, ErrorNote, ListSkeleton } from './SectionStates'
 import { supabase } from '../../lib/supabase'
 import { getErrorMessage } from '../../lib/errors'
+import { formatDateOnly } from '../../lib/tradeDisplay'
+import {
+  OBJECTIVE_METRICS,
+  OBJECTIVE_METRIC_LABELS,
+  defaultObjectiveTitle,
+  formatObjectiveValue,
+  isObjectiveMetric,
+  isObjectiveReached,
+  objectiveProgress,
+  type ObjectiveMetric,
+} from '../../lib/systemRules'
 import { useToast } from '../../lib/toast'
-import { SettingsGroup, SettingsRow } from '../SettingsRow'
-import { Switch } from '../Switch'
-import { TrashIcon } from '../icons/NavIcons'
 import type { Database } from '../../types/database'
 
 type Objective = Database['public']['Tables']['objectives']['Row']
+type SheetState = null | 'new' | Objective
 
-const METRIC_LABELS: Record<string, string> = {
-  win_rate: 'Win rate (%)',
-  profit_factor: 'Profit factor',
-  r_avg: 'R promedio',
-  custom: 'Personalizado',
+function describePeriod(objective: Objective): string {
+  const metric = isObjectiveMetric(objective.metric_type) ? OBJECTIVE_METRIC_LABELS[objective.metric_type] : objective.metric_type
+  const { period_start: start, period_end: end } = objective
+  const period =
+    start || end ? `${start ? formatDateOnly(start) : '…'} → ${end ? formatDateOnly(end) : '…'}` : 'Sin periodo'
+  return `${period} · ${metric} · valor que anotas tú`
 }
-const METRIC_TYPES = Object.keys(METRIC_LABELS)
 
 export function ObjectivesSection({ userId }: { userId: string }) {
   const { showToast } = useToast()
   const [objectives, setObjectives] = useState<Objective[]>([])
   const [loading, setLoading] = useState(true)
-  const [title, setTitle] = useState('')
-  const [metricType, setMetricType] = useState(METRIC_TYPES[0])
-  const [targetValue, setTargetValue] = useState('')
-  const [periodStart, setPeriodStart] = useState('')
-  const [periodEnd, setPeriodEnd] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [sheet, setSheet] = useState<SheetState>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    void loadObjectives()
+    let cancelled = false
+    async function load() {
+      const { data, error: loadError } = await supabase
+        .from('objectives')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+      if (cancelled) return
+      if (loadError) setError(getErrorMessage(loadError))
+      else setObjectives(data ?? [])
+      setLoading(false)
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
   }, [])
-
-  async function loadObjectives() {
-    const { data, error: loadError } = await supabase
-      .from('objectives')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-    if (loadError) {
-      setError(getErrorMessage(loadError))
-    } else {
-      setObjectives(data ?? [])
-    }
-    setLoading(false)
-  }
-
-  async function handleAdd(e: FormEvent) {
-    e.preventDefault()
-    const parsedTarget = Number(targetValue)
-    if (!title.trim() || !targetValue || Number.isNaN(parsedTarget)) return
-    setSaving(true)
-    setError(null)
-    const { data, error: insertError } = await supabase
-      .from('objectives')
-      .insert({
-        user_id: userId,
-        title: title.trim(),
-        metric_type: metricType,
-        target_value: parsedTarget,
-        period_start: periodStart || null,
-        period_end: periodEnd || null,
-      })
-      .select('*')
-      .single()
-    setSaving(false)
-    if (insertError) {
-      setError(getErrorMessage(insertError))
-      return
-    }
-    setObjectives((prev) => [...prev, data])
-    setTitle('')
-    setTargetValue('')
-    setPeriodStart('')
-    setPeriodEnd('')
-    showToast('Objetivo agregado.', 'success')
-  }
-
-  async function updateProgress(objective: Objective, nextValue: string) {
-    const parsed = Number(nextValue)
-    if (nextValue === '' || Number.isNaN(parsed)) return
-    const { error: updateError } = await supabase
-      .from('objectives')
-      .update({ current_value: parsed })
-      .eq('id', objective.id)
-    if (updateError) {
-      setError(getErrorMessage(updateError))
-      return
-    }
-    setObjectives((prev) =>
-      prev.map((o) => (o.id === objective.id ? { ...o, current_value: parsed } : o)),
-    )
-  }
-
-  async function toggleAchieved(objective: Objective) {
-    const { error: updateError } = await supabase
-      .from('objectives')
-      .update({ achieved: !objective.achieved })
-      .eq('id', objective.id)
-    if (updateError) {
-      setError(getErrorMessage(updateError))
-      return
-    }
-    setObjectives((prev) =>
-      prev.map((o) => (o.id === objective.id ? { ...o, achieved: !o.achieved } : o)),
-    )
-    if (!objective.achieved) showToast('Objetivo logrado.', 'success')
-  }
 
   async function handleDelete(objective: Objective) {
     const { error: deleteError } = await supabase
@@ -122,115 +75,159 @@ export function ObjectivesSection({ userId }: { userId: string }) {
     showToast('Objetivo eliminado.', 'info')
   }
 
+  function handleSaved(saved: Objective, wasNew: boolean) {
+    setObjectives((prev) => (wasNew ? [...prev, saved] : prev.map((o) => (o.id === saved.id ? saved : o))))
+    setSheet(null)
+    showToast(wasNew ? 'Objetivo agregado.' : 'Objetivo actualizado.', 'success')
+  }
+
   return (
-    <div>
-      <p className="font-body text-[14px] text-text-muted mb-6">
-        Metas que te marcás sobre tus propias métricas. El avance lo cargás vos — todavía no se
-        calcula solo desde tus trades.
-      </p>
-      {error && <p className="font-body text-[13px] text-loss mb-4">{error}</p>}
-      {loading && <p className="font-body text-[14px] text-text-muted">Cargando...</p>}
-      {!loading && objectives.length === 0 && (
-        <p className="font-body text-[13px] text-text-faint mb-6">Sin objetivos todavía.</p>
-      )}
-      {objectives.length > 0 && (
-        <div className="mb-6">
-          <SettingsGroup>
-            {objectives.map((objective) => (
-              <SettingsRow
+    <>
+      {error && <ErrorNote message={error} />}
+
+      <AccountSection
+        title="Mis objetivos"
+        aside={
+          <Button type="button" variant="cta" onClick={() => setSheet('new')}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Nuevo objetivo
+          </Button>
+        }
+      >
+        {loading ? (
+          <ListSkeleton />
+        ) : objectives.length === 0 ? (
+          <EmptyList title="Aún no tienes objetivos" hint="Define una meta sobre tus propias métricas y actualiza su valor actual cuando quieras." />
+        ) : (
+          objectives.map((objective) => {
+            const reached = objective.achieved || isObjectiveReached(objective.current_value, objective.target_value)
+            const progress = objectiveProgress(objective.current_value, objective.target_value)
+            const valueText = `${formatObjectiveValue(objective.metric_type, objective.current_value ?? 0)} / ${formatObjectiveValue(objective.metric_type, objective.target_value)}`
+            return (
+              <AccountRow
                 key={objective.id}
-                title={objective.title}
-                description={`${METRIC_LABELS[objective.metric_type] ?? objective.metric_type}${
-                  objective.period_start || objective.period_end
-                    ? ` · ${objective.period_start ?? '...'} → ${objective.period_end ?? '...'}`
-                    : ''
-                }`}
-                right={
-                  <>
-                    <Switch
-                      hideLabel
-                      checked={objective.achieved}
-                      onChange={() => void toggleAchieved(objective)}
-                      label={`Marcar como logrado: ${objective.title}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete(objective)}
-                      aria-label={`Eliminar objetivo: ${objective.title}`}
-                      className="text-text-faint hover:text-loss transition-colors"
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  </>
+                title={
+                  <span className="flex flex-wrap items-center gap-2.5">
+                    {objective.title}
+                    <Tag tone={reached ? 'gain' : 'neutral'}>{reached ? 'Logrado' : 'En curso'}</Tag>
+                  </span>
                 }
+                description={<span className="num text-[12px]">{describePeriod(objective)}</span>}
                 footer={
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      defaultValue={objective.current_value ?? 0}
-                      onBlur={(e) => void updateProgress(objective, e.target.value)}
-                      className="w-24 bg-ink border border-hairline rounded-sm px-3 py-1.5 font-mono text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-                    />
-                    <span className="font-mono text-[12px] text-text-faint">/ {objective.target_value}</span>
+                  <div className="flex items-center gap-3">
+                    <ProgressBar className="flex-1" value={progress} label={`Avance de ${objective.title}`} />
+                    <b className="num shrink-0 text-[13px] font-medium text-text-primary">{valueText}</b>
                   </div>
                 }
+                control={
+                  <>
+                    <IconButton icon={Pencil} label={`Editar objetivo: ${objective.title}`} onClick={() => setSheet(objective)} />
+                    <IconButton icon={Trash2} tone="danger" label={`Eliminar objetivo: ${objective.title}`} onClick={() => void handleDelete(objective)} />
+                  </>
+                }
               />
-            ))}
-          </SettingsGroup>
-        </div>
-      )}
-      <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">
-        <input
-          type="text"
+            )
+          })
+        )}
+      </AccountSection>
+
+      {sheet && <ObjectiveSheet userId={userId} objective={sheet === 'new' ? null : sheet} onClose={() => setSheet(null)} onSaved={handleSaved} />}
+    </>
+  )
+}
+
+interface ObjectiveSheetProps {
+  userId: string
+  objective: Objective | null
+  onClose: () => void
+  onSaved: (objective: Objective, wasNew: boolean) => void
+}
+
+function ObjectiveSheet({ userId, objective, onClose, onSaved }: ObjectiveSheetProps) {
+  const initialMetric = objective && isObjectiveMetric(objective.metric_type) ? objective.metric_type : OBJECTIVE_METRICS[0]
+  const [metric, setMetric] = useState<ObjectiveMetric>(initialMetric)
+  const [title, setTitle] = useState(objective?.title ?? '')
+  const [target, setTarget] = useState(objective ? String(objective.target_value) : '')
+  const [current, setCurrent] = useState(objective?.current_value != null ? String(objective.current_value) : '')
+  const [periodStart, setPeriodStart] = useState(objective?.period_start ?? '')
+  const [periodEnd, setPeriodEnd] = useState(objective?.period_end ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const targetNumber = Number(target)
+  const currentNumber = current === '' ? null : Number(current)
+  const needsTitle = metric === 'custom'
+  const isValid =
+    target !== '' &&
+    Number.isFinite(targetNumber) &&
+    (currentNumber === null || Number.isFinite(currentNumber)) &&
+    (!needsTitle || title.trim() !== '') &&
+    (!periodStart || !periodEnd || periodStart <= periodEnd)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!isValid) return
+    const payload = {
+      title: title.trim() || defaultObjectiveTitle(metric, targetNumber),
+      metric_type: metric,
+      target_value: targetNumber,
+      current_value: currentNumber,
+      // `achieved` sigue a la meta: al anotar un valor que la alcanza queda logrado.
+      achieved: isObjectiveReached(currentNumber, targetNumber),
+      period_start: periodStart || null,
+      period_end: periodEnd || null,
+    }
+    setSaving(true)
+    setError(null)
+    const query = objective
+      ? supabase.from('objectives').update(payload).eq('id', objective.id)
+      : supabase.from('objectives').insert({ user_id: userId, ...payload })
+    const { data, error: saveError } = await query.select('*').single()
+    setSaving(false)
+    if (saveError) {
+      setError(getErrorMessage(saveError))
+      return
+    }
+    onSaved(data, objective === null)
+  }
+
+  return (
+    <Sheet title={objective ? 'Editar objetivo' : 'Nuevo objetivo'} onClose={onClose}>
+      <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
+        <SelectField id="obj-metric" label="Métrica" value={metric} onChange={(e) => setMetric(e.target.value as ObjectiveMetric)}>
+          {OBJECTIVE_METRICS.map((m) => (
+            <option key={m} value={m}>
+              {OBJECTIVE_METRIC_LABELS[m]}
+            </option>
+          ))}
+        </SelectField>
+        <Field
+          id="obj-title"
+          label={needsTitle ? 'Título' : 'Título (opcional)'}
           value={title}
+          maxLength={120}
+          placeholder={needsTitle ? 'Ej. Completar el checklist 20 días' : 'Se genera a partir de la meta'}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título del objetivo"
-          className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
         />
         <div className="grid grid-cols-2 gap-3">
-          <select
-            value={metricType}
-            onChange={(e) => setMetricType(e.target.value)}
-            className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[14px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-          >
-            {METRIC_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {METRIC_LABELS[type]}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            step="0.01"
-            value={targetValue}
-            onChange={(e) => setTargetValue(e.target.value)}
-            placeholder="Meta"
-            className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors"
-          />
+          <Field id="obj-target" label="Meta" type="number" inputMode="decimal" step="any" mono value={target} onChange={(e) => setTarget(e.target.value)} />
+          <Field id="obj-current" label="Valor actual" type="number" inputMode="decimal" step="any" mono value={current} onChange={(e) => setCurrent(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <input
-            type="date"
-            value={periodStart}
-            onChange={(e) => setPeriodStart(e.target.value)}
-            className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-          />
-          <input
-            type="date"
-            value={periodEnd}
-            onChange={(e) => setPeriodEnd(e.target.value)}
-            className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[13px] text-text-primary focus:outline-none focus:border-signal transition-colors"
-          />
+          <Field id="obj-from" label="Desde" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+          <Field id="obj-to" label="Hasta" type="date" value={periodEnd} min={periodStart || undefined} onChange={(e) => setPeriodEnd(e.target.value)} />
         </div>
-        <button
-          type="submit"
-          disabled={saving || !title.trim() || !targetValue}
-          className="font-body text-[13px] px-4 py-2 rounded-sm cta font-medium hover:bg-signal-dim transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Guardando...' : '+ Agregar objetivo'}
-        </button>
+        <p className="font-body text-[12px] text-text-faint">El valor actual lo anotas tú: no se calcula solo desde tus trades. Tus estadísticas reales están en el Reporte.</p>
+        {error && <ErrorNote message={error} />}
+        <div className="mt-1 flex justify-end gap-2.5">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="cta" disabled={saving || !isValid}>
+            {saving ? 'Guardando…' : 'Guardar objetivo'}
+          </Button>
+        </div>
       </form>
-    </div>
+    </Sheet>
   )
 }
