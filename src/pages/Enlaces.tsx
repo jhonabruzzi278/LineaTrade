@@ -35,24 +35,22 @@ type TileProps = {
 }
 
 function LinkTile({ icon, label, sublabel, emphasized, children }: TileProps) {
-  const base =
-    'group flex w-full items-center gap-4 rounded-sm border px-5 py-4 text-left transition-all duration-200'
   const tone = emphasized
-    ? 'border-signal/60 bg-signal/10 hover:bg-signal/15 hover:shadow-glow'
-    : 'border-hairline bg-panel/70 hover:border-signal/50 hover:bg-panel-2/70'
+    ? 'border-2 border-ink bg-signal text-on-signal shadow-pop'
+    : 'border border-hairline bg-panel hover:border-text-faint'
 
   return (
-    <div className={`${base} ${tone}`}>
+    <div className={`group flex min-h-14 w-full items-center gap-4 rounded-xl px-5 py-4 text-left transition-colors ${tone}`}>
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-sm ${
-          emphasized ? 'bg-signal text-on-signal' : 'bg-panel-2 text-signal'
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${
+          emphasized ? 'bg-ink text-spark' : 'bg-panel-2 text-steel'
         }`}
       >
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-body text-[15px] font-medium text-text-primary">{label}</span>
-        {sublabel && <span className="block font-mono text-[12px] text-text-faint">{sublabel}</span>}
+        <span className="block font-body text-[15px] font-bold">{label}</span>
+        {sublabel && <span className="num block text-[12px] text-text-faint">{sublabel}</span>}
       </span>
       {children}
     </div>
@@ -61,25 +59,18 @@ function LinkTile({ icon, label, sublabel, emphasized, children }: TileProps) {
 
 export default function Enlaces() {
   return (
-    <div className="min-h-screen flex flex-col items-center px-6 py-16">
+    <div className="flex min-h-screen flex-col items-center bg-ink px-6 py-16 text-text-primary">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-signal/40 bg-panel shadow-glow">
-            <svg width="30" height="30" viewBox="0 0 20 20" aria-hidden="true">
-              <path
-                d="M2 14 L7 8 L11 12 L18 4"
-                fill="none"
-                stroke="#C99C54"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+          <span className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-ink bg-signal shadow-[5px_5px_0_var(--color-pop)]">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--color-on-signal)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 17l5-6 4 3 6-8 3 3" />
             </svg>
-          </div>
-          <h1 className="mt-5 font-display text-[22px] tracking-tight text-text-primary">
-            lineatrade
+          </span>
+          <h1 className="mt-6 font-display text-[26px] text-text-primary">
+            LineaTrade
           </h1>
-          <p className="mt-1 font-mono text-[13px] text-steel">@linea.trade</p>
+          <p className="mt-1 num text-[13px] text-steel">@linea.trade</p>
           <p className="mt-4 font-body text-[14px] leading-relaxed text-text-muted">
             Tu diario de trading. Métricas reales, no promesas — sin señales, sin predicciones.
           </p>
@@ -88,7 +79,7 @@ export default function Enlaces() {
         <div className="mt-10 flex flex-col gap-3">
           <a href={APK_DOWNLOAD_URL} download>
             <LinkTile icon={<Smartphone size={18} />} label="Descargar APK (Android)" emphasized>
-              <span aria-hidden="true" className="font-mono text-[13px] text-signal">
+              <span aria-hidden="true" className="font-mono text-[13px] text-on-signal">
                 ↓
               </span>
             </LinkTile>
@@ -112,12 +103,12 @@ export default function Enlaces() {
         </div>
 
         <div className="mt-12 flex flex-col items-center gap-2 text-center">
-          <p className="font-mono text-[11px] text-text-faint">
+          <p className="num text-[11px] text-text-faint">
             © {new Date().getFullYear()} LineaTrade
           </p>
           <Link
             to="/privacidad"
-            className="font-mono text-[11px] text-text-faint transition-colors hover:text-text-muted"
+            className="num text-[11px] text-text-faint transition-colors hover:text-text-muted"
           >
             Privacidad
           </Link>

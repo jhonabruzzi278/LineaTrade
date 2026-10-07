@@ -4,15 +4,15 @@ import { Nav } from '../components/Nav'
 const sections = [
   {
     title: '1. Qué datos recolectamos',
-    body: 'Cuando creas una cuenta y usás LineaTrade recolectamos: datos de tu cuenta (correo electrónico, contraseña cifrada); datos de perfil que completás en el onboarding; y los datos de tus operaciones de trading que registrás vos mismo (instrumento, precio, tamaño, stop loss, contexto, notas de psicología y aprendizaje, y las capturas de pantalla que subís a un trade). No recolectamos datos de mercado ni ejecutamos operaciones — todo lo que ves en tu bitácora lo ingresaste vos.',
+    body: 'Cuando creas una cuenta y usas LineaTrade recolectamos: datos de tu cuenta (correo electrónico, contraseña cifrada); datos de perfil que completas en el onboarding; y los datos de tus operaciones de trading que registras tú mismo (instrumento, precio, tamaño, stop loss, contexto, notas de psicología y aprendizaje, y las capturas de pantalla que subes a un trade). No recolectamos datos de mercado ni ejecutamos operaciones — todo lo que ves en tu bitácora lo ingresaste tú.',
   },
   {
     title: '2. Cómo usamos tus datos',
-    body: 'Tus datos se usan exclusivamente para mostrarte tu propia bitácora, calcular tus métricas (win rate, profit factor, expectancy) y, si lo activás, para que un modelo de IA interprete patrones de tu propio historial. La IA nunca inventa cifras: solo interpreta datos que ya calculamos nosotros a partir de tu bitácora. Si configurás tu propia clave de proveedor de IA (BYOK), esa clave se guarda cifrada y nunca se expone en texto plano.',
+    body: 'Tus datos se usan exclusivamente para mostrarte tu propia bitácora, calcular tus métricas (win rate, profit factor, expectancy) y, si lo activas, para que un modelo de IA interprete patrones de tu propio historial. La IA nunca inventa cifras: solo interpreta datos que ya calculamos nosotros a partir de tu bitácora. Si configuras tu propia clave de proveedor de IA (BYOK), esa clave se guarda cifrada y nunca se expone en texto plano.',
   },
   {
     title: '3. Con quién compartimos datos',
-    body: 'No vendemos ni compartimos tus datos con terceros con fines comerciales. Usamos Supabase (Estados Unidos/UE, según región del proyecto) como proveedor de base de datos, autenticación y almacenamiento de archivos — actúa como encargado del tratamiento de datos bajo nuestras instrucciones. Si activás análisis con IA, el contenido estructurado de un trade se envía al proveedor de modelo que elijas (por ejemplo, Groq, OpenAI, Anthropic, Google) únicamente para generar ese análisis puntual.',
+    body: 'No vendemos ni compartimos tus datos con terceros con fines comerciales. Usamos Supabase (Estados Unidos/UE, según región del proyecto) como proveedor de base de datos, autenticación y almacenamiento de archivos — actúa como encargado del tratamiento de datos bajo nuestras instrucciones. Si activas análisis con IA, el contenido estructurado de un trade se envía al proveedor de modelo que elijas (por ejemplo, Groq, OpenAI, Anthropic, Google) únicamente para generar ese análisis puntual.',
   },
   {
     title: '4. Seguridad',
@@ -20,42 +20,36 @@ const sections = [
   },
   {
     title: '5. Tus derechos',
-    body: 'Podés eliminar tu cuenta y todos los datos asociados vos mismo, en cualquier momento, desde la página de eliminación de cuenta — borra tu perfil, tus trades, tus imágenes y tu historial de forma permanente. También podés solicitarlo escribiendo a soporte.',
+    body: 'Puedes eliminar tu cuenta y todos los datos asociados tú mismo, en cualquier momento, desde la página de eliminación de cuenta — borra tu perfil, tus trades, tus imágenes y tu historial de forma permanente. También puedes solicitarlo escribiendo a soporte.',
   },
   {
     title: '6. Contacto',
-    body: 'Para consultas sobre privacidad o para ejercer tus derechos sobre tus datos, escribinos a soporte@lineartrade.app.',
+    body: 'Para consultas sobre privacidad o para ejercer tus derechos sobre tus datos, escríbenos a soporte@lineartrade.app.',
   },
 ]
 
 export default function Privacidad() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-ink text-text-primary">
       <Nav />
-      <main className="max-w-3xl mx-auto px-6 pt-20 pb-24">
-        <p className="font-mono text-[13px] text-signal tracking-wide mb-4">legal</p>
-        <h1 className="font-display text-[32px] md:text-[40px] text-text-primary mb-3">
+      <main className="mx-auto max-w-3xl px-5 pb-24 pt-10 lg:pt-16">
+        <p className="label-mono text-steel">Legal</p>
+        <h1 className="mt-2 text-balance font-display text-[32px] leading-[1.05] lg:text-[44px]">
           Política de privacidad
         </h1>
-        <p className="font-body text-[14px] text-text-faint mb-12">
-          Última actualización: julio de 2026
-        </p>
+        <p className="num mt-3 text-[12px] text-text-faint">Última actualización: julio de 2026</p>
 
-        <div className="space-y-10">
+        <div className="mt-10 space-y-8 lg:mt-12 lg:space-y-10">
           {sections.map((section) => (
-            <div key={section.title}>
-              <h2 className="font-display text-[18px] text-text-primary mb-3">
-                {section.title}
-              </h2>
-              <p className="font-body text-[15px] text-text-muted leading-relaxed">
-                {section.body}
-              </p>
-            </div>
+            <section key={section.title} className="border-t border-hairline pt-6">
+              <h2 className="font-display text-[18px] text-text-primary">{section.title}</h2>
+              <p className="mt-3 font-body text-[15px] leading-relaxed text-text-muted">{section.body}</p>
+            </section>
           ))}
         </div>
 
-        <p className="font-body text-[14px] text-text-muted mt-16 pt-8 border-t border-hairline">
-          <Link to="/" className="text-signal hover:text-signal-dim transition-colors">
+        <p className="mt-14 border-t border-hairline pt-6">
+          <Link to="/" className="inline-flex min-h-11 items-center font-body text-[14px] font-bold text-steel hover:underline">
             Volver al inicio
           </Link>
         </p>
