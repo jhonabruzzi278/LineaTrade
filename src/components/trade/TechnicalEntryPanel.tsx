@@ -1,34 +1,22 @@
-import { useState, type ReactNode } from 'react'
-import { ImagePlus } from 'lucide-react'
-import { BuyIcon, SellIcon } from '../icons/TradeIcons'
-import { OrderTicketFields, type OrderTicketData } from './OrderTicketFields'
-import { extractTradeFromImage } from '../../lib/tradeImageExtraction'
-import { useToast } from '../../lib/toast'
-import { isValidDateString, isValidTimeString } from '../../lib/tradeDisplay'
+import type { ReactNode } from 'react'
+import { ChevronDown, ImagePlus, TrendingDown, TrendingUp } from 'lucide-react'
+import { OrderTicketFields } from './OrderTicketFields'
+import { Callout } from '../ui/callout'
+import { Field, FIELD_CLASS } from '../ui/field'
+import type { TechnicalEntryData } from '../../lib/tradeDraft'
+import { cn } from '@/lib/utils'
 
-export interface TechnicalEntryData {
-  photoAttached: boolean
-  market: string
-  symbol: string
-  timeframe: string
-  action: 'long' | 'short'
-  date: string
-  time: string
-  quantity: string
-  price: string
-  stopLoss: string
-  takeProfit: string
-  riskPercent: string
-  commission: string
-  optionType: 'call' | 'put'
-  strikePrice: string
-  expirationDate: string
-  orderTicket: OrderTicketData
-}
+export type { TechnicalEntryData } from '../../lib/tradeDraft'
 
 interface TechnicalEntryPanelProps {
   data: TechnicalEntryData
   onChange: (next: TechnicalEntryData) => void
+  /** URL de la miniatura de la foto adjunta. */
+  photoPreview: string
+  brokerName?: string
+  /** Si la IA no pudo leer la foto, el motivo; null cuando la lectura funcionó. */
+  readError: string | null
+  onPhotoSelected: (file: File) => void
 }
 
 const marketOptions = [
@@ -43,346 +31,248 @@ const marketOptions = [
 
 const timeframeOptions = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1']
 
-const inputClasses =
-  'w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-signal transition-colors'
+const SELECT_CLASS = cn(FIELD_CLASS, 'min-h-12 appearance-none pr-10')
+const INPUT_CLASS = 'min-h-12'
 
-export function TechnicalEntryPanel({ data, onChange }: TechnicalEntryPanelProps) {
-  const { showToast } = useToast()
-  const [photoLoading, setPhotoLoading] = useState(false)
-  const [photoError, setPhotoError] = useState('')
-  const [photoPreview, setPhotoPreview] = useState('')
+// Formulario de revisión del ticket: se muestra tras leer la foto (o a mano si la
+// IA no pudo). La foto sigue adjunta en ambos casos; lo que falla es solo la lectura.
+export function TechnicalEntryPanel({ data, onChange, photoPreview, brokerName, readError, onPhotoSelected }: TechnicalEntryPanelProps) {
   const isOptions = data.market === 'options'
 
   function set<K extends keyof TechnicalEntryData>(key: K, value: TechnicalEntryData[K]) {
     onChange({ ...data, [key]: value })
   }
 
-  async function handlePhotoSelected(file: File | undefined) {
-    if (!file) return
-    setPhotoPreview(URL.createObjectURL(file))
-    setPhotoLoading(true)
-    setPhotoError('')
-    const result = await extractTradeFromImage(file)
-    setPhotoLoading(false)
-    if (!result.ok) {
-      // Aun si la IA no pudo leer la imagen, la foto ya cuenta como adjunta —
-      // el usuario completa los campos a mano, pero no vuelve al dropzone.
-      // El motivo real (result.message) se logueaba a state pero la UI
-      // mostraba un texto genérico fijo sin importar la causa — bug real que
-      // hacía imposible diagnosticar un fallo del proveedor de IA sin abrir
-      // la consola del navegador a mano. console.error acá + mostrar el
-      // mensaje real en el JSX de abajo, en vez de ocultarlo.
-      console.error('[extract-trade-image] falló la extracción:', result.message)
-      setPhotoError(result.message)
-      onChange({ ...data, photoAttached: true })
-      return
-    }
-    const extracted = result.data
-    onChange({
-      ...data,
-      photoAttached: true,
-      market: extracted.market ?? data.market,
-      symbol: extracted.symbol ?? data.symbol,
-      action: extracted.action ?? data.action,
-      optionType: extracted.option_type ?? data.optionType,
-      strikePrice: extracted.strike_price != null ? String(extracted.strike_price) : data.strikePrice,
-      // Validamos forma antes de pisar el default — un valor de IA que no
-      // matchea YYYY-MM-DD/HH:MM (el prompt lo pide pero no está forzado por
-      // schema) rendería vacío en el <input type="date/time"> nativo sin
-      // avisar, y recién explotaba al guardar el trade.
-      expirationDate:
-        extracted.expiration_date && isValidDateString(extracted.expiration_date)
-          ? extracted.expiration_date
-          : data.expirationDate,
-      date: extracted.date && isValidDateString(extracted.date) ? extracted.date : data.date,
-      time: extracted.time && isValidTimeString(extracted.time) ? extracted.time : data.time,
-      quantity: extracted.quantity != null ? String(extracted.quantity) : data.quantity,
-      price: extracted.price != null ? String(extracted.price) : data.price,
-      commission: extracted.commission != null ? String(extracted.commission) : data.commission,
-      orderTicket: {
-        orderNumber: extracted.order_number ?? data.orderTicket.orderNumber,
-        orderPlacedTime: extracted.order_placed_time ?? data.orderTicket.orderPlacedTime,
-        priceType: extracted.price_type ?? data.orderTicket.priceType,
-        limitPrice: extracted.limit_price != null ? String(extracted.limit_price) : data.orderTicket.limitPrice,
-        bidPrice: extracted.bid_price != null ? String(extracted.bid_price) : data.orderTicket.bidPrice,
-        askPrice: extracted.ask_price != null ? String(extracted.ask_price) : data.orderTicket.askPrice,
-        term: extracted.term ?? data.orderTicket.term,
-        allOrNone: extracted.all_or_none ?? data.orderTicket.allOrNone,
-      },
-    })
-    showToast('Datos extraídos de la foto — revisalos antes de guardar.', 'success')
-  }
+  const changePhoto = (
+    <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border border-input px-4 font-body text-[13px] font-bold text-text-primary transition-colors hover:border-text-faint focus-within:outline focus-within:outline-2 focus-within:outline-signal">
+      {readError ? 'Probar con otra foto' : 'Cambiar foto'}
+      <input
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) onPhotoSelected(file)
+        }}
+      />
+    </label>
+  )
 
   return (
-    <div style={{ animation: 'reveal 0.25s ease-out' }}>
-      {!data.photoAttached ? (
-        <div className="space-y-4">
-          <label
-            htmlFor="trade-photo"
-            className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed border-hairline rounded-sm py-14 px-4 text-center overflow-hidden transition-colors ${
-              photoLoading ? 'opacity-60 pointer-events-none' : 'cursor-pointer hover:border-signal/50 hover:bg-panel-2/30'
-            }`}
-          >
-            <div className="hero-aura left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[220px] h-[160px]" aria-hidden="true" />
-            <span className="relative w-12 h-12 rounded-full bg-signal/10 border border-signal/30 flex items-center justify-center text-signal">
-              <ImagePlus className="w-5 h-5" />
-            </span>
-            <span className="relative font-body text-[14px] text-text-primary">
-              {photoLoading ? 'Leyendo la imagen con IA...' : 'Subí la captura de tu bróker desde tu galería'}
-            </span>
-            <span className="relative font-mono text-[11px] text-text-faint">
-              La IA pre-llena el formulario — vos lo revisás antes de guardar
-            </span>
-            <input
-              id="trade-photo"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={photoLoading}
-              onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
-            />
-          </label>
-          {photoError && <p className="font-body text-[13px] text-loss">{photoError}</p>}
+    <div className="reveal-up">
+      {readError ? (
+        <div className="mb-4">
+          <Callout tone="warning">
+            <p role="alert">
+              <strong className="font-bold">No pudimos leer la imagen automáticamente.</strong> Tu foto sigue adjunta; completa los
+              campos y podrás continuar.
+            </p>
+            <p className="num mt-1.5 break-words text-[11px] opacity-80">{readError}</p>
+          </Callout>
+          <div className="mt-2">{changePhoto}</div>
         </div>
       ) : (
-        <div className="space-y-5 reveal-up">
-          <div className="flex items-center gap-3 border border-hairline rounded-sm bg-panel-2/60 px-3 py-2.5">
-            {photoPreview ? (
-              <img src={photoPreview} alt="" className="w-10 h-10 rounded-sm object-cover border border-hairline shrink-0" />
-            ) : (
-              <span className="w-10 h-10 rounded-sm bg-signal/10 border border-signal/30 flex items-center justify-center text-signal shrink-0">
-                <ImagePlus className="w-4 h-4" />
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="font-body text-[13px] text-text-primary">Foto adjunta</p>
-              <p className="font-mono text-[11px] text-text-faint">revisá y completá los datos</p>
-            </div>
-          </div>
-
-          {photoError && (
-            <p className="font-body text-[13px] text-loss">
-              No pudimos leer la imagen automáticamente — completá los campos a mano. ({photoError})
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-hairline bg-panel px-3 py-2.5 lg:mb-6 lg:px-3.5">
+          {photoPreview ? (
+            <img src={photoPreview} alt="Miniatura de la foto adjunta" className="h-11 w-11 shrink-0 rounded-lg border border-input object-cover lg:h-14 lg:w-14" />
+          ) : (
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-input bg-panel-2 text-text-faint lg:h-14 lg:w-14">
+              <ImagePlus className="h-5 w-5" aria-hidden="true" />
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-body text-[13px] font-bold text-text-primary lg:text-[14px]">
+              Foto adjunta{brokerName ? <span className="hidden lg:inline"> · {brokerName}</span> : null}
             </p>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Mercado">
-              <select value={data.market} onChange={(e) => set('market', e.target.value)} className={inputClasses}>
-                <option value="" disabled>
-                  Selecciona
-                </option>
-                {marketOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Símbolo">
-              <input
-                type="text"
-                value={data.symbol}
-                onChange={(e) => set('symbol', e.target.value.toUpperCase())}
-                placeholder="Ej. EURUSD"
-                className={inputClasses}
-              />
-            </Field>
+            <p className="num mt-0.5 text-[11px] text-steel lg:text-[12px]">datos extraídos</p>
           </div>
-
-          <Field label="Acción">
-            <div className="flex gap-3">
-              <SegmentButton active={data.action === 'long'} tone="gain" onClick={() => set('action', 'long')}>
-                <BuyIcon className={`w-4 h-4 ${data.action === 'long' ? 'text-gain' : ''}`} />
-                Compra (long)
-              </SegmentButton>
-              <SegmentButton active={data.action === 'short'} tone="loss" onClick={() => set('action', 'short')}>
-                <SellIcon className={`w-4 h-4 ${data.action === 'short' ? 'text-loss' : ''}`} />
-                Venta (short)
-              </SegmentButton>
-            </div>
-          </Field>
-
-          {isOptions && (
-            <div className="grid grid-cols-3 gap-4">
-              <Field label="Tipo">
-                <div className="flex gap-2">
-                  <SegmentButton active={data.optionType === 'call'} onClick={() => set('optionType', 'call')}>
-                    Call
-                  </SegmentButton>
-                  <SegmentButton active={data.optionType === 'put'} onClick={() => set('optionType', 'put')}>
-                    Put
-                  </SegmentButton>
-                </div>
-              </Field>
-              <Field label="Strike">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={data.strikePrice}
-                  onChange={(e) => set('strikePrice', e.target.value)}
-                  placeholder="0.00"
-                  className={inputClasses}
-                />
-              </Field>
-              <Field label="Vencimiento">
-                <input
-                  type="date"
-                  value={data.expirationDate}
-                  onChange={(e) => set('expirationDate', e.target.value)}
-                  className={inputClasses}
-                />
-              </Field>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Fecha">
-              <input
-                type="date"
-                value={data.date}
-                onChange={(e) => set('date', e.target.value)}
-                className={inputClasses}
-              />
-            </Field>
-            <Field label="Hora">
-              <input
-                type="time"
-                value={data.time}
-                onChange={(e) => set('time', e.target.value)}
-                className={inputClasses}
-              />
-            </Field>
-          </div>
-
-          <Field label="Temporalidad (opcional)">
-            <select value={data.timeframe} onChange={(e) => set('timeframe', e.target.value)} className={inputClasses}>
-              <option value="">Sin especificar</option>
-              {timeframeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Field label={isOptions ? 'Contratos' : 'Cantidad'}>
-              <input
-                type="number"
-                step="0.01"
-                value={data.quantity}
-                onChange={(e) => set('quantity', e.target.value)}
-                placeholder="0.00"
-                className={inputClasses}
-              />
-            </Field>
-            <Field label={isOptions ? 'Prima por acción' : 'Precio'}>
-              <input
-                type="number"
-                step="0.001"
-                value={data.price}
-                onChange={(e) => set('price', e.target.value)}
-                placeholder="0.000"
-                className={inputClasses}
-              />
-              {isOptions && (
-                <p className="font-mono text-[11px] text-text-faint mt-1.5">
-                  Por acción, no por contrato — se multiplica ×100 automáticamente.
-                </p>
-              )}
-            </Field>
-            <Field label="Comisiones y fees">
-              <input
-                type="number"
-                step="0.01"
-                value={data.commission}
-                onChange={(e) => set('commission', e.target.value)}
-                placeholder="0.00"
-                className={inputClasses}
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Field label="Stop loss (opcional)">
-              <input
-                type="number"
-                step="0.001"
-                value={data.stopLoss}
-                onChange={(e) => set('stopLoss', e.target.value)}
-                placeholder="0.000"
-                className={inputClasses}
-              />
-              <p className="font-mono text-[11px] text-text-faint mt-1.5">
-                Sin esto no podemos calcular el rendimiento en R al cerrar el trade.
-              </p>
-            </Field>
-            <Field label="Take profit (opcional)">
-              <input
-                type="number"
-                step="0.001"
-                value={data.takeProfit}
-                onChange={(e) => set('takeProfit', e.target.value)}
-                placeholder="0.000"
-                className={inputClasses}
-              />
-            </Field>
-            <Field label="Riesgo % (opcional)">
-              <input
-                type="number"
-                step="0.01"
-                value={data.riskPercent}
-                onChange={(e) => set('riskPercent', e.target.value)}
-                placeholder="1.00"
-                className={inputClasses}
-              />
-            </Field>
-          </div>
-
-          <OrderTicketFields data={data.orderTicket} onChange={(orderTicket) => set('orderTicket', orderTicket)} />
+          {changePhoto}
         </div>
       )}
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-3 lg:gap-x-[18px] lg:gap-y-4">
+        <SelectField id="tp-market" label="Mercado" value={data.market} onChange={(v) => set('market', v)} placeholder="Elige…">
+          {marketOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </SelectField>
+
+        <Field
+          id="tp-symbol"
+          label="Símbolo"
+          value={data.symbol}
+          onChange={(e) => set('symbol', e.target.value.toUpperCase())}
+          placeholder="Ej. EURUSD"
+          autoCapitalize="characters"
+          className={INPUT_CLASS}
+        />
+
+        <div className="col-span-2 flex flex-col gap-1.5">
+          <span id="tp-action-label" className="font-body text-[12px] font-semibold text-text-faint">
+            Acción
+          </span>
+          <div role="radiogroup" aria-labelledby="tp-action-label" className="grid min-h-12 grid-cols-2 overflow-hidden rounded-[10px] border border-input">
+            <ActionOption active={data.action === 'long'} tone="gain" onClick={() => set('action', 'long')} icon={<TrendingUp className="h-4 w-4" strokeWidth={2.4} aria-hidden="true" />}>
+              Long · Compra
+            </ActionOption>
+            <ActionOption active={data.action === 'short'} tone="loss" onClick={() => set('action', 'short')} icon={<TrendingDown className="h-4 w-4" strokeWidth={2.4} aria-hidden="true" />}>
+              Short · Venta
+            </ActionOption>
+          </div>
+        </div>
+
+        {isOptions && (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <span id="tp-option-label" className="font-body text-[12px] font-semibold text-text-faint">
+                Tipo
+              </span>
+              <div role="radiogroup" aria-labelledby="tp-option-label" className="grid min-h-12 grid-cols-2 overflow-hidden rounded-[10px] border border-input">
+                {(['call', 'put'] as const).map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    role="radio"
+                    aria-checked={data.optionType === kind}
+                    onClick={() => set('optionType', kind)}
+                    className={cn('font-body text-[14px] font-bold transition-colors', data.optionType === kind ? 'bg-signal/20 text-text-primary shadow-[inset_0_0_0_2px_var(--color-signal)]' : 'text-text-muted hover:text-text-primary')}
+                  >
+                    {kind === 'call' ? 'Call' : 'Put'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Field id="tp-strike" label="Strike" type="number" step="0.01" inputMode="decimal" mono value={data.strikePrice} onChange={(e) => set('strikePrice', e.target.value)} placeholder="0.00" className={INPUT_CLASS} />
+            <Field id="tp-expiry" label="Vencimiento" type="date" value={data.expirationDate} onChange={(e) => set('expirationDate', e.target.value)} className={INPUT_CLASS} />
+          </>
+        )}
+
+        <Field id="tp-date" label="Fecha" type="date" value={data.date} onChange={(e) => set('date', e.target.value)} className={INPUT_CLASS} />
+        <Field id="tp-time" label="Hora" type="time" value={data.time} onChange={(e) => set('time', e.target.value)} className={INPUT_CLASS} />
+
+        <Field
+          id="tp-qty"
+          label={isOptions ? 'Contratos' : 'Cantidad'}
+          type="number"
+          step="0.01"
+          inputMode="decimal"
+          mono
+          value={data.quantity}
+          onChange={(e) => set('quantity', e.target.value)}
+          placeholder="0.00"
+          className={INPUT_CLASS}
+        />
+        <Field
+          id="tp-price"
+          label={isOptions ? 'Prima por acción' : 'Precio de entrada'}
+          type="number"
+          step="0.001"
+          inputMode="decimal"
+          mono
+          value={data.price}
+          onChange={(e) => set('price', e.target.value)}
+          placeholder="0.000"
+          hint={isOptions ? 'Por acción, no por contrato: se multiplica ×100 automáticamente.' : undefined}
+          className={INPUT_CLASS}
+        />
+        <Field id="tp-fee" label="Comisiones y fees" type="number" step="0.01" inputMode="decimal" mono value={data.commission} onChange={(e) => set('commission', e.target.value)} placeholder="0.00" className={INPUT_CLASS} />
+
+        <SelectField id="tp-timeframe" label="Temporalidad (opcional)" value={data.timeframe} onChange={(v) => set('timeframe', v)}>
+          <option value="">Sin especificar</option>
+          {timeframeOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </SelectField>
+
+        <Field
+          id="tp-sl"
+          label="Stop loss (opcional)"
+          type="number"
+          step="0.001"
+          inputMode="decimal"
+          mono
+          value={data.stopLoss}
+          onChange={(e) => set('stopLoss', e.target.value)}
+          placeholder="0.000"
+          hint="Necesario para calcular el R del trade."
+          className={INPUT_CLASS}
+        />
+        <Field id="tp-tp" label="Take profit (opcional)" type="number" step="0.001" inputMode="decimal" mono value={data.takeProfit} onChange={(e) => set('takeProfit', e.target.value)} placeholder="0.000" className={INPUT_CLASS} />
+        <Field id="tp-risk" label="Riesgo % (opcional)" type="number" step="0.01" inputMode="decimal" mono value={data.riskPercent} onChange={(e) => set('riskPercent', e.target.value)} placeholder="1.00" className={INPUT_CLASS} />
+      </div>
+
+      <div className="mt-4 lg:mt-5">
+        <OrderTicketFields data={data.orderTicket} onChange={(orderTicket) => set('orderTicket', orderTicket)} />
+      </div>
     </div>
   )
 }
 
-const SEGMENT_TONE_ACTIVE_CLASS = {
-  signal: 'border-signal bg-signal/10 text-text-primary',
-  gain: 'border-gain bg-gain/10 text-text-primary',
-  loss: 'border-loss bg-loss/10 text-text-primary',
-} as const
-
-function SegmentButton({
-  active,
-  tone = 'signal',
-  onClick,
+function SelectField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
   children,
 }: {
-  active: boolean
-  tone?: keyof typeof SEGMENT_TONE_ACTIVE_CLASS
-  onClick: () => void
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
   children: ReactNode
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-sm border font-body text-[14px] transition-colors ${
-        active ? SEGMENT_TONE_ACTIVE_CLASS[tone] : 'border-hairline bg-panel text-text-muted hover:border-text-faint'
-      }`}
-    >
-      {children}
-    </button>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <label htmlFor={id} className="font-body text-[12px] font-semibold text-text-faint">
+        {label}
+      </label>
+      <div className="relative">
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={cn(SELECT_CLASS, !value && placeholder && 'text-text-faint')}>
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
+          {children}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-text-faint" aria-hidden="true" />
+      </div>
+    </div>
   )
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+// Long/short es dirección del trade (no resultado): por eso aquí sí va verde/rojo.
+function ActionOption({
+  active,
+  tone,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean
+  tone: 'gain' | 'loss'
+  onClick: () => void
+  icon: ReactNode
+  children: ReactNode
+}) {
+  const activeClass = tone === 'gain' ? 'bg-gain/15 text-gain shadow-[inset_0_0_0_2px_var(--color-gain)]' : 'bg-loss/15 text-loss shadow-[inset_0_0_0_2px_var(--color-loss)]'
   return (
-    <div>
-      <label className="font-body text-[13px] text-text-muted block mb-2">{label}</label>
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={cn('flex items-center justify-center gap-1.5 font-body text-[14px] font-bold transition-colors lg:gap-2', active ? activeClass : 'text-text-muted hover:text-text-primary')}
+    >
+      {icon}
       {children}
-    </div>
+    </button>
   )
 }
