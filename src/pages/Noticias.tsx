@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { SourceAvatar } from '../components/SourceAvatar'
 import {
   fetchNews,
@@ -11,14 +9,12 @@ import {
   type NewsArticle,
   type NewsCategory,
 } from '../lib/news'
-import { useSidebar } from '../lib/sidebar'
 import { cn } from '@/lib/utils'
 
 type CategoryFilter = 'all' | NewsCategory
 const CATEGORY_FILTERS: CategoryFilter[] = ['all', 'cripto', 'forex', 'acciones', 'tecnologia', 'futuros', 'general', 'otro']
 
 export default function Noticias() {
-  const { expanded } = useSidebar()
   // Se siembra desde el cache de sesión (lib/news.ts): al volver desde el
   // detalle la lista aparece al instante — el skeleton solo existe en la
   // primera visita de la sesión.
@@ -67,12 +63,10 @@ export default function Noticias() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
 
       <main
         className={cn(
-          'max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-2xl lg:max-w-6xl mx-auto px-5 lg:px-8 pt-6 pb-28 lg:pb-10'
         )}
       >
         {/* Header — título compacto alineado a la izquierda, estilo feed de
@@ -266,8 +260,6 @@ export default function Noticias() {
           </div>
         )}
       </main>
-
-      <AppFloatingNav />
     </div>
   )
 }

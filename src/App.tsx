@@ -1,11 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt'
-import { SidebarProvider } from './lib/sidebar'
+import { AppLayout } from './components/shell/AppLayout'
 
 // Cada pantalla se carga bajo demanda. Landing queda en el paquete inicial porque es
 // la primera experiencia pública; el producto privado se descarga después del login.
@@ -30,7 +30,7 @@ const IaTrader = lazy(() => import('./pages/IaTrader'))
 const EliminarCuenta = lazy(() => import('./pages/EliminarCuenta'))
 const Coach = lazy(() => import('./pages/Coach'))
 const Reporte = lazy(() => import('./pages/Reporte'))
-const Herramientas = lazy(() => import('./pages/Herramientas'))
+const Mas = lazy(() => import('./pages/Mas'))
 const Insights = lazy(() => import('./pages/Insights'))
 const Academia = lazy(() => import('./pages/Academia'))
 const AcademyLesson = lazy(() => import('./pages/AcademyLesson'))
@@ -47,7 +47,6 @@ function RouteFallback() {
 export default function App() {
   return (
     <BrowserRouter>
-      <SidebarProvider>
         <PwaUpdatePrompt />
         <NotificationPermissionPrompt />
         <Suspense fallback={<RouteFallback />}>
@@ -59,157 +58,40 @@ export default function App() {
           <Route path="/recuperar" element={<Recuperar />} />
           <Route path="/actualizar-password" element={<ActualizarPassword />} />
           <Route path="/privacidad" element={<Privacidad />} />
-          <Route path="/ia-trader" element={<IaTrader />} />
           <Route path="/eliminar-cuenta" element={<EliminarCuenta />} />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/nuevo-trade"
-            element={
-              <ProtectedRoute>
-                <NuevoTrade />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/historial"
-            element={
-              <ProtectedRoute>
-                <Historial />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trades/:id"
-            element={
-              <ProtectedRoute>
-                <TradeDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/configuracion/ia"
-            element={
-              <ProtectedRoute>
-                <ConfiguracionIA />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/sistema"
-            element={
-              <ProtectedRoute>
-                <Sistema />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/perfil"
-            element={
-              <ProtectedRoute>
-                <Perfil />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/noticias"
-            element={
-              <ProtectedRoute>
-                <Noticias />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/noticias/:id"
-            element={
-              <ProtectedRoute>
-                <NoticiaDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/coach"
-            element={
-              <ProtectedRoute>
-                <Coach />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/reporte"
-            element={
-              <ProtectedRoute>
-                <Reporte />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/herramientas"
-            element={
-              <ProtectedRoute>
-                <Herramientas />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/insights"
-            element={
-              <ProtectedRoute>
-                <Insights />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/academia"
-            element={
-              <ProtectedRoute>
-                <Academia />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/academia/lecciones/:lessonId"
-            element={
-              <ProtectedRoute>
-                <AcademyLesson />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/planes"
-            element={
-              <ProtectedRoute>
-                <Planes />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <SuperAdminRoute>
-                  <AdminPanel />
-                </SuperAdminRoute>
-              </ProtectedRoute>
-            }
-          />
+
+          {/* Pantallas a pantalla completa (modo foco): sin barra lateral ni inferior. */}
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+          <Route path="/nuevo-trade" element={<ProtectedRoute><NuevoTrade /></ProtectedRoute>} />
+          <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
+          <Route path="/noticias/:id" element={<ProtectedRoute><NoticiaDetail /></ProtectedRoute>} />
+
+          {/* Pública, pero con el marco de la app cuando hay sesión. */}
+          <Route element={<AppLayout optional />}>
+            <Route path="/ia-trader" element={<IaTrader />} />
+          </Route>
+
+          {/* App autenticada: barra lateral en escritorio, pestañas en móvil. */}
+          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/historial" element={<Historial />} />
+            <Route path="/trades/:id" element={<TradeDetail />} />
+            <Route path="/reporte" element={<Reporte />} />
+            <Route path="/insights" element={<Insights />} />
+            <Route path="/noticias" element={<Noticias />} />
+            <Route path="/academia" element={<Academia />} />
+            <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
+            <Route path="/mas" element={<Mas />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/sistema" element={<Sistema />} />
+            <Route path="/configuracion/ia" element={<ConfiguracionIA />} />
+            <Route path="/planes" element={<Planes />} />
+            <Route path="/admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
+          </Route>
+
+          <Route path="/herramientas" element={<Navigate to="/mas" replace />} />
         </Routes>
         </Suspense>
-      </SidebarProvider>
     </BrowserRouter>
   )
 }

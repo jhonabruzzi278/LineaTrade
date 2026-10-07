@@ -1,6 +1,5 @@
 import { ArrowLeft, Check, Clock3, FlaskConical } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
 import { academyLessons } from '../data/academy'
 import { useAcademyProgress } from '../hooks/useAcademyProgress'
 import { useAuth } from '../lib/auth'
@@ -16,7 +15,6 @@ export default function AcademyLesson() {
 
   return (
     <div className="min-h-screen bg-ink">
-      <AppHeader />
       <main className="mx-auto max-w-3xl px-5 py-8 sm:px-6 sm:py-12">
         <Link to="/academia" className="inline-flex min-h-11 items-center gap-2 font-body text-[13px] text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal">
           <ArrowLeft className="h-4 w-4" /> Volver al aula

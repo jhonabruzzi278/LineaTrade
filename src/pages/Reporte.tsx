@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Clock, Flame, TrendingDown } from 'lucide-react'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { MetricCard } from '../components/MetricCard'
 import { CompareCard, EmptyCompareCard } from '../components/report/CompareCard'
 import { EquityCurveChart } from '../components/report/EquityCurveChart'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { getClosedRealTrades, computeReportStats, type ReportStats, type BucketStat } from '../lib/reportStats'
 import { getErrorMessage } from '../lib/errors'
 import { formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
@@ -39,7 +36,6 @@ function bucketCard(title: string, stat: BucketStat | null, emptyReason: string)
 
 export default function Reporte() {
   const { user } = useAuth()
-  const { expanded } = useSidebar()
   const [stats, setStats] = useState<ReportStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,11 +62,9 @@ export default function Reporte() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         <div className="mb-8">
@@ -171,7 +165,6 @@ export default function Reporte() {
           </>
         )}
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

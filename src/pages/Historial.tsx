@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { tradesToCsv, downloadCsv } from '../lib/tradeExport'
@@ -20,7 +17,6 @@ const STATUS_FILTERS: StatusFilter[] = ['all', 'open', 'closed']
 
 export default function Historial() {
   const { user } = useAuth()
-  const { expanded } = useSidebar()
   const { showToast } = useToast()
   const [trades, setTrades] = useState<TradeRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,11 +79,9 @@ export default function Historial() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
@@ -170,7 +164,6 @@ export default function Historial() {
           </div>
         )}
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

@@ -1,18 +1,14 @@
 import { useState } from 'react'
 import { ArrowRight, BookOpen, Clock3, Target } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { AcademyModuleRow } from '../components/academy/AcademyModuleRow'
 import { AcademyProgress } from '../components/academy/AcademyProgress'
 import { academyModules, academyTotalMinutes, formatAcademyDuration } from '../data/academy'
 import { useAcademyProgress } from '../hooks/useAcademyProgress'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { cn } from '@/lib/utils'
 
 export default function Academia() {
-  const { expanded } = useSidebar()
   const { user } = useAuth()
   const { completed, completedCount, nextLesson, totalCount, loading, syncError } = useAcademyProgress(user?.id)
   const [openModuleId, setOpenModuleId] = useState<string | null>(nextLesson.moduleId)
@@ -20,8 +16,7 @@ export default function Academia() {
 
   return (
     <div className="min-h-screen bg-ink">
-      <AppHeader />
-      <main className={cn('mx-auto max-w-6xl px-5 pb-28 pt-8 transition-[padding-left] duration-200 sm:px-6 lg:pb-12 lg:pt-10', expanded ? 'lg:pl-80' : 'lg:pl-24')}>
+      <main className={cn('mx-auto max-w-6xl px-5 pb-28 pt-8 sm:px-6 lg:pb-12 lg:pt-10')}>
         <header className="mb-10 max-w-3xl reveal-up">
           <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-signal">Tu aula</p>
           <h1 className="text-balance font-display text-[30px] font-medium tracking-[-0.03em] text-text-primary sm:text-[36px]">
@@ -90,7 +85,6 @@ export default function Academia() {
           </div>
         </section>
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

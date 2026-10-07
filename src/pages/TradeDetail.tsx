@@ -1,13 +1,10 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { AIAnalysisPanel } from '../components/AIAnalysisPanel'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
-import { useSidebar } from '../lib/sidebar'
 import { formatDateOnly } from '../lib/tradeDisplay'
 import { cn } from '@/lib/utils'
 import { uploadTradeImage, getSignedImageUrl, type ImageStage } from '../lib/tradeImages'
@@ -33,7 +30,6 @@ const IMAGE_STAGE_LABELS: Record<ImageStage, string> = {
 export default function TradeDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
-  const { expanded } = useSidebar()
   const { showToast } = useToast()
   const [trade, setTrade] = useState<Trade | null>(null)
   const [stopLossChanges, setStopLossChanges] = useState<number | null>(null)
@@ -202,7 +198,6 @@ export default function TradeDetail() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <AppHeader />
         <main className="max-w-3xl mx-auto px-6 py-10">
           <p className="font-body text-[14px] text-text-muted">Cargando...</p>
         </main>
@@ -213,7 +208,6 @@ export default function TradeDetail() {
   if (notFound || !trade) {
     return (
       <div className="min-h-screen">
-        <AppHeader />
         <main className="max-w-3xl mx-auto px-6 py-10 text-center">
           <p className="font-body text-[15px] text-text-muted mb-4">
             No encontramos ese trade — o no te pertenece.
@@ -231,11 +225,9 @@ export default function TradeDetail() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         <div className="flex items-center gap-3 mb-1">
@@ -512,7 +504,6 @@ export default function TradeDetail() {
           </form>
         </Section>
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

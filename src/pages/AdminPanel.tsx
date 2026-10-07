@@ -1,11 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { MetricCard } from '../components/MetricCard'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { useToast } from '../lib/toast'
-import { useSidebar } from '../lib/sidebar'
 import { cn } from '@/lib/utils'
 import type { Database } from '../types/database'
 
@@ -16,7 +13,6 @@ type CronJobHealth = Database['public']['Functions']['get_cron_job_health']['Ret
 type CronSecretStatus = Database['public']['Functions']['get_cron_secrets_status']['Returns'][number]
 
 export default function AdminPanel() {
-  const { expanded } = useSidebar()
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,11 +40,9 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-5xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         <p className="font-mono text-[13px] text-signal mb-2">solo superadmin</p>
@@ -107,7 +101,6 @@ export default function AdminPanel() {
           </>
         )}
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

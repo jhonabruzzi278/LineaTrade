@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { Check, LockKeyhole } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
-import { AppFloatingNav } from '../components/AppFloatingNav'
-import { AppHeader } from '../components/AppHeader'
 import { useEntitlements } from '../hooks/useEntitlements'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { cn } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 
@@ -27,7 +24,6 @@ function formatLimit(limit: number | null, period: string | null) {
 
 export default function Planes() {
   const { user } = useAuth()
-  const { expanded } = useSidebar()
   const { planKey, items, loading, error } = useEntitlements(user?.id)
   const [searchParams] = useSearchParams()
   const [startingCheckout, setStartingCheckout] = useState(false)
@@ -48,8 +44,7 @@ export default function Planes() {
 
   return (
     <div className="min-h-screen bg-ink">
-      <AppHeader />
-      <main className={cn('mx-auto max-w-5xl px-5 pb-28 pt-8 transition-[padding-left] duration-200 sm:px-6 lg:pb-12 lg:pt-10', expanded ? 'lg:pl-80' : 'lg:pl-24')}>
+      <main className={cn('mx-auto max-w-5xl px-5 pb-28 pt-8 sm:px-6 lg:pb-12 lg:pt-10')}>
         <header className="max-w-2xl border-b border-hairline pb-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-signal">Cuenta y límites</p>
           <h1 className="mt-3 text-balance font-display text-[30px] font-medium tracking-[-0.03em] text-text-primary sm:text-[36px]">Tu plan LineaTrade</h1>
@@ -96,7 +91,6 @@ export default function Planes() {
           {checkoutError && <p role="alert" className="mt-4 font-body text-[12px] text-loss">{checkoutError}</p>}
         </section>
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

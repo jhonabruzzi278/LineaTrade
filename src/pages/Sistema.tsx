@@ -1,11 +1,8 @@
 import { useState } from 'react'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { RulesSection } from '../components/sistema/RulesSection'
 import { StrategiesSection } from '../components/sistema/StrategiesSection'
 import { ObjectivesSection } from '../components/sistema/ObjectivesSection'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { cn } from '@/lib/utils'
 
 type Tab = 'reglas' | 'estrategias' | 'objetivos'
@@ -20,18 +17,15 @@ const TABS: { id: Tab; label: string }[] = [
 // schema (con RLS y grants) pero sin ninguna pantalla que las usara.
 export default function Sistema() {
   const { user } = useAuth()
-  const { expanded } = useSidebar()
   const [tab, setTab] = useState<Tab>('reglas')
 
   if (!user) return null
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         <p className="font-mono text-[13px] text-signal mb-2">tu sistema</p>
@@ -58,7 +52,6 @@ export default function Sistema() {
         {tab === 'estrategias' && <StrategiesSection userId={user.id} />}
         {tab === 'objetivos' && <ObjectivesSection userId={user.id} />}
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

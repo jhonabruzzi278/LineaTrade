@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { WizardLayout } from '../components/WizardLayout'
 import { QuizStep } from '../components/traderQuiz/QuizStep'
 import { PlanReport } from '../components/traderQuiz/PlanReport'
@@ -13,7 +11,6 @@ import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { loadAndClearQuizAnswers, saveQuizAnswers } from '../lib/traderQuizStorage'
 import { buildTraderPackage, downloadBlob } from '../lib/traderPackage'
-import { useSidebar } from '../lib/sidebar'
 import { cn } from '@/lib/utils'
 import type { Json } from '../types/database'
 
@@ -28,7 +25,6 @@ type Phase = 'loading' | 'quiz' | 'result'
 // parcialmente tapado — ver PlanReport's prop `blurred`.
 export default function IaTrader() {
   const { user, loading: authLoading } = useAuth()
-  const { expanded } = useSidebar()
   const wizard = useWizard(QUESTION_IDS)
   const [phase, setPhase] = useState<Phase>('loading')
   const [plan, setPlan] = useState<TraderPlan | null>(null)
@@ -198,11 +194,9 @@ export default function IaTrader() {
 
   return (
     <div className="min-h-screen">
-      {user && <AppHeader />}
       <main
         className={cn(
-          'max-w-xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         <p className="font-mono text-[13px] text-signal mb-2">tu plan de trading</p>
@@ -247,7 +241,6 @@ export default function IaTrader() {
           </div>
         )}
       </main>
-      {user && <AppFloatingNav />}
     </div>
   )
 }

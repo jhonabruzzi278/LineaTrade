@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { MetricCard } from '../components/MetricCard'
 import { InsightsSection } from '../components/InsightsSection'
 import { TradeListRow } from '../components/trade/TradeListRow'
 import { GrowthGraphIcon, PercentageIcon, RatioIcon, TradeCountIcon } from '../components/icons/TradeIcons'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { supabase } from '../lib/supabase'
 import { getErrorMessage } from '../lib/errors'
 import { formatNumber, formatPercent, formatSigned, signedTone } from '../lib/tradeDisplay'
@@ -25,7 +22,6 @@ const OPEN_TRADES_LIMIT = 3
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { expanded } = useSidebar()
   const [recentTrades, setRecentTrades] = useState<TradeRow[]>([])
   const [openTrades, setOpenTrades] = useState<TradeRow[]>([])
   const [stats, setStats] = useState<TradeStats | null>(null)
@@ -74,11 +70,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-6xl mx-auto px-6 py-8 sm:py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-6xl mx-auto px-6 py-8 sm:py-10 pb-28 lg:pb-10'
         )}
       >
         <header className="flex items-end justify-between gap-5 mb-8 reveal-up">
@@ -193,7 +187,6 @@ export default function Dashboard() {
           </>
         )}
       </main>
-      <AppFloatingNav />
     </div>
   )
 }

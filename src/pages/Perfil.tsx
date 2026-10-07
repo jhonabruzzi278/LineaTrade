@@ -2,14 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import type { Area } from 'react-easy-crop'
-import { AppHeader } from '../components/AppHeader'
-import { AppFloatingNav } from '../components/AppFloatingNav'
 import { AvatarCropModal } from '../components/AvatarCropModal'
 import { getInitials } from '../components/Avatar'
 import { MetricCard } from '../components/MetricCard'
 import { onboardingSteps } from '../data/onboarding'
 import { useAuth } from '../lib/auth'
-import { useSidebar } from '../lib/sidebar'
 import { supabase } from '../lib/supabase'
 import { uploadAvatar } from '../lib/avatarUpload'
 import { getCroppedImageFile } from '../lib/cropImage'
@@ -58,7 +55,6 @@ function accountAgeDays(createdAt: string | undefined): number | null {
 
 export default function Perfil() {
   const { user, role, avatarUrl, refreshProfile } = useAuth()
-  const { expanded } = useSidebar()
   const { showToast } = useToast()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<TradeStats | null>(null)
@@ -141,11 +137,9 @@ export default function Perfil() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
       <main
         className={cn(
-          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10 transition-[padding-left] duration-200',
-          expanded ? 'lg:pl-80' : 'lg:pl-24',
+          'max-w-3xl mx-auto px-6 py-10 pb-28 lg:pb-10'
         )}
       >
         {/* Tarjeta de perfil — avatar + nombre + chip de rol dentro de una superficie
@@ -287,7 +281,6 @@ export default function Perfil() {
           </Link>
         </p>
       </main>
-      <AppFloatingNav />
       {cropSrc && (
         <AvatarCropModal
           imageSrc={cropSrc}
