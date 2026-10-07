@@ -64,7 +64,6 @@ export default function App() {
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/nuevo-trade" element={<ProtectedRoute><NuevoTrade /></ProtectedRoute>} />
           <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
-          <Route path="/noticias/:id" element={<ProtectedRoute><NoticiaDetail /></ProtectedRoute>} />
 
           {/* Pública, pero con el marco de la app cuando hay sesión. */}
           <Route element={<AppLayout optional />}>
@@ -79,6 +78,7 @@ export default function App() {
             <Route path="/reporte" element={<Reporte />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/noticias" element={<Noticias />} />
+            <Route path="/noticias/:id" element={<NoticiaDetail />} />
             <Route path="/academia" element={<Academia />} />
             <Route path="/academia/lecciones/:lessonId" element={<AcademyLesson />} />
             <Route path="/mas" element={<Mas />} />
