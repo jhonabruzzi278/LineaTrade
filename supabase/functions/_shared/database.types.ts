@@ -1161,11 +1161,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "trade_threads_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "trade_threads_parent_trade_fkey"
+            columns: ["parent_id", "trade_id"]
             isOneToOne: false
             referencedRelation: "trade_threads"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "trade_id"]
           },
           {
             foreignKeyName: "trade_threads_trade_id_fkey"
