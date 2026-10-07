@@ -5,10 +5,9 @@ interface SwitchProps {
   hideLabel?: boolean
 }
 
-// Toggle estilo app nativa (iOS-like) — reemplaza los <input type="checkbox">
-// planos en formularios donde la respuesta es un sí/no explícito. `hideLabel`
-// renderiza solo el control (para filas tipo ajustes de TradingView donde el
-// título ya lo pinta el contenedor padre) manteniendo el label como aria-label.
+// Interruptor para respuestas sí/no explícitas. `hideLabel` renderiza solo el
+// control (filas de ajustes donde el título lo pinta el contenedor) y deja el
+// texto como aria-label. Área táctil de 44px aunque el control sea más chico.
 export function Switch({ checked, onChange, label, hideLabel = false }: SwitchProps) {
   const toggle = (
     <button
@@ -17,22 +16,26 @@ export function Switch({ checked, onChange, label, hideLabel = false }: SwitchPr
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={`relative shrink-0 w-11 h-6 rounded-full border transition-colors duration-200 ${
-        checked ? 'bg-signal border-signal' : 'bg-panel-2 border-hairline'
-      }`}
+      className="flex h-11 w-[52px] shrink-0 items-center justify-center"
     >
       <span
-        className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-ink shadow-card transition-transform duration-200 ease-out ${
-          checked ? 'translate-x-5' : 'translate-x-0'
+        className={`relative block h-[26px] w-[46px] rounded-full border transition-colors duration-200 ${
+          checked ? 'border-ink bg-signal' : 'border-hairline bg-panel-2'
         }`}
-      />
+      >
+        <span
+          className={`absolute top-[2px] h-5 w-5 rounded-full shadow-card transition-all duration-200 ease-out ${
+            checked ? 'left-[22px] bg-on-signal' : 'left-[2px] bg-text-muted'
+          }`}
+        />
+      </span>
     </button>
   )
 
   if (hideLabel) return toggle
 
   return (
-    <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+    <label className="flex cursor-pointer select-none items-center justify-between gap-3">
       <span className="font-body text-[14px] text-text-primary">{label}</span>
       {toggle}
     </label>

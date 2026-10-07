@@ -11,20 +11,21 @@ interface MetricCardProps {
   value: string
   icon?: ReactNode
   tone?: keyof typeof METRIC_TONE_CLASS
+  /** Línea de apoyo bajo la cifra («21 de 36 cerrados»). */
+  hint?: string
 }
 
-export function MetricCard({ label, value, icon, tone = 'default' }: MetricCardProps) {
+// Tarjeta de métrica: etiqueta mono arriba, cifra tabular grande y una línea de
+// apoyo opcional. Verde/rojo solo cuando la cifra es ganancia/pérdida.
+export function MetricCard({ label, value, icon, tone = 'default', hint }: MetricCardProps) {
   return (
-    <div className="group rounded-sm border border-hairline bg-gradient-to-b from-panel-2 to-panel px-4 py-4 shadow-card transition-all duration-200 hover:border-signal/30 hover:shadow-elevated">
+    <div className="rounded-xl border border-hairline bg-panel px-4 py-3.5">
       <div className="flex items-start justify-between gap-2">
-        <p className={`font-display text-[22px] tabular-nums ${METRIC_TONE_CLASS[tone]}`}>{value}</p>
-        {icon && (
-          <span className="text-text-faint shrink-0 mt-1 transition-colors duration-200 group-hover:text-signal">
-            {icon}
-          </span>
-        )}
+        <p className="label-mono">{label}</p>
+        {icon && <span className="mt-0.5 shrink-0 text-text-faint">{icon}</span>}
       </div>
-      <p className="font-mono text-[11px] text-text-faint mt-1 tracking-wide">{label}</p>
+      <p className={`num mt-2 text-[26px] font-medium leading-none ${METRIC_TONE_CLASS[tone]}`}>{value}</p>
+      {hint && <p className="mt-1.5 font-body text-[12px] text-text-faint">{hint}</p>}
     </div>
   )
 }
