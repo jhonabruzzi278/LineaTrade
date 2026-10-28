@@ -44,3 +44,23 @@ supabase/.branches/
 supabase/.temp/
 
 .vercel
+
+# Worker Python de ingesta (services/databento) — entorno virtual y bytecode
+.venv/
+__pycache__/
+*.pyc
+
+# Binarios compilados Python/C
+*.dll
+*.so
+*.pyd
+*.pyc
+__pycache__/
+
+# AI tool worktrees
+.claude/
+.codex/
+.agents/
+
+# Vercel build cache
+.vercel/output/

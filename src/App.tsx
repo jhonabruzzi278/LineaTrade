@@ -32,6 +32,8 @@ const EliminarCuenta = lazy(() => import('./pages/EliminarCuenta'))
 const Coach = lazy(() => import('./pages/Coach'))
 const Reporte = lazy(() => import('./pages/Reporte'))
 const Simulador = lazy(() => import('./pages/Simulador'))
+const FondeoTracker = lazy(() => import('./pages/FondeoTracker'))
+const LineaPilot = lazy(() => import('./pages/LineaPilot'))
 const Mas = lazy(() => import('./pages/Mas'))
 const Insights = lazy(() => import('./pages/Insights'))
 const Academia = lazy(() => import('./pages/Academia'))
@@ -81,6 +83,8 @@ export default function App() {
             <Route path="/trades/:id" element={<TradeDetail />} />
             <Route path="/reporte" element={<Reporte />} />
             <Route path="/simulador" element={<Simulador />} />
+            <Route path="/fondeo" element={<FondeoTracker />} />
+            <Route path="/pilot" element={<LineaPilot />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/noticias" element={<Noticias />} />
             <Route path="/noticias/:id" element={<NoticiaDetail />} />

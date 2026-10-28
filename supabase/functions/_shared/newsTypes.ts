@@ -83,65 +83,40 @@ export interface FetchNewsResponse {
   partial: boolean
 }
 
-// Mayoría en español (audiencia LatAm) — con excepción deliberada de Yahoo
-// Finance y MarketWatch (inglés) agregadas a pedido explícito para cubrir
-// noticias de mercado de EE.UU. que rompen en inglés antes que cualquier
-// fuente hispana. Cada fuente fue probada en vivo (curl) antes de agregarse
-// acá — un feed roto se traga en silencio como `partial: true`.
+// Mayoría en español (audiencia LatAm), con cobertura cripto, mercados y
+// tecnología. Las APIs que requerían claves o devolvían errores se sustituyeron
+// por RSS públicos. Cada feed se verifica en runtime y sus errores quedan en
+// los logs estructurados de fetch-news.
 //
-// 2026-07-21 — ampliada con fuentes en español LatAm (BBC Mundo, El País
-// Economía, El Economista, InfoBae, La Nación) y APIs públicas/free-tier
-// (GDELT 2.0, CryptoCompare News API, CoinGecko news endpoint — todos
-// gratuitos, sin API key). Las fuentes con paywall conocido o ToS
-// prohibitivos se marcan `rss-snippet-only` y nunca se scrapean.
-//
-// Tiers asignados por auditoría manual de cada dominio (robots.txt + ToS) —
-// ninguna fuente usa full-republish (ver comentario de LicenseTier arriba):
-// - BBC Mundo / El Confidencial / Expansión / InfoBae / La Nación /
-//   El Economista (Mx): dominio propio de la fuente, contenido accesible
-//   sin paywall → fair-use-reprint (primer párrafo + link).
-// - El País: paywall (suscripción) → snippet-only.
-// - Investing.com: ToS restrictivos → snippet-only.
-// - Yahoo Finance / MarketWatch: snippet-only.
-// - Xataka / Hipertextual / CriptoNoticias / Cointelegraph: blogs
-//   comerciales con copyright estándar (no CC verificada pese a lo que
-//   decía una versión anterior de este comentario) → fair-use-reprint,
-//   nunca full-republish.
-// - GDELT / CryptoCompare / CoinGecko: son agregadores — cada item apunta a
-//   un dominio de terceros distinto que este proyecto no audita artículo por
-//   artículo, así que no hay un `robotsAllowed`/tier de dominio fijo que
-//   aplicarles → snippet-only siempre, nunca se sigue el link para scrapear.
+// Se usa solo el snippet RSS en Investing.com, El País, los agregadores
+// Bloomberg Línea/Ámbito y las fuentes en inglés. Los otros dominios pasan
+// por la extracción breve definida en LicenseTier arriba.
 export const NEWS_FEEDS: NewsFeedSource[] = [
-  // Cripto — blogs comerciales, excerpt corto solamente
+  // Cripto
   { url: 'https://www.criptonoticias.com/feed/', sourceName: 'CriptoNoticias', category: 'cripto', licenseTier: 'fair-use-reprint', robotsAllowed: true },
-  { url: 'https://es.cointelegraph.com/rss', sourceName: 'Cointelegraph', category: 'cripto', licenseTier: 'fair-use-reprint', robotsAllowed: true },
+  { url: 'https://cointelegraph.com/rss', sourceName: 'Cointelegraph', category: 'cripto', licenseTier: 'rss-snippet-only', robotsAllowed: false },
+  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', sourceName: 'CoinDesk', category: 'cripto', licenseTier: 'rss-snippet-only', robotsAllowed: false },
   // Forex / Materias primas / Bolsa — Investing tiene términos prohibitivos
   { url: 'https://es.investing.com/rss/forex.rss', sourceName: 'Investing.com — Forex', category: 'forex', licenseTier: 'rss-snippet-only', robotsAllowed: false },
   { url: 'https://es.investing.com/rss/commodities.rss', sourceName: 'Investing.com — Materias primas', category: 'futuros', licenseTier: 'rss-snippet-only', robotsAllowed: false },
   { url: 'https://es.investing.com/rss/stock.rss', sourceName: 'Investing.com — Bolsa', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
   { url: 'https://es.investing.com/rss/news.rss', sourceName: 'Investing.com — Actualidad', category: 'general', licenseTier: 'rss-snippet-only', robotsAllowed: false },
-  // España — Expansión/El Confidencial libres, El País paywall
+  // España
   { url: 'https://e00-expansion.uecdn.es/rss/mercados.xml', sourceName: 'Expansión — Mercados', category: 'acciones', licenseTier: 'fair-use-reprint', robotsAllowed: true },
-  { url: 'https://feeds.elconfidencial.com/economia.xml', sourceName: 'El Confidencial — Economía', category: 'acciones', licenseTier: 'fair-use-reprint', robotsAllowed: true },
-  { url: 'https://elpais.com/rss/economia.xml', sourceName: 'El País — Economía', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
-  // LatAm
-  { url: 'https://www.infobae.com/mercados/feed/', sourceName: 'InfoBae — Mercados', category: 'acciones', licenseTier: 'fair-use-reprint', robotsAllowed: true },
-  { url: 'https://www.lanacion.com.ar/economia/rss/', sourceName: 'La Nación — Economía', category: 'acciones', licenseTier: 'fair-use-reprint', robotsAllowed: true },
-  { url: 'https://www.elleconomista.com.mx/rss.xml', sourceName: 'El Economista (Mx)', category: 'acciones', licenseTier: 'fair-use-reprint', robotsAllowed: true },
+  { url: 'https://rss.elconfidencial.com/economia/', sourceName: 'El Confidencial — Economía', category: 'acciones', licenseTier: 'fair-use-reprint', robotsAllowed: true },
+  { url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada', sourceName: 'El País — Economía', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
+  // LatAm — feeds de medios de economía/mercados.
+  { url: 'https://www.ambito.com/rss/pages/economia.xml', sourceName: 'Ámbito — Economía', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
+  { url: 'https://www.bloomberglinea.com/arc/outboundfeeds/rss/?outputType=xml', sourceName: 'Bloomberg Línea', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
+  { url: 'https://www.lanacion.com.ar/arc/outboundfeeds/rss/?outputType=xml', sourceName: 'La Nación — Economía', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
+  { url: 'https://www.eleconomista.com.mx/rss/ultimas-noticias', sourceName: 'El Economista (Mx)', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
   { url: 'https://www.bbc.com/mundo/economia/index.xml', sourceName: 'BBC Mundo — Economía', category: 'general', licenseTier: 'fair-use-reprint', robotsAllowed: true },
   // Tecnología — blogs comerciales, excerpt corto solamente
   { url: 'https://www.xataka.com/feedburner.xml', sourceName: 'Xataka', category: 'tecnologia', licenseTier: 'fair-use-reprint', robotsAllowed: true },
   { url: 'https://hipertextual.com/feed', sourceName: 'Hipertextual', category: 'tecnologia', licenseTier: 'fair-use-reprint', robotsAllowed: true },
-  // Inglés — paywall/snippet-only
-  { url: 'https://finance.yahoo.com/news/rssindex', sourceName: 'Yahoo Finance', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
+  // Inglés — solo snippets del feed
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', sourceName: 'CNBC — Mercados', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
   { url: 'https://www.marketwatch.com/rss/topstories', sourceName: 'MarketWatch', category: 'acciones', licenseTier: 'rss-snippet-only', robotsAllowed: false },
-  // APIs públicas (no RSS — consumidas separadamente en fetch-news). Se
-  // marcan como objetos news-feed con un scheme especial para que el
-  // parser sepa invocar el endpoint correcto en vez de rss-parser. Son
-  // agregadores (ver nota arriba) — snippet-only siempre, nunca scraping.
-  { url: 'gdelt://api/v2/artlist?format=rss&maxrecords=20&topic=econ', sourceName: 'GDELT Economy', category: 'general', licenseTier: 'rss-snippet-only', robotsAllowed: false },
-  { url: 'cryptocompare://api/v2/news/?lang=ES', sourceName: 'CryptoCompare News', category: 'cripto', licenseTier: 'rss-snippet-only', robotsAllowed: false },
-  { url: 'coingecko://api/v3/news', sourceName: 'CoinGecko News', category: 'cripto', licenseTier: 'rss-snippet-only', robotsAllowed: false },
 ]
 
 /**

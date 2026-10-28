@@ -16,6 +16,12 @@ import type { Database } from '../types/database'
 type InstrumentMarket = Database['public']['Enums']['instrument_market']
 type Strategy = Pick<Database['public']['Tables']['strategies']['Row'], 'id' | 'name'>
 
+interface ActiveFundingPhase {
+  id: string
+  challengeId: string
+  label: string
+}
+
 function orNull(value: string): string | null {
   const trimmed = value.trim()
   return trimmed ? trimmed : null
@@ -44,6 +50,7 @@ interface TradeDraft {
   entryReason: string
   confirmations: string
   strategyId: string
+  fundingPhaseId: string
   psychology: PsychologyData
   mainMistake: string
   whatToRepeat: string
@@ -74,6 +81,7 @@ const initialDraft: TradeDraft = {
   entryReason: '',
   confirmations: '',
   strategyId: '',
+  fundingPhaseId: '',
   psychology: {
     emotion: '',
     confidenceLevel: 5,
@@ -110,6 +118,53 @@ export default function NuevoTrade() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [strategies, setStrategies] = useState<Strategy[]>([])
+  const [fundingPhases, setFundingPhases] = useState<ActiveFundingPhase[]>([])
+
+  // Fases activas de Fondeo Tracker (evaluación en curso o cuenta ya fondeada) para
+  // que el trade pueda vincularse a esa cuenta — sin esto, trades.funding_phase_id
+  // nunca se setea y v_funding_phase_progress no tiene ningún trade de qué partir.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    async function loadActiveFundingPhases() {
+      const { data: phases } = await supabase
+        .from('funding_challenge_phases')
+        .select('id, challenge_id, phase_number, phase_kind')
+        .eq('user_id', user!.id)
+        .eq('status', 'active')
+      if (cancelled) return
+      if (!phases || phases.length === 0) {
+        setFundingPhases([])
+        return
+      }
+      const challengeIds = [...new Set(phases.map((phase) => phase.challenge_id))]
+      const { data: challenges } = await supabase
+        .from('funding_challenges')
+        .select('id, firm_name')
+        .in('id', challengeIds)
+      if (cancelled) return
+      const firmById = new Map((challenges ?? []).map((challenge) => [challenge.id, challenge.firm_name]))
+      setFundingPhases(
+        phases.map((phase) => ({
+          id: phase.id,
+          challengeId: phase.challenge_id,
+          label: `${firmById.get(phase.challenge_id) ?? 'Cuenta de fondeo'} · ${phase.phase_kind === 'funded' ? 'Fondeada' : `Fase ${phase.phase_number}`}`,
+        })),
+      )
+    }
+    void loadActiveFundingPhases()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  // Entrada desde Fondeo Tracker ("Añadir trade" en una cuenta puntual):
+  // /nuevo-trade?funding_phase_id=<uuid> preselecciona esa cuenta.
+  useEffect(() => {
+    const paramPhaseId = searchParams.get('funding_phase_id')
+    if (!paramPhaseId) return
+    setDraft((prev) => (prev.fundingPhaseId ? prev : { ...prev, fundingPhaseId: paramPhaseId }))
+  }, [searchParams])
 
   // Estrategias activas del usuario para el selector opcional del paso Contexto — el
   // reporte de /reporte ("Mejor/Peor Modelo") solo tiene datos reales una vez que los
@@ -205,12 +260,15 @@ export default function NuevoTrade() {
       )
       const tradedAt = combineDateTimeToIso(draft.technical.date, draft.technical.time)
       const isOptions = draft.technical.market === 'options'
+      const fundingPhase = fundingPhases.find((phase) => phase.id === draft.fundingPhaseId)
 
       const { data, error } = await supabase
         .from('trades')
         .insert({
           user_id: user.id,
           instrument_id: instrumentId,
+          funding_challenge_id: fundingPhase?.challengeId ?? null,
+          funding_phase_id: fundingPhase?.id ?? null,
           side: draft.technical.action,
           traded_at: tradedAt,
           timeframe: orNull(draft.technical.timeframe),
@@ -342,6 +400,28 @@ export default function NuevoTrade() {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+            {fundingPhases.length > 0 && (
+              <div>
+                <label className="font-body text-[13px] text-text-muted block mb-2">
+                  Cuenta (opcional)
+                </label>
+                <select
+                  value={draft.fundingPhaseId}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, fundingPhaseId: e.target.value }))}
+                  className="w-full bg-panel border border-hairline rounded-sm px-4 py-3 font-body text-[15px] text-text-primary focus:outline-none focus:border-signal transition-colors"
+                >
+                  <option value="">Cuenta personal</option>
+                  {fundingPhases.map((phase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 font-body text-[12px] text-text-faint">
+                  Vincula este trade a una cuenta de Fondeo Tracker para que cuente en su progreso.
+                </p>
               </div>
             )}
           </div>

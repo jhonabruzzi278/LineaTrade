@@ -5,14 +5,9 @@
 // el cache quedó viejo (ver STALE_MS más abajo), o via pg_cron que invoca esta
 // misma función con header X-Cron-Secret en horarios clave de mercado.
 //
-// 2026-07-21 — extensión:
-// - Soporta fuentes no-RSS (GDELT, CryptoCompare, CoinGecko) detectadas por
-//   scheme especial en NEWS_FEEDS.url (gdelt://, cryptocompare://, coingecko://).
-// - Header X-Cron-Secret: si matchea env NEWS_CRON_SECRET, força refresh
-//   ignorando STALE_MS — usado por pg_cron en horarios de mercado.
-// - Pre-warm de bodies: siX-Cron-Secret presente, despues del refresh de
-//   feeds invoca fetch-article-body async para los top 20 artículos nuevos
-//   (no bloquea la respuesta — son jobs en fire-and-forget).
+// - Header X-Cron-Secret fuerza refresh y pre-warm para pg_cron.
+// - Cada feed tiene timeout y deja un resultado estructurado en logs.
+// - Una petición autenticada puede enviar force_refresh para el botón Reintentar.
 //
 // Mismo esqueleto que analyze-trade: CORS estático, chequeo manual del header
 // Authorization (o X-Cron-Secret para cron interno), userClient solo para
@@ -25,6 +20,7 @@ import { NEWS_FEEDS, type FetchNewsResponse, type NewsArticleDTO, type NewsFeedS
 
 const STALE_MS = 25 * 60 * 1000
 const MAX_ARTICLES_RETURNED = 120
+const FEED_TIMEOUT_MS = 12_000
 
 function errorResponse(status: number, error: string) {
   return new Response(JSON.stringify({ error }), {
@@ -44,13 +40,91 @@ interface ArticleUpsertRow {
   fetched_at: string
 }
 
+type FeedItem = {
+  enclosure?: { url?: string }
+  'media:content'?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>
+  'media:thumbnail'?: { $?: { url?: string } } | Array<{ $?: { url?: string } }>
+  content?: string
+  contentSnippet?: string
+  title?: string
+  link?: string
+  isoDate?: string
+  pubDate?: string
+}
+
+function firstMediaUrl(value: FeedItem['media:content'] | FeedItem['media:thumbnail']): string | null {
+  const media = Array.isArray(value) ? value[0] : value
+  const url = media?.$?.url
+  return typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null
+}
+
+function imageFromHtml(html: string | undefined): string | null {
+  if (!html) return null
+  const match = html.match(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/i)
+    ?? html.match(/<img\b[^>]*\bsrc\s*=\s*([^\s>]+)/i)
+  const rawUrl = match?.[1]?.replace(/["']$/, '')
+  if (!rawUrl) return null
+  try {
+    const url = new URL(rawUrl)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
+function safeErrorMessage(error: unknown): string {
+  let message: string
+  if (error instanceof Error) {
+    message = error.message
+  } else if (error && typeof error === 'object') {
+    // PostgREST errors are plain objects, not Error instances. String(error)
+    // collapses them to the unhelpful "[object Object]".
+    const value = error as Record<string, unknown>
+    message = ['code', 'message', 'details', 'hint', 'status']
+      .map((key) => value[key] == null ? '' : `${key}: ${String(value[key])}`)
+      .filter(Boolean)
+      .join(' | ') || 'Error sin detalle'
+  } else {
+    message = String(error)
+  }
+  return message
+    .replace(/https?:\/\/[^\s"'<>]+/gi, '[url]')
+    .replace(/(api[_-]?key|token|secret)=([^&\s]+)/gi, '$1=[redacted]')
+    .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\bsb_(?:publishable|secret)_[A-Za-z0-9_-]+/gi, '[redacted]')
+    .slice(0, 240)
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Tiempo de espera agotado (${FEED_TIMEOUT_MS} ms)`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function fetchRssFeed(parser: Parser, feed: NewsFeedSource): Promise<ArticleUpsertRow[]> {
-  const res = await fetch(feed.url, { headers: { 'User-Agent': 'LineaTradeBot/1.0 (+https://lineartrade.vercel.app)' } })
-  if (!res.ok) throw new Error(`${feed.url} respondió ${res.status}`)
+  const res = await fetchWithTimeout(feed.url, { headers: { 'User-Agent': 'LineaTradeBot/1.0 (+https://lineartrade.vercel.app)' } })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const xml = await res.text()
   const parsed = await parser.parseString(xml)
 
-  return (parsed.items ?? []).map((item) => ({
+  return (parsed.items ?? []).map((rawItem) => {
+    const item = rawItem as FeedItem
+    const imageUrl = item.enclosure?.url
+      ?? firstMediaUrl(item['media:content'])
+      ?? firstMediaUrl(item['media:thumbnail'])
+      ?? imageFromHtml(item.content)
+      ?? imageFromHtml(item.contentSnippet)
+
+    return {
     source_name: feed.sourceName,
     category: feed.category,
     title: item.title ?? '(sin título)',
@@ -60,75 +134,14 @@ async function fetchRssFeed(parser: Parser, feed: NewsFeedSource): Promise<Artic
     // resumen por el excerpt scrapeado (texto plano) al abrir la nota; el
     // `summary` del feed sigue siendo el fallback/snippet-only de base.
     summary: item.contentSnippet ? item.contentSnippet.slice(0, 800) : null,
-    image_url: item.enclosure?.url ?? null,
+    image_url: imageUrl,
     published_at: item.isoDate ?? (item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()),
     fetched_at: new Date().toISOString(),
-  }))
-}
-
-/** GDELT 2.0 artlist — formato RSS via API abierta. */
-async function fetchGdeltFeed(feed: NewsFeedSource): Promise<ArticleUpsertRow[]> {
-  const res = await fetch(feed.url.replace('gdelt://', 'https://api.gdeltproject.org/'), {
-    headers: { 'User-Agent': 'LineaTradeBot/1.0' },
+    }
   })
-  if (!res.ok) throw new Error(`GDELT respondió ${res.status}`)
-  const xml = await res.text()
-  const parser = new Parser()
-  const parsed = await parser.parseString(xml)
-  return (parsed.items ?? []).map((item) => ({
-    source_name: feed.sourceName,
-    category: feed.category,
-    title: item.title ?? '(sin título)',
-    url: item.link ?? '',
-    summary: item.contentSnippet ? item.contentSnippet.slice(0, 800) : null,
-    image_url: item.enclosure?.url ?? null,
-    published_at: item.isoDate ?? new Date().toISOString(),
-    fetched_at: new Date().toISOString(),
-  }))
-}
-
-/** CryptoCompare News API (público, sin key). */
-async function fetchCryptoCompareFeed(feed: NewsFeedSource): Promise<ArticleUpsertRow[]> {
-  const res = await fetch('https://min-api.cryptocompare.com' + feed.url.replace('cryptocompare://', ''), {
-    headers: { 'User-Agent': 'LineaTradeBot/1.0' },
-  })
-  if (!res.ok) throw new Error(`CryptoCompare respondió ${res.status}`)
-  const data = await res.json() as { Data?: Array<{ id?: string; title?: string; url?: string; body?: string; source?: string; imageurl?: string; published_on?: number }> }
-  return (data.Data ?? []).map((item) => ({
-    source_name: feed.sourceName,
-    category: feed.category,
-    title: item.title ?? '(sin título)',
-    url: item.url ?? '',
-    summary: item.body ? item.body.slice(0, 800) : null,
-    image_url: item.imageurl ?? null,
-    published_at: item.published_on ? new Date(item.published_on * 1000).toISOString() : new Date().toISOString(),
-    fetched_at: new Date().toISOString(),
-  }))
-}
-
-/** CoinGecko news endpoint (público). */
-async function fetchCoinGeckoFeed(feed: NewsFeedSource): Promise<ArticleUpsertRow[]> {
-  const res = await fetch('https://api.coingecko.com' + feed.url.replace('coingecko://', ''), {
-    headers: { 'User-Agent': 'LineaTradeBot/1.0', accept: 'application/json' },
-  })
-  if (!res.ok) throw new Error(`CoinGecko respondió ${res.status}`)
-  const data = await res.json() as Array<{ title?: string; url?: string; author?: string; updated_at?: string; thumb?: string; thumb_2?: string }>
-  return (data ?? []).map((item) => ({
-    source_name: feed.sourceName,
-    category: feed.category,
-    title: item.title ?? '(sin título)',
-    url: item.url ?? '',
-    summary: null, // CoinGecko news API no devuelve body, sólo metadatos.
-    image_url: item.thumb ?? item.thumb_2 ?? null,
-    published_at: item.updated_at ? new Date(item.updated_at).toISOString() : new Date().toISOString(),
-    fetched_at: new Date().toISOString(),
-  }))
 }
 
 async function fetchFeed(parser: Parser, feed: NewsFeedSource): Promise<ArticleUpsertRow[]> {
-  if (feed.url.startsWith('gdelt://')) return fetchGdeltFeed(feed)
-  if (feed.url.startsWith('cryptocompare://')) return fetchCryptoCompareFeed(feed)
-  if (feed.url.startsWith('coingecko://')) return fetchCoinGeckoFeed(feed)
   return fetchRssFeed(parser, feed)
 }
 
@@ -147,7 +160,7 @@ async function prewarmBodies(serviceClient: ReturnType<typeof createServiceClien
   // No esperamos — lanzamos y seguimos. Edge Function timeout wall: 150s free.
   await Promise.allSettled(
     articleIds.map((id) =>
-      fetch(url, {
+      fetchWithTimeout(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,6 +198,9 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  const requestBody = req.method === 'POST' ? await req.clone().json().catch(() => null) as { force_refresh?: unknown } | null : null
+  const forceRefresh = requestBody?.force_refresh === true
+
   const serviceClient = createServiceClient()
 
   const { data: latest } = await serviceClient
@@ -199,28 +215,112 @@ Deno.serve(async (req: Request) => {
   let partial = false
   let refreshed = false
 
-  if (isStale || isCronInternal) {
+  if (isStale || isCronInternal || forceRefresh) {
     refreshed = true
     const parser = new Parser()
+    const refreshStartedAt = performance.now()
+    const feedStartedAt = NEWS_FEEDS.map(() => performance.now())
     const results = await Promise.allSettled(NEWS_FEEDS.map((feed) => fetchFeed(parser, feed)))
 
-    const rows = results.flatMap((result) => {
-      if (result.status === 'fulfilled') return result.value
-      partial = true
-      return []
-    })
+    const rows: ArticleUpsertRow[] = []
+    let successfulFeeds = 0
+    let emptyFeeds = 0
+    let failedFeeds = 0
+    for (const [index, result] of results.entries()) {
+      const feed = NEWS_FEEDS[index]
+      const durationMs = Math.round(performance.now() - feedStartedAt[index])
+      if (result.status === 'rejected') {
+        failedFeeds += 1
+        partial = true
+        console.error(JSON.stringify({
+          event: 'news_feed_result',
+          source: feed.sourceName,
+          status: 'error',
+          duration_ms: durationMs,
+          error: safeErrorMessage(result.reason),
+        }))
+        continue
+      }
 
-    const validRows = rows.filter((row) => row.url.length > 0)
+      const feedRows = result.value
+      const validFeedRows = feedRows.filter((row) => row.url.length > 0)
+      rows.push(...feedRows)
+      if (validFeedRows.length === 0) {
+        emptyFeeds += 1
+        partial = true
+        console.warn(JSON.stringify({
+          event: 'news_feed_result',
+          source: feed.sourceName,
+          status: 'empty',
+          articles_received: feedRows.length,
+          valid_articles: 0,
+          duration_ms: durationMs,
+        }))
+      } else {
+        successfulFeeds += 1
+        console.info(JSON.stringify({
+          event: 'news_feed_result',
+          source: feed.sourceName,
+          status: 'ok',
+          articles_received: feedRows.length,
+          valid_articles: validFeedRows.length,
+          duration_ms: durationMs,
+        }))
+      }
+    }
+
+    const fetchedValidRows = rows.filter((row) => row.url.length > 0)
+    const rowsByUrl = new Map<string, ArticleUpsertRow>()
+    for (const row of fetchedValidRows) {
+      const existing = rowsByUrl.get(row.url)
+      if (!existing || Date.parse(row.published_at) > Date.parse(existing.published_at)) {
+        rowsByUrl.set(row.url, row)
+      }
+    }
+    // Postgres cannot apply ON CONFLICT DO UPDATE to the same URL twice in
+    // one INSERT. Several feeds can syndicate the same story, so collapse the
+    // batch to one deterministic (newest) row per URL before the upsert.
+    const validRows = [...rowsByUrl.values()]
+    const duplicateRowsRemoved = fetchedValidRows.length - validRows.length
+    let upsertSucceeded = false
     if (validRows.length > 0) {
       const { error: upsertError } = await serviceClient
         .from('news_articles')
         .upsert(validRows, { onConflict: 'url' })
-      if (upsertError && rows.length === validRows.length) {
+      if (upsertError) {
         partial = true
+        console.error(JSON.stringify({
+          event: 'news_upsert_result',
+          status: 'error',
+          submitted_rows: validRows.length,
+          error: safeErrorMessage(upsertError),
+        }))
+      } else {
+        upsertSucceeded = true
+        console.info(JSON.stringify({
+          event: 'news_upsert_result',
+          status: 'ok',
+          submitted_rows: validRows.length,
+        }))
       }
     } else {
       partial = true
     }
+
+    console.info(JSON.stringify({
+      event: 'news_refresh_complete',
+      trigger: isCronInternal ? 'cron' : forceRefresh ? 'manual_retry' : 'on_demand',
+      feeds_total: NEWS_FEEDS.length,
+      feeds_ok: successfulFeeds,
+      feeds_empty: emptyFeeds,
+      feeds_failed: failedFeeds,
+      articles_received: rows.length,
+      valid_articles: validRows.length,
+      duplicate_rows_removed: duplicateRowsRemoved,
+      upsert_succeeded: upsertSucceeded,
+      partial,
+      duration_ms: Math.round(performance.now() - refreshStartedAt),
+    }))
 
     // Pre-warm de bodies sólo en cron jobs (no on-demand para evitar amplify).
     if (isCronInternal && validRows.length > 0) {
@@ -238,6 +338,8 @@ Deno.serve(async (req: Request) => {
         void prewarmBodies(serviceClient, topArticles.map((r) => (r as { id: string }).id))
       }
     }
+  } else {
+    console.info(JSON.stringify({ event: 'news_refresh_skipped', reason: 'cache_fresh' }))
   }
 
   const { data: articles, error: selectError } = await serviceClient
@@ -247,6 +349,7 @@ Deno.serve(async (req: Request) => {
     .limit(MAX_ARTICLES_RETURNED)
 
   if (selectError) {
+    console.error(JSON.stringify({ event: 'news_read_error', error: safeErrorMessage(selectError) }))
     return errorResponse(500, `No se pudo leer las noticias: ${selectError.message}`)
   }
 

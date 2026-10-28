@@ -1,0 +1,2 @@
+# El worker usa exclusivamente la API HTTP oficial mediante la biblioteca estándar
+# de Python. No instala dependencias para evitar llevar secretos o runtimes extra.

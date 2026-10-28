@@ -48,7 +48,7 @@ export default function Noticias() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const result = await fetchNews()
+      const result = await fetchNews({ forceRefresh: attempt > 0 })
       if (cancelled) return
       if (!result.ok) {
         setError(result.message)
@@ -103,7 +103,7 @@ export default function Noticias() {
           </button>
         </p>
       )}
-      {!error && partial && <p className="mb-4 font-body text-[12px] text-text-faint">Algunas fuentes no respondieron: se muestra lo disponible.</p>}
+      {!error && partial && <p className="mb-4 font-body text-[12px] text-text-faint">Algunas fuentes no entregaron noticias: se muestra lo disponible.</p>}
 
       {loading && <NewsSkeleton />}
 

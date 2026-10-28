@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../../lib/auth'
 import { useEntitlements } from '../../hooks/useEntitlements'
@@ -38,47 +40,77 @@ function PlanCard() {
   )
 }
 
-// Barra lateral de escritorio (desde lg): 5 áreas con sus subpantallas siempre
-// visibles y, abajo, el plan y el acceso a la cuenta.
+// Barra lateral de escritorio: las áreas con subpantallas funcionan como un
+// acordeón. Esto conserva el acceso a toda la navegación sin convertir la
+// barra en una lista desplazable.
 export function Sidebar() {
   const { pathname } = useLocation()
   const { user, avatarUrl } = useAuth()
   const current = activeAreaKey(pathname)
   const inAccount = ACCOUNT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  const [expandedArea, setExpandedArea] = useState<string | null>(current === 'mas' ? null : current)
+
+  useEffect(() => {
+    setExpandedArea(current === 'mas' ? null : current)
+  }, [current])
 
   return (
     <aside
       aria-label="Navegación principal"
-      className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-hairline bg-ink px-3.5 py-5 lg:flex"
+      className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col overflow-hidden border-r border-hairline bg-ink px-3.5 py-5 lg:flex"
     >
       <BrandMark className="px-3 pb-5" />
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
         {NAV_AREAS.map((area) => {
           const Icon = area.icon
           const active = current === area.key
           const children = visibleChildren(area)
+          const expanded = expandedArea === area.key
+          const childId = `sidebar-${area.key}-children`
           return (
             <div key={area.key} className="flex flex-col gap-0.5">
-              <NavLink to={area.to} aria-current={active ? 'page' : undefined} className={cn(ROW, active ? ROW_ACTIVE : ROW_IDLE)}>
-                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                {area.label}
-              </NavLink>
-              {children.map((leaf) => {
-                const leafActive = isLeafActive(pathname, leaf, children)
-                return (
-                  <Link
-                    key={leaf.to}
-                    to={leaf.to}
-                    aria-current={leafActive ? 'page' : undefined}
-                    className={cn(
-                      'block rounded-md py-[5px] pl-[42px] pr-3 font-body text-[13px] transition-colors',
-                      leafActive ? 'font-semibold text-text-primary' : 'text-text-faint hover:text-text-primary',
-                    )}
+              <div className="relative">
+                <NavLink
+                  to={area.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(ROW, children.length > 0 && 'pr-10', active ? ROW_ACTIVE : ROW_IDLE)}
+                >
+                  <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                  {area.label}
+                </NavLink>
+                {children.length > 0 && (
+                  <button
+                    type="button"
+                    aria-label={`${expanded ? 'Contraer' : 'Desplegar'} ${area.label}`}
+                    aria-expanded={expanded}
+                    aria-controls={childId}
+                    onClick={() => setExpandedArea(expanded ? null : area.key)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-faint transition-colors hover:bg-panel hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
                   >
-                    {leaf.label}
-                  </Link>
-                )
-              })}
+                    <ChevronDown className={cn('h-4 w-4 transition-transform', expanded && 'rotate-180')} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+              {expanded && children.length > 0 && (
+                <div id={childId} className="flex flex-col gap-0.5 pb-1">
+                  {children.map((leaf) => {
+                    const leafActive = isLeafActive(pathname, leaf, children)
+                    return (
+                      <Link
+                        key={leaf.to}
+                        to={leaf.to}
+                        aria-current={leafActive ? 'page' : undefined}
+                        className={cn(
+                          'block rounded-md py-[5px] pl-[42px] pr-3 font-body text-[13px] transition-colors',
+                          leafActive ? 'font-semibold text-text-primary' : 'text-text-faint hover:text-text-primary',
+                        )}
+                      >
+                        {leaf.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })}

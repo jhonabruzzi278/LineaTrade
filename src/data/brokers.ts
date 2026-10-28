@@ -1,8 +1,9 @@
-export type BrokerCategory = 'acciones' | 'forex' | 'cripto' | 'futuros' | 'otro'
+export type BrokerCategory = 'acciones' | 'forex' | 'cfd' | 'cripto' | 'futuros' | 'otro'
 
 export const brokerCategoryLabels: Record<BrokerCategory, string> = {
   acciones: 'Acciones',
   forex: 'Forex',
+  cfd: 'CFD',
   cripto: 'Cripto',
   futuros: 'Futuros',
   otro: 'Otro',
@@ -53,4 +54,5 @@ export const popularBrokers: Broker[] = [
   { id: 'okx', name: 'OKX', category: 'cripto' },
   { id: 'topstepx', name: 'TopstepX', category: 'futuros' },
   { id: 'ocean_one', name: 'Ocean One Securities', category: 'acciones' },
+  { id: 'xtb', name: 'XTB (xStation)', category: 'cfd' },
 ]

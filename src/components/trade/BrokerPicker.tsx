@@ -8,7 +8,7 @@ interface BrokerPickerProps {
 
 type CategoryFilter = BrokerCategory | 'todos'
 
-const categoryFilters: CategoryFilter[] = ['todos', 'acciones', 'forex', 'cripto', 'futuros', 'otro']
+const categoryFilters: CategoryFilter[] = ['todos', 'acciones', 'forex', 'cfd', 'cripto', 'futuros', 'otro']
 
 // Los 5 de mayor reconocimiento de marca entre los 37 — se muestran primero
 // para no abrumar; el resto queda detrás de "¿No está tu bróker?" para quien

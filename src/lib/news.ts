@@ -91,13 +91,17 @@ export function getCachedNews(): { articles: NewsArticle[]; partial: boolean } |
   return { articles: newsCache.articles, partial: newsCache.partial }
 }
 
-/** Invoca fetch-news, que refresca el cache si está viejo y devuelve el listado. */
-export async function fetchNews(): Promise<FetchNewsResult> {
-  if (newsCache && Date.now() - newsCache.fetchedAt < CLIENT_CACHE_MS) {
+/** Invoca fetch-news; forceRefresh salta las cachés para el botón Reintentar. */
+export async function fetchNews(options: { forceRefresh?: boolean } = {}): Promise<FetchNewsResult> {
+  const forceRefresh = options.forceRefresh === true
+  if (!forceRefresh && newsCache && Date.now() - newsCache.fetchedAt < CLIENT_CACHE_MS) {
     return { ok: true, articles: newsCache.articles, partial: newsCache.partial }
   }
 
-  const { data, error } = await supabase.functions.invoke<FetchNewsResponse>('fetch-news')
+  const { data, error } = await supabase.functions.invoke<FetchNewsResponse>(
+    'fetch-news',
+    forceRefresh ? { body: { force_refresh: true } } : undefined,
+  )
 
   if (error) {
     return { ok: false, message: await getFunctionErrorMessage(error) }

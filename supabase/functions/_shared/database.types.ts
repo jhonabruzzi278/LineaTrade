@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -35,16 +40,33 @@ export type Database = {
   public: {
     Tables: {
       academy_lesson_progress: {
-        Row: { completed_at: string; lesson_id: string; updated_at: string; user_id: string }
-        Insert: { completed_at?: string; lesson_id: string; updated_at?: string; user_id: string }
-        Update: { completed_at?: string; lesson_id?: string; updated_at?: string; user_id?: string }
-        Relationships: [{
-          foreignKeyName: "academy_lesson_progress_user_id_fkey"
-          columns: ["user_id"]
-          isOneToOne: false
-          referencedRelation: "profiles"
-          referencedColumns: ["id"]
-        }]
+        Row: {
+          completed_at: string
+          lesson_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          lesson_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          lesson_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_lesson_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_analysis: {
         Row: {
@@ -452,6 +474,109 @@ export type Database = {
           },
         ]
       }
+      billing_checkout_sessions: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          expires_at: string
+          flow_customer_id: string
+          flow_plan_id: string
+          id: string
+          registration_token: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          expires_at?: string
+          flow_customer_id: string
+          flow_plan_id: string
+          id?: string
+          registration_token: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          expires_at?: string
+          flow_customer_id?: string
+          flow_plan_id?: string
+          id?: string
+          registration_token?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_checkout_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_customers: {
+        Row: {
+          created_at: string
+          provider: string
+          provider_customer_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          provider?: string
+          provider_customer_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          provider?: string
+          provider_customer_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_webhook_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          payload: Json
+          processed_at: string
+          provider: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          payload?: Json
+          processed_at?: string
+          provider?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          payload?: Json
+          processed_at?: string
+          provider?: string
+        }
+        Relationships: []
+      }
       chart_annotations: {
         Row: {
           backtest_session_id: string | null
@@ -573,6 +698,499 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_challenge_phases: {
+        Row: {
+          account_identifier: string | null
+          challenge_id: string
+          completed_on: string | null
+          completion_note: string | null
+          created_at: string
+          id: string
+          phase_kind: Database["public"]["Enums"]["funding_phase_kind"]
+          phase_number: number
+          start_balance: number
+          started_on: string
+          status: Database["public"]["Enums"]["funding_phase_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_identifier?: string | null
+          challenge_id: string
+          completed_on?: string | null
+          completion_note?: string | null
+          created_at?: string
+          id?: string
+          phase_kind?: Database["public"]["Enums"]["funding_phase_kind"]
+          phase_number: number
+          start_balance: number
+          started_on: string
+          status?: Database["public"]["Enums"]["funding_phase_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_identifier?: string | null
+          challenge_id?: string
+          completed_on?: string | null
+          completion_note?: string | null
+          created_at?: string
+          id?: string
+          phase_kind?: Database["public"]["Enums"]["funding_phase_kind"]
+          phase_number?: number
+          start_balance?: number
+          started_on?: string
+          status?: Database["public"]["Enums"]["funding_phase_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_challenge_phases_owner_fkey"
+            columns: ["challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_challenge_phases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_challenge_rules: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          daily_drawdown_percent: number | null
+          drawdown_type: Database["public"]["Enums"]["funding_drawdown_type"]
+          id: string
+          max_daily_consistency_percent: number | null
+          max_drawdown_percent: number
+          min_trading_days_per_phase: number
+          phase_one_profit_target_percent: number
+          phase_two_profit_target_percent: number | null
+          phase_two_requires_new_account: boolean
+          profit_split_percent: number | null
+          rule_snapshot: Json
+          rule_timezone: string
+          source_template_version_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          daily_drawdown_percent?: number | null
+          drawdown_type?: Database["public"]["Enums"]["funding_drawdown_type"]
+          id?: string
+          max_daily_consistency_percent?: number | null
+          max_drawdown_percent: number
+          min_trading_days_per_phase?: number
+          phase_one_profit_target_percent: number
+          phase_two_profit_target_percent?: number | null
+          phase_two_requires_new_account?: boolean
+          profit_split_percent?: number | null
+          rule_snapshot?: Json
+          rule_timezone?: string
+          source_template_version_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          daily_drawdown_percent?: number | null
+          drawdown_type?: Database["public"]["Enums"]["funding_drawdown_type"]
+          id?: string
+          max_daily_consistency_percent?: number | null
+          max_drawdown_percent?: number
+          min_trading_days_per_phase?: number
+          phase_one_profit_target_percent?: number
+          phase_two_profit_target_percent?: number | null
+          phase_two_requires_new_account?: boolean
+          profit_split_percent?: number | null
+          rule_snapshot?: Json
+          rule_timezone?: string
+          source_template_version_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_challenge_rules_owner_fkey"
+            columns: ["challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_challenge_rules_source_template_version_id_fkey"
+            columns: ["source_template_version_id"]
+            isOneToOne: false
+            referencedRelation: "funding_rule_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funding_challenge_rules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_challenges: {
+        Row: {
+          account_identifier: string | null
+          account_size: number
+          account_type: Database["public"]["Enums"]["funding_account_type"]
+          completed_at: string | null
+          created_at: string
+          currency_code: string
+          deleted_at: string | null
+          firm_name: string
+          id: string
+          notes: string | null
+          prop_firm_id: string | null
+          purchase_cost: number
+          started_on: string
+          status: Database["public"]["Enums"]["funding_challenge_status"]
+          strategy_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_identifier?: string | null
+          account_size: number
+          account_type: Database["public"]["Enums"]["funding_account_type"]
+          completed_at?: string | null
+          created_at?: string
+          currency_code?: string
+          deleted_at?: string | null
+          firm_name: string
+          id?: string
+          notes?: string | null
+          prop_firm_id?: string | null
+          purchase_cost?: number
+          started_on: string
+          status?: Database["public"]["Enums"]["funding_challenge_status"]
+          strategy_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_identifier?: string | null
+          account_size?: number
+          account_type?: Database["public"]["Enums"]["funding_account_type"]
+          completed_at?: string | null
+          created_at?: string
+          currency_code?: string
+          deleted_at?: string | null
+          firm_name?: string
+          id?: string
+          notes?: string | null
+          prop_firm_id?: string | null
+          purchase_cost?: number
+          started_on?: string
+          status?: Database["public"]["Enums"]["funding_challenge_status"]
+          strategy_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_challenges_prop_firm_id_fkey"
+            columns: ["prop_firm_id"]
+            isOneToOne: false
+            referencedRelation: "prop_firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funding_challenges_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funding_challenges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["funding_expense_category"]
+          challenge_id: string | null
+          created_at: string
+          description: string
+          id: string
+          incurred_on: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: Database["public"]["Enums"]["funding_expense_category"]
+          challenge_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          incurred_on: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["funding_expense_category"]
+          challenge_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          incurred_on?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_expenses_challenge_owner_fkey"
+            columns: ["challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_expenses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_payouts: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          gross_amount: number
+          id: string
+          net_amount: number
+          notes: string | null
+          paid_on: string | null
+          phase_id: string | null
+          reference: string | null
+          requested_on: string
+          status: Database["public"]["Enums"]["funding_payout_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          gross_amount: number
+          id?: string
+          net_amount: number
+          notes?: string | null
+          paid_on?: string | null
+          phase_id?: string | null
+          reference?: string | null
+          requested_on: string
+          status?: Database["public"]["Enums"]["funding_payout_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          paid_on?: string | null
+          phase_id?: string | null
+          reference?: string | null
+          requested_on?: string
+          status?: Database["public"]["Enums"]["funding_payout_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_payouts_challenge_owner_fkey"
+            columns: ["challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_payouts_phase_owner_fkey"
+            columns: ["phase_id", "challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenge_phases"
+            referencedColumns: ["id", "challenge_id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_payouts_phase_owner_fkey"
+            columns: ["phase_id", "challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "v_funding_phase_progress"
+            referencedColumns: ["phase_id", "challenge_id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_payouts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_rule_template_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          daily_drawdown_percent: number | null
+          drawdown_type: Database["public"]["Enums"]["funding_drawdown_type"]
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          max_daily_consistency_percent: number | null
+          max_drawdown_percent: number
+          min_trading_days_per_phase: number
+          phase_one_profit_target_percent: number
+          phase_two_profit_target_percent: number | null
+          phase_two_requires_new_account: boolean
+          profit_split_percent: number | null
+          published_at: string
+          rule_timezone: string
+          source_note: string | null
+          source_url: string | null
+          template_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          daily_drawdown_percent?: number | null
+          drawdown_type?: Database["public"]["Enums"]["funding_drawdown_type"]
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          max_daily_consistency_percent?: number | null
+          max_drawdown_percent: number
+          min_trading_days_per_phase?: number
+          phase_one_profit_target_percent: number
+          phase_two_profit_target_percent?: number | null
+          phase_two_requires_new_account?: boolean
+          profit_split_percent?: number | null
+          published_at?: string
+          rule_timezone?: string
+          source_note?: string | null
+          source_url?: string | null
+          template_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          daily_drawdown_percent?: number | null
+          drawdown_type?: Database["public"]["Enums"]["funding_drawdown_type"]
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          max_daily_consistency_percent?: number | null
+          max_drawdown_percent?: number
+          min_trading_days_per_phase?: number
+          phase_one_profit_target_percent?: number
+          phase_two_profit_target_percent?: number | null
+          phase_two_requires_new_account?: boolean
+          profit_split_percent?: number | null
+          published_at?: string
+          rule_timezone?: string
+          source_note?: string | null
+          source_url?: string | null
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_rule_template_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funding_rule_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "funding_rule_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_rule_templates: {
+        Row: {
+          account_type: Database["public"]["Enums"]["funding_account_type"]
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          prop_firm_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_type: Database["public"]["Enums"]["funding_account_type"]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          prop_firm_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: Database["public"]["Enums"]["funding_account_type"]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          prop_firm_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_rule_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funding_rule_templates_prop_firm_id_fkey"
+            columns: ["prop_firm_id"]
+            isOneToOne: false
+            referencedRelation: "prop_firms"
             referencedColumns: ["id"]
           },
         ]
@@ -757,6 +1375,36 @@ export type Database = {
           },
         ]
       }
+      plan_entitlements: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          hard_limit: number | null
+          metadata: Json
+          period: string | null
+          plan_key: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          feature_key: string
+          hard_limit?: number | null
+          metadata?: Json
+          period?: string | null
+          plan_key: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          hard_limit?: number | null
+          metadata?: Json
+          period?: string | null
+          plan_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_type: string | null
@@ -811,6 +1459,50 @@ export type Database = {
         }
         Relationships: []
       }
+      prop_firms: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prop_firms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -845,54 +1537,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      scanner_results: {
-        Row: {
-          bollinger_lower: number | null
-          bollinger_percent_b: number | null
-          bollinger_upper: number | null
-          last_candle_time: number
-          last_price: number
-          macd_histogram: number | null
-          macd_line: number | null
-          macd_signal: number | null
-          price_change_pct: number | null
-          rsi_14: number | null
-          scanned_at: string
-          symbol: string
-          volume_spike_ratio: number | null
-        }
-        Insert: {
-          bollinger_lower?: number | null
-          bollinger_percent_b?: number | null
-          bollinger_upper?: number | null
-          last_candle_time: number
-          last_price: number
-          macd_histogram?: number | null
-          macd_line?: number | null
-          macd_signal?: number | null
-          price_change_pct?: number | null
-          rsi_14?: number | null
-          scanned_at?: string
-          symbol: string
-          volume_spike_ratio?: number | null
-        }
-        Update: {
-          bollinger_lower?: number | null
-          bollinger_percent_b?: number | null
-          bollinger_upper?: number | null
-          last_candle_time?: number
-          last_price?: number
-          macd_histogram?: number | null
-          macd_line?: number | null
-          macd_signal?: number | null
-          price_change_pct?: number | null
-          rsi_14?: number | null
-          scanned_at?: string
-          symbol?: string
-          volume_spike_ratio?: number | null
-        }
-        Relationships: []
       }
       strategies: {
         Row: {
@@ -931,6 +1575,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "strategies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_key: string
+          provider: string
+          provider_price_id: string | null
+          provider_product_id: string | null
+          provider_subscription_id: string
+          status: string
+          trial_end: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_key: string
+          provider?: string
+          provider_price_id?: string | null
+          provider_product_id?: string | null
+          provider_subscription_id: string
+          status: string
+          trial_end?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_key?: string
+          provider?: string
+          provider_price_id?: string | null
+          provider_product_id?: string | null
+          provider_subscription_id?: string
+          status?: string
+          trial_end?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1278,6 +1981,8 @@ export type Database = {
           expiration_date: string | null
           fear_level: number | null
           followed_plan: boolean | null
+          funding_challenge_id: string | null
+          funding_phase_id: string | null
           had_distractions: boolean | null
           had_fomo: boolean | null
           hesitated: boolean | null
@@ -1333,6 +2038,8 @@ export type Database = {
           expiration_date?: string | null
           fear_level?: number | null
           followed_plan?: boolean | null
+          funding_challenge_id?: string | null
+          funding_phase_id?: string | null
           had_distractions?: boolean | null
           had_fomo?: boolean | null
           hesitated?: boolean | null
@@ -1388,6 +2095,8 @@ export type Database = {
           expiration_date?: string | null
           fear_level?: number | null
           followed_plan?: boolean | null
+          funding_challenge_id?: string | null
+          funding_phase_id?: string | null
           had_distractions?: boolean | null
           had_fomo?: boolean | null
           hesitated?: boolean | null
@@ -1429,6 +2138,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "backtest_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_funding_challenge_owner_fkey"
+            columns: ["funding_challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "trades_funding_phase_owner_fkey"
+            columns: ["funding_phase_id", "funding_challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenge_phases"
+            referencedColumns: ["id", "challenge_id", "user_id"]
+          },
+          {
+            foreignKeyName: "trades_funding_phase_owner_fkey"
+            columns: ["funding_phase_id", "funding_challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "v_funding_phase_progress"
+            referencedColumns: ["phase_id", "challenge_id", "user_id"]
           },
           {
             foreignKeyName: "trades_instrument_id_fkey"
@@ -1488,8 +2218,157 @@ export type Database = {
           },
         ]
       }
+      user_entitlement_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean | null
+          expires_at: string | null
+          feature_key: string
+          hard_limit: number | null
+          id: string
+          period: string | null
+          reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean | null
+          expires_at?: string | null
+          feature_key: string
+          hard_limit?: number | null
+          id?: string
+          period?: string | null
+          reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean | null
+          expires_at?: string | null
+          feature_key?: string
+          hard_limit?: number | null
+          id?: string
+          period?: string | null
+          reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_entitlement_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_entitlement_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      v_funding_phase_progress: {
+        Row: {
+          best_day_profit_share_percent: number | null
+          best_positive_daily_pnl: number | null
+          challenge_id: string | null
+          closed_trade_count: number | null
+          consistency_breached: boolean | null
+          daily_drawdown_breached: boolean | null
+          daily_drawdown_limit_amount: number | null
+          drawdown_type:
+            | Database["public"]["Enums"]["funding_drawdown_type"]
+            | null
+          end_of_day_trailing_drawdown_amount: number | null
+          max_drawdown_breached: boolean | null
+          max_drawdown_limit_amount: number | null
+          minimum_days_reached: boolean | null
+          net_pnl: number | null
+          pass_eligible_from_closed_trades: boolean | null
+          phase_id: string | null
+          phase_kind: Database["public"]["Enums"]["funding_phase_kind"] | null
+          phase_number: number | null
+          profit_target_amount: number | null
+          profit_target_percent: number | null
+          profit_target_reached: boolean | null
+          realized_balance: number | null
+          start_balance: number | null
+          static_drawdown_amount: number | null
+          stored_status:
+            | Database["public"]["Enums"]["funding_phase_status"]
+            | null
+          trading_day_count: number | null
+          trailing_drawdown_amount: number | null
+          user_id: string | null
+          worst_daily_pnl: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_challenge_phases_owner_fkey"
+            columns: ["challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "funding_challenge_phases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_funding_phase_trade_daily: {
+        Row: {
+          challenge_id: string | null
+          closed_trade_count: number | null
+          daily_pnl: number | null
+          phase_id: string | null
+          trading_day: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_funding_challenge_owner_fkey"
+            columns: ["challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenges"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "trades_funding_phase_owner_fkey"
+            columns: ["phase_id", "challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "funding_challenge_phases"
+            referencedColumns: ["id", "challenge_id", "user_id"]
+          },
+          {
+            foreignKeyName: "trades_funding_phase_owner_fkey"
+            columns: ["phase_id", "challenge_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "v_funding_phase_progress"
+            referencedColumns: ["phase_id", "challenge_id", "user_id"]
+          },
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_rule_violations: {
         Row: {
           objective_count: number | null
@@ -1703,16 +2582,6 @@ export type Database = {
       }
     }
     Functions: {
-      get_my_entitlements: {
-        Args: never
-        Returns: {
-          enabled: boolean
-          feature_key: string
-          hard_limit: number | null
-          period: string | null
-          plan_key: string
-        }[]
-      }
       check_and_increment_ai_usage: {
         Args: {
           p_daily_limit: number
@@ -1755,6 +2624,16 @@ export type Database = {
           secret_name: string
         }[]
       }
+      get_my_entitlements: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          feature_key: string
+          hard_limit: number
+          period: string
+          plan_key: string
+        }[]
+      }
       get_system_metrics: {
         Args: never
         Returns: {
@@ -1786,7 +2665,6 @@ export type Database = {
         }[]
       }
       invoke_news_cron_refresh: { Args: never; Returns: undefined }
-      invoke_scanner_cron: { Args: never; Returns: undefined }
       invoke_trade_reminder_cron: { Args: never; Returns: undefined }
       is_superadmin: { Args: { uid: string }; Returns: boolean }
       read_vault_secret: { Args: { p_secret_id: string }; Returns: string }
@@ -1809,6 +2687,38 @@ export type Database = {
       }
     }
     Enums: {
+      funding_account_type:
+        | "evaluation_two_phase"
+        | "evaluation_one_phase"
+        | "instant_funded"
+      funding_challenge_status:
+        | "phase_one"
+        | "phase_two"
+        | "funded"
+        | "burned"
+        | "expired"
+        | "cancelled"
+      funding_drawdown_type: "static" | "end_of_day" | "trailing"
+      funding_expense_category:
+        | "challenge_fee"
+        | "reset_fee"
+        | "platform"
+        | "tool"
+        | "course"
+        | "other"
+      funding_payout_status:
+        | "requested"
+        | "approved"
+        | "paid"
+        | "rejected"
+        | "cancelled"
+      funding_phase_kind: "evaluation" | "funded"
+      funding_phase_status:
+        | "active"
+        | "passed"
+        | "failed"
+        | "expired"
+        | "cancelled"
       instrument_market:
         | "forex"
         | "crypto"
@@ -1837,12 +2747,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1866,11 +2776,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1891,11 +2801,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1916,11 +2826,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1933,11 +2843,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1952,6 +2862,43 @@ export const Constants = {
   },
   public: {
     Enums: {
+      funding_account_type: [
+        "evaluation_two_phase",
+        "evaluation_one_phase",
+        "instant_funded",
+      ],
+      funding_challenge_status: [
+        "phase_one",
+        "phase_two",
+        "funded",
+        "burned",
+        "expired",
+        "cancelled",
+      ],
+      funding_drawdown_type: ["static", "end_of_day", "trailing"],
+      funding_expense_category: [
+        "challenge_fee",
+        "reset_fee",
+        "platform",
+        "tool",
+        "course",
+        "other",
+      ],
+      funding_payout_status: [
+        "requested",
+        "approved",
+        "paid",
+        "rejected",
+        "cancelled",
+      ],
+      funding_phase_kind: ["evaluation", "funded"],
+      funding_phase_status: [
+        "active",
+        "passed",
+        "failed",
+        "expired",
+        "cancelled",
+      ],
       instrument_market: [
         "forex",
         "crypto",

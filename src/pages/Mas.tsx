@@ -1,4 +1,4 @@
-import { BarChart3, ChevronRight, CreditCard, GraduationCap, Newspaper, ShieldCheck, Sparkles, Target, User, type LucideIcon } from 'lucide-react'
+import { BarChart3, ChevronRight, Compass, CreditCard, GraduationCap, Landmark, Newspaper, ShieldCheck, Sparkles, Target, User, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getInitials } from '../components/Avatar'
 import { useAiUsageToday } from '../hooks/useAiUsageToday'
@@ -31,7 +31,9 @@ function buildGroups(isAdmin: boolean): MenuGroup[] {
     },
     { title: 'Análisis', items: [
       { label: 'IA Trader', to: '/ia-trader', icon: BarChart3 },
+      { label: 'Fondeo Tracker', to: '/fondeo', icon: Landmark },
       { label: 'Simulador de fondeo', to: '/simulador', icon: BarChart3 },
+      { label: 'Linea Pilot', to: '/pilot', icon: Compass },
     ] },
     {
       title: 'Cuenta',
